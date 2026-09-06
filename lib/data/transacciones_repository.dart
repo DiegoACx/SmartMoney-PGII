@@ -30,7 +30,7 @@ class TransaccionesRepository {
   Future<List<Map<String, dynamic>>> obtenerTransacciones(String usuarioId) async {
     final data = await _client
         .from('transacciones')
-        .select()
+        .select('*, categorias(nombre)')
         .eq('usuario_id', usuarioId)
         .order('fecha', ascending: false);
 

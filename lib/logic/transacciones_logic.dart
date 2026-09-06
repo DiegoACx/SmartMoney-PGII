@@ -1,3 +1,5 @@
+import '../data/transacciones_repository.dart';
+
 /// Resultado de una validación: indica si es válida y, si no, por qué.
 class ResultadoValidacion {
   final bool esValido;
@@ -13,6 +15,8 @@ class ResultadoValidacion {
 }
 
 class TransaccionesLogic {
+  final TransaccionesRepository _repository = TransaccionesRepository();
+
   /// Valida que el monto sea positivo y que la categoría exista
   /// dentro de la lista de categorías válidas del usuario.
   ResultadoValidacion validarTransaccion({
@@ -64,5 +68,53 @@ class TransaccionesLogic {
     }
 
     return utilidad;
+  }
+
+  /// Obtiene las transacciones más recientes de un usuario,
+  /// limitadas a [limite] elementos. La lista ya viene ordenada
+  /// por fecha descendente desde el repositorio.
+  Future<List<Map<String, dynamic>>> obtenerTransaccionesRecientes(
+    String usuarioId, {
+    int limite = 10,
+  }) async {
+    final todas = await _repository.obtenerTransacciones(usuarioId);
+    return todas.take(limite).toList();
+  }
+
+  /// Valida y registra una nueva transacción.
+  /// Retorna null si todo sale bien, o un String con el mensaje de error.
+  Future<String?> registrarTransaccion({
+    required double monto,
+    required String tipo,
+    required String categoriaId,
+    required DateTime fecha,
+    String? nota,
+    required List<String> categoriasValidas,
+  }) async {
+    // Primero validamos sin tocar el repositorio
+    final validacion = validarTransaccion(
+      monto: monto,
+      categoriaId: categoriaId,
+      categoriasValidas: categoriasValidas,
+    );
+    if (!validacion.esValido) {
+      return validacion.mensajeError;
+    }
+
+    try {
+      await _repository.crearTransaccion(
+        tipo: tipo,
+        monto: monto,
+        categoriaId: categoriaId,
+        descripcion: nota,
+        fecha: fecha,
+      );
+      return null;
+    } catch (e) {
+      if (e.toString().contains('No hay usuario autenticado')) {
+        return 'No hay usuario autenticado. Inicia sesión para continuar.';
+      }
+      return 'Ocurrió un error al guardar la transacción. Intenta de nuevo.';
+    }
   }
 }
