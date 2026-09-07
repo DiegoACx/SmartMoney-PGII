@@ -172,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF787D7D),
+                        color: const Color(0xFF8C8474),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -200,7 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 labelText: 'Nombre completo',
                                 prefixIcon: Icon(
                                   Icons.person_outline,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                               ),
                             ),
@@ -227,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 labelText: 'Correo electrónico',
                                 prefixIcon: Icon(
                                   Icons.email_outlined,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                               ),
                             ),
@@ -257,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 labelText: 'Contraseña',
                                 prefixIcon: const Icon(
                                   Icons.lock_outline,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                                 suffixIcon: IconButton(
                                   onPressed: () {
@@ -269,7 +269,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     _obscureContrasena
                                         ? Icons.visibility_off
                                         : Icons.visibility,
-                                    color: const Color(0xFF787D7D),
+                                    color: const Color(0xFFC9C2B0),
                                   ),
                                 ),
                               ),
@@ -285,7 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               child: Text(
                                 'Mínimo 6 caracteres',
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFF787D7D),
+                                  color: const Color(0xFF8C8474),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w400,
                                 ),
@@ -317,7 +317,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 labelText: 'Confirmar contraseña',
                                 prefixIcon: const Icon(
                                   Icons.lock_outline,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                                 suffixIcon: IconButton(
                                   onPressed: () {
@@ -329,7 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     _obscureConfirmar
                                         ? Icons.visibility_off
                                         : Icons.visibility,
-                                    color: const Color(0xFF787D7D),
+                                    color: const Color(0xFFC9C2B0),
                                   ),
                                 ),
                               ),
@@ -404,7 +404,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           text: TextSpan(
                             text: '¿Ya tienes cuenta? ',
                             style: GoogleFonts.poppins(
-                              color: const Color(0xFF787D7D),
+                              color: const Color(0xFF8C8474),
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
                             ),

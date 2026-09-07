@@ -109,6 +109,11 @@ class AuthLogic {
     return _repository.obtenerUsuarioActual() != null;
   }
 
+  /// Devuelve el ID del usuario autenticado actualmente, o null si no hay sesión.
+  String? obtenerUsuarioId() {
+    return _repository.obtenerUsuarioActual()?.id;
+  }
+
   /// Expone el stream de cambios de sesión para la sesión persistente.
   Stream<AuthState> escucharSesion() {
     return _repository.escucharCambiosDeSesion();

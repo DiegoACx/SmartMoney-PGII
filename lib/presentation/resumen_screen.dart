@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/transacciones_repository.dart';
 import '../logic/finanzas_logic.dart';
 
@@ -25,7 +26,9 @@ class _ResumenScreenState extends State<ResumenScreen> {
   Future<void> _cargarResumen() async {
     // La UI no sabe cómo se calcula ni de dónde vienen los datos,
     // solo pide el dato ya calculado a la capa logic.
-    final transacciones = await _repository.obtenerTransacciones();
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    final transacciones = await _repository.obtenerTransacciones(userId);
     final total = _logic.calcularTotalNeto(transacciones);
 
     setState(() {

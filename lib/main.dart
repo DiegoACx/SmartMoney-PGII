@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'presentation/auth_gate.dart';
 
@@ -27,13 +28,19 @@ class MyApp extends StatelessWidget {
     const Color primaryColor = Color(0xFF58774B);
     const Color lightPrimary = Color(0xFF7A9B6C);
     const Color backgroundColor = Color(0xFFFAF6EA);
-    const Color secondaryColor = Color(0xFF787D7D);
+    const Color secondaryColor = Color(0xFF8C8474);
     const Color textColor = Color(0xFF2B2B2B);
     const Color errorColor = Color(0xFFC0392B);
 
     return MaterialApp(
       title: 'SmartMoney',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es', 'ES')],
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: GoogleFonts.poppins().fontFamily,
