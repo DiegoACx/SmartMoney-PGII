@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../logic/auth_logic.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
+import 'main_shell.dart';
 
-/// "Portero" de la app: decide si mostrar el Login o el Home,
+/// "Portero" de la app: decide si mostrar el Login o el MainShell,
 /// según si ya hay una sesión activa (sesión persistente).
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -21,7 +21,7 @@ class AuthGate extends StatelessWidget {
         final haySesion = auth.haySesionActiva();
 
         if (haySesion) {
-          return const HomeScreen();
+          return const MainShell();
         }
         return const LoginScreen();
       },

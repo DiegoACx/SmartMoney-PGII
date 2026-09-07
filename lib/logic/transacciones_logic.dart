@@ -14,8 +14,32 @@ class ResultadoValidacion {
         mensajeError = mensaje;
 }
 
+/// Totales calculados sobre un periodo de tiempo.
+/// [diferencia] = [totalIngresos] - [totalEgresos].
+class TotalesPeriodo {
+  final double totalIngresos;
+  final double totalEgresos;
+  final double diferencia;
+
+  const TotalesPeriodo({
+    required this.totalIngresos,
+    required this.totalEgresos,
+  }) : diferencia = totalIngresos - totalEgresos;
+}
+
+/// Periodos predefinidos para los cálculos del dashboard.
+enum PeriodoDashboard {
+  mesActual,
+  mesPasado,
+  ultimos3Meses,
+  ultimos5Meses,
+  anual,
+}
+
 class TransaccionesLogic {
   final TransaccionesRepository _repository = TransaccionesRepository();
+
+  // ===== MÉTODOS EXISTENTES (SIN MODIFICAR) =====
 
   /// Valida que el monto sea positivo y que la categoría exista
   /// dentro de la lista de categorías válidas del usuario.
@@ -81,6 +105,55 @@ class TransaccionesLogic {
     return todas.take(limite).toList();
   }
 
+  // ===== MÉTODOS NUEVOS =====
+
+  /// Dado un periodo del dashboard, retorna (fechaInicio, fechaFin)
+  /// correspondiente, en hora local.
+  (DateTime, DateTime) obtenerRangoFechas(PeriodoDashboard periodo) {
+    final ahora = DateTime.now();
+    switch (periodo) {
+      case PeriodoDashboard.mesActual:
+        return (DateTime(ahora.year, ahora.month, 1), ahora);
+      case PeriodoDashboard.mesPasado:
+        final primerDiaMesActual = DateTime(ahora.year, ahora.month, 1);
+        final ultimoDiaMesPasado =
+            primerDiaMesActual.subtract(const Duration(days: 1));
+        return (
+          DateTime(ultimoDiaMesPasado.year, ultimoDiaMesPasado.month, 1),
+          ultimoDiaMesPasado,
+        );
+      case PeriodoDashboard.ultimos3Meses:
+        return (DateTime(ahora.year, ahora.month - 3, ahora.day), ahora);
+      case PeriodoDashboard.ultimos5Meses:
+        return (DateTime(ahora.year, ahora.month - 5, ahora.day), ahora);
+      case PeriodoDashboard.anual:
+        return (DateTime(ahora.year, 1, 1), ahora);
+    }
+  }
+
+  /// Calcula los totales (ingresos / egresos / diferencia) de un periodo
+  /// sobre una lista de transacciones ya cargada en memoria.
+  TotalesPeriodo calcularTotalesPeriodo(
+    List<Map<String, dynamic>> transacciones,
+    PeriodoDashboard periodo,
+  ) {
+    final (fechaInicio, fechaFin) = obtenerRangoFechas(periodo);
+    double ingresos = 0;
+    double egresos = 0;
+    for (final t in transacciones) {
+      final fecha = DateTime.parse(t['fecha'] as String);
+      if (fecha.isBefore(fechaInicio) || fecha.isAfter(fechaFin)) continue;
+      final monto = (t['monto'] as num).toDouble();
+      final tipo = t['tipo'] as String;
+      if (tipo == 'ingreso') {
+        ingresos += monto;
+      } else if (tipo == 'egreso') {
+        egresos += monto;
+      }
+    }
+    return TotalesPeriodo(totalIngresos: ingresos, totalEgresos: egresos);
+  }
+
   /// Valida y registra una nueva transacción.
   /// Retorna null si todo sale bien, o un String con el mensaje de error.
   Future<String?> registrarTransaccion({
@@ -90,6 +163,7 @@ class TransaccionesLogic {
     required DateTime fecha,
     String? nota,
     required List<String> categoriasValidas,
+    required String metodoPago,
   }) async {
     // Primero validamos sin tocar el repositorio
     final validacion = validarTransaccion(
@@ -100,6 +174,9 @@ class TransaccionesLogic {
     if (!validacion.esValido) {
       return validacion.mensajeError;
     }
+    if (metodoPago != 'efectivo' && metodoPago != 'transferencia') {
+      return 'Selecciona un método de pago válido';
+    }
 
     try {
       await _repository.crearTransaccion(
@@ -108,6 +185,7 @@ class TransaccionesLogic {
         categoriaId: categoriaId,
         descripcion: nota,
         fecha: fecha,
+        metodoPago: metodoPago,
       );
       return null;
     } catch (e) {
@@ -116,5 +194,54 @@ class TransaccionesLogic {
       }
       return 'Ocurrió un error al guardar la transacción. Intenta de nuevo.';
     }
+  }
+
+  // ===== Filtros y agrupaciones (síncronos, sobre lista en memoria) =====
+
+  /// Deja solo las transacciones cuyo [tipo] coincide ('ingreso' / 'egreso').
+  List<Map<String, dynamic>> filtrarPorTipo(
+    List<Map<String, dynamic>> transacciones,
+    String tipo,
+  ) {
+    return transacciones.where((t) => t['tipo'] == tipo).toList();
+  }
+
+  /// Agrupa las transacciones por **nombre de categoría**.
+  /// El Map resultante incluye también las categorías que no tienen
+  /// transacciones (con una lista vacía), en el orden de [todasLasCategorias].
+  Map<String, List<Map<String, dynamic>>> agruparPorCategoria(
+    List<Map<String, dynamic>> transacciones,
+    List<Map<String, dynamic>> todasLasCategorias,
+  ) {
+    final Map<String, List<Map<String, dynamic>>> resultado = {
+      for (final c in todasLasCategorias) c['nombre'].toString(): [],
+    };
+    for (final t in transacciones) {
+      final nombreCategoria = (t['categorias'] is Map)
+          ? (t['categorias'] as Map)['nombre']?.toString() ?? 'Sin categoría'
+          : 'Sin categoría';
+      resultado.putIfAbsent(nombreCategoria, () => []).add(t);
+    }
+    return resultado;
+  }
+
+  /// Agrupa las transacciones por fecha (string 'YYYY-MM-DD'), tal cual
+  /// vienen en el campo de la tabla.
+  Map<String, List<Map<String, dynamic>>> agruparPorFecha(
+    List<Map<String, dynamic>> transacciones,
+  ) {
+    final Map<String, List<Map<String, dynamic>>> resultado = {};
+    for (final t in transacciones) {
+      final fecha = t['fecha'] as String; // ya viene como 'YYYY-MM-DD'
+      resultado.putIfAbsent(fecha, () => []).add(t);
+    }
+    return resultado;
+  }
+
+  /// Obtiene todas las transacciones de un usuario (sin límite).
+  Future<List<Map<String, dynamic>>> obtenerTodasLasTransacciones(
+    String usuarioId,
+  ) async {
+    return await _repository.obtenerTodasLasTransacciones(usuarioId);
   }
 }

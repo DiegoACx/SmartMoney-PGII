@@ -1,42 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../logic/auth_logic.dart';
+import '../logic/formato_utils.dart';
 import '../logic/transacciones_logic.dart';
-import 'registro_transaccion_screen.dart';
 
+/// Clipper curvo para el header decorativo superior, idéntico al usado en
+/// las pantallas de autenticación.
+class _CurvedHeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    final controlPoint = Offset(size.width / 2, size.height + 20);
+    final endPoint = Offset(size.width, size.height - 40);
+    path.quadraticBezierTo(
+        controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// Dashboard principal: selector de periodo + 3 tarjetas de totales
+/// (Ingresos / Egresos / Diferencia) + placeholder de gráficas.
+///
+/// La carga de transacciones se hace **una sola vez** con
+/// `obtenerTodasLasTransacciones`; al cambiar de periodo solo se recalcula
+/// en memoria (`calcularTotalesPeriodo`) sin volver a consultar Supabase.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final _auth = AuthLogic();
+class HomeScreenState extends State<HomeScreen> {
   final _transaccionesLogic = TransaccionesLogic();
+  final _authLogic = AuthLogic();
 
-  List<Map<String, dynamic>> _transacciones = [];
   bool _cargando = true;
+  List<Map<String, dynamic>> _transacciones = [];
+  PeriodoDashboard _periodo = PeriodoDashboard.mesActual;
 
-  final _dateFormat = DateFormat('dd/MM/yyyy');
-  final _moneyFormat = NumberFormat.currency(
-    locale: 'es_MX',
-    symbol: '\$',
-    decimalDigits: 2,
-  );
+  // ===== Label visible por periodo (para el selector) =====
+  static const Map<PeriodoDashboard, String> _labelsPeriodo = {
+    PeriodoDashboard.mesActual: 'Mes actual',
+    PeriodoDashboard.mesPasado: 'Mes pasado',
+    PeriodoDashboard.ultimos3Meses: 'Últimos 3 meses',
+    PeriodoDashboard.ultimos5Meses: 'Últimos 5 meses',
+    PeriodoDashboard.anual: 'Anual',
+  };
 
   @override
   void initState() {
     super.initState();
-    _cargarTransacciones();
+    cargarTransacciones();
   }
 
-  Future<void> _cargarTransacciones() async {
+  // ===== Carga inicial y recarga manual/pull-to-refresh =====
+  Future<void> cargarTransacciones() async {
     setState(() => _cargando = true);
     try {
-      final usuarioId = _auth.obtenerUsuarioId();
+      final usuarioId = _authLogic.obtenerUsuarioId();
       if (usuarioId == null) {
         if (!mounted) return;
         setState(() {
@@ -45,13 +74,11 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         return;
       }
-      final lista = await _transaccionesLogic.obtenerTransaccionesRecientes(
-        usuarioId,
-        limite: 10,
-      );
+      final data =
+          await _transaccionesLogic.obtenerTodasLasTransacciones(usuarioId);
       if (!mounted) return;
       setState(() {
-        _transacciones = lista;
+        _transacciones = data;
         _cargando = false;
       });
     } catch (e) {
@@ -64,79 +91,251 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _irARegistro() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const RegistroTransaccionScreen(),
-      ),
-    );
-    // Al volver, refrescamos la lista para ver la transacción recién creada
-    if (mounted) _cargarTransacciones();
-  }
-
-  // ===== Color de acento por tipo =====
-  Color _colorPorTipo(String tipo) {
-    if (tipo == 'ingreso') return const Color(0xFF58774B);
-    return const Color(0xFFC0392B);
-  }
-
-  // ===== Signo por tipo =====
-  String _signoPorTipo(String tipo) {
-    return tipo == 'ingreso' ? '+' : '-';
+  // ===== Cerrar sesión =====
+  void _cerrarSesion() async {
+    await _authLogic.cerrarSesion();
+    // No hace falta navegar manualmente: AuthGate escucha el cambio de
+    // sesión (StreamBuilder) y muestra LoginScreen automáticamente al
+    // detectar el logout.
   }
 
   @override
   Widget build(BuildContext context) {
+    final totales =
+        _transaccionesLogic.calcularTotalesPeriodo(_transacciones, _periodo);
+    final signoDif = totales.diferencia >= 0 ? '+' : '-';
+    final colorDif =
+        totales.diferencia >= 0 ? const Color(0xFF58774B) : const Color(0xFFC0392B);
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _irARegistro,
-        backgroundColor: const Color(0xFF58774B),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add, size: 28),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFAF6EA),
+        elevation: 0,
+        actions: [
+          TextButton.icon(
+            onPressed: _cerrarSesion,
+            icon: const Icon(Icons.logout, size: 18, color: Color(0xFFC0392B)),
+            label: Text(
+              'Cerrar sesión',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFFC0392B),
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFF58774B),
-          onRefresh: _cargarTransacciones,
+          onRefresh: cargarTransacciones,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 16,
-            ),
+            padding: const EdgeInsets.only(bottom: 24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ===== Saludo =====
-                const SizedBox(height: 8),
-                Text(
-                  'Hola de nuevo',
-                  style: GoogleFonts.poppins(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF2B2B2B),
+                // ===== Header decorativo =====
+                ClipPath(
+                  clipper: _CurvedHeaderClipper(),
+                  child: Container(
+                    height: 140,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF58774B), Color(0xFF7A9B6C)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'SmartMoney',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tus movimientos recientes',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF787D7D),
+                const SizedBox(height: 8),
+
+                // ===== Selector de periodo =====
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: PeriodoDashboard.values.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final p = PeriodoDashboard.values[i];
+                        final seleccionado = p == _periodo;
+                        return GestureDetector(
+                          onTap: () => setState(() => _periodo = p),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: seleccionado
+                                  ? const LinearGradient(colors: [
+                                      Color(0xFF58774B),
+                                      Color(0xFF7A9B6C),
+                                    ])
+                                  : null,
+                              color: seleccionado ? null : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: seleccionado
+                                  ? null
+                                  : [
+                                      const BoxShadow(
+                                        color: Color(0x0D000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                              border: Border.all(
+                                color: seleccionado
+                                    ? Colors.transparent
+                                    : const Color(0xFFECECEC),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              _labelsPeriodo[p]!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: seleccionado
+                                    ? Colors.white
+                                    : const Color(0xFF2B2B2B),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // ===== Lista / Loading / Vacío =====
-                _cargando
-                    ? _buildLoading()
-                    : _transacciones.isEmpty
-                        ? _buildEstadoVacio()
-                        : _buildLista(),
+                if (_cargando)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 48),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF58774B),
+                      ),
+                    ),
+                  )
+                else ...[
+                  // ===== Tarjetas de totales =====
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _TarjetaTotal(
+                      titulo: 'Ingresos',
+                      monto: totales.totalIngresos,
+                      signo: '+',
+                      color: const Color(0xFF58774B),
+                      icon: Icons.arrow_upward_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _TarjetaTotal(
+                      titulo: 'Egresos',
+                      monto: totales.totalEgresos,
+                      signo: '-',
+                      color: const Color(0xFFC0392B),
+                      icon: Icons.arrow_downward_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _TarjetaTotal(
+                      titulo: 'Diferencia',
+                      monto: totales.diferencia.abs(),
+                      signo: signoDif,
+                      color: colorDif,
+                      icon: totales.diferencia >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ===== Placeholder gráficas =====
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFE5E5E5),
+                          width: 1.2,
+                          style: BorderStyle.solid,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 84,
+                            height: 84,
+                            decoration: BoxDecoration(
+                              color:
+                                  const Color(0xFF58774B).withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.bar_chart_rounded,
+                              color: Color(0xFF58774B),
+                              size: 42,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Próximamente: gráficas de tus finanzas',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF2B2B2B),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Visualiza tus gastos e ingresos por categoría.',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF8C8474),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -144,157 +343,72 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  // ===== Indicador de carga =====
-  Widget _buildLoading() {
-    return const SizedBox(
-      height: 300,
-      child: Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF58774B),
-          strokeWidth: 3,
-        ),
-      ),
-    );
-  }
+// ===== Widget auxiliar: tarjeta de totales =====
+class _TarjetaTotal extends StatelessWidget {
+  final String titulo;
+  final double monto;
+  final String signo;
+  final Color color;
+  final IconData icon;
 
-  // ===== Estado vacío =====
-  Widget _buildEstadoVacio() {
-    return SizedBox(
-      height: 380,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  const _TarjetaTotal({
+    required this.titulo,
+    required this.monto,
+    required this.signo,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      color: Colors.white,
+      shadowColor: const Color(0x0D000000),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(28),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF58774B).withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.receipt_long_outlined,
-                size: 72,
-                color: Color(0xFF58774B),
-              ),
+              child: Icon(icon, color: color, size: 26),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Aún no tienes transacciones registradas',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF2B2B2B),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toca el botón + para agregar tu primera transacción',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF787D7D),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===== Lista de transacciones =====
-  Widget _buildLista() {
-    return Column(
-      children: List.generate(_transacciones.length, (i) {
-        final t = _transacciones[i];
-        final tipo = (t['tipo'] as String).toLowerCase();
-        final monto = (t['monto'] as num).toDouble();
-        final fechaStr = t['fecha'] as String? ?? '';
-        final fecha = DateTime.tryParse(fechaStr) ?? DateTime.now();
-        final categoria =
-            t['categorias'] != null && (t['categorias'] is Map)
-                ? (t['categorias'] as Map)['nombre']?.toString() ??
-                    'Sin categoría'
-                : t['categoria_nombre']?.toString() ??
-                    (t['categoria_id']?.toString() ?? 'Sin categoría');
-        final acento = _colorPorTipo(tipo);
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: i == _transacciones.length - 1 ? 80 : 12,
-          ),
-          child: Card(
-            elevation: 1,
-            shadowColor: Colors.black.withValues(alpha: 0.08),
-            color: Colors.white,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Row(
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Barra de acento a la izquierda
-                  Container(
-                    width: 5,
-                    height: 76,
-                    color: acento,
+                  Text(
+                    titulo,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF8C8474),
+                    ),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          // Categoría + Fecha
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  categoria,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF2B2B2B),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _dateFormat.format(fecha),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w400,
-                                    color: const Color(0xFF787D7D),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Monto
-                          Text(
-                            '${_signoPorTipo(tipo)} ${_moneyFormat.format(monto).replaceFirst('\$', '\$ ')}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: acento,
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$signo ${FormatoUtils.moneda.format(monto)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: color,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      }),
+          ],
+        ),
+      ),
     );
   }
 }

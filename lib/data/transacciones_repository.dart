@@ -10,6 +10,7 @@ class TransaccionesRepository {
     required String categoriaId,
     String? descripcion,
     required DateTime fecha,
+    required String metodoPago,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -23,6 +24,7 @@ class TransaccionesRepository {
       'monto': monto,
       'descripcion': descripcion,
       'fecha': fecha.toIso8601String().split('T')[0],
+      'metodo_pago': metodoPago,
     });
   }
 
@@ -33,6 +35,22 @@ class TransaccionesRepository {
         .select('*, categorias(nombre)')
         .eq('usuario_id', usuarioId)
         .order('fecha', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Trae TODAS las transacciones de un usuario (join con categorías).
+  /// Ordena primero por fecha (desc) y, para desempatar, por fecha_creacion
+  /// (desc) — la misma fecha de la transacción, la más recientemente creada
+  /// aparece primero.
+  Future<List<Map<String, dynamic>>> obtenerTodasLasTransacciones(
+      String usuarioId) async {
+    final data = await _client
+        .from('transacciones')
+        .select('*, categorias(nombre)')
+        .eq('usuario_id', usuarioId)
+        .order('fecha', ascending: false)
+        .order('fecha_creacion', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
   }

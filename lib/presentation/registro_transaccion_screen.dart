@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../logic/transacciones_logic.dart';
 import '../logic/categorias_logic.dart';
+import '../logic/formato_utils.dart';
 
 // ===== Header decorativo curvo =====
 class _CurvedHeaderClipper extends CustomClipper<Path> {
@@ -54,6 +55,7 @@ class _RegistroTransaccionScreenState
   DateTime _fechaSeleccionada = DateTime.now();
   String? _tipoSeleccionado; // 'ingreso' o 'egreso'
   String? _categoriaSeleccionadaId;
+  String? _metodoPagoSeleccionado; // 'efectivo' o 'transferencia'
 
   List<Map<String, dynamic>> _categorias = [];
   bool _cargandoCategorias = true;
@@ -101,19 +103,24 @@ class _RegistroTransaccionScreenState
     }
   }
 
-  // ===== Validación custom de tipo y categoría =====
+  // ===== Validación custom de tipo, categoría y método de pago =====
   String? _errorTipo;
   String? _errorCategoria;
+  String? _errorMetodoPago;
 
   bool _validarAntesDeEnviar() {
     setState(() {
       _errorTipo = _tipoSeleccionado == null ? 'Selecciona un tipo' : null;
       _errorCategoria =
           _categoriaSeleccionadaId == null ? 'Selecciona una categoría' : null;
+      _errorMetodoPago = _metodoPagoSeleccionado == null
+          ? 'Selecciona un método de pago'
+          : null;
     });
     return _formKey.currentState!.validate() &&
         _errorTipo == null &&
-        _errorCategoria == null;
+        _errorCategoria == null &&
+        _errorMetodoPago == null;
   }
 
   // ===== Guardar transacción =====
@@ -126,8 +133,9 @@ class _RegistroTransaccionScreenState
 
     setState(() => _isLoading = true);
 
+    final montoStr = _montoController.text.trim().replaceAll('.', '');
     final error = await _transaccionesLogic.registrarTransaccion(
-      monto: double.parse(_montoController.text.trim()),
+      monto: double.parse(montoStr),
       tipo: _tipoSeleccionado!,
       categoriaId: _categoriaSeleccionadaId!,
       fecha: _fechaSeleccionada,
@@ -135,6 +143,7 @@ class _RegistroTransaccionScreenState
           ? null
           : _notaController.text.trim(),
       categoriasValidas: categoriasIds,
+      metodoPago: _metodoPagoSeleccionado!,
     );
 
     if (!mounted) return;
@@ -158,6 +167,7 @@ class _RegistroTransaccionScreenState
       setState(() {
         _tipoSeleccionado = null;
         _categoriaSeleccionadaId = null;
+        _metodoPagoSeleccionado = null;
         _fechaSeleccionada = DateTime.now();
         _fechaController.text = _dateFormat.format(_fechaSeleccionada);
         _isLoading = false;
@@ -213,7 +223,6 @@ class _RegistroTransaccionScreenState
   // ===== Diálogo para crear categoría nueva =====
   Future<void> _mostrarDialogCrearCategoria() async {
     final nombreCtrl = TextEditingController();
-    String? tipoCat;
     String? errorMsg;
     bool creando = false;
     final formKey = GlobalKey<FormState>();
@@ -280,79 +289,12 @@ class _RegistroTransaccionScreenState
                             ),
                             prefixIcon: const Icon(
                               Icons.label_outline,
-                              color: Color(0xFF787D7D),
+                              color: Color(0xFFC9C2B0),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Selector Tipo
-                      Text(
-                        'Tipo',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF2B2B2B),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment<String>(
-                            value: 'ingreso',
-                            label: Text('Ingreso'),
-                            icon: Icon(Icons.arrow_upward),
-                          ),
-                          ButtonSegment<String>(
-                            value: 'egreso',
-                            label: Text('Egreso'),
-                            icon: Icon(Icons.arrow_downward),
-                          ),
-                        ],
-                        emptySelectionAllowed: true,
-                        selected: {tipoCat}.whereType<String>().toSet(),
-                        onSelectionChanged: creando
-                            ? null
-                            : (s) {
-                                setDialogState(() {
-                                  tipoCat = s.isEmpty ? null : s.first;
-                                  errorMsg = null;
-                                });
-                              },
-                        style: ButtonStyle(
-                          foregroundColor:
-                              WidgetStateProperty.resolveWith(
-                            (s) => s.contains(WidgetState.selected)
-                                ? Colors.white
-                                : const Color(0xFF787D7D),
-                          ),
-                          backgroundColor:
-                              WidgetStateProperty.resolveWith(
-                            (s) => s.contains(WidgetState.selected)
-                                ? const Color(0xFF58774B)
-                                : Colors.white,
-                          ),
-                          side: WidgetStatePropertyAll(
-                            BorderSide(
-                              color: errorMsg != null && tipoCat == null
-                                  ? const Color(0xFFC0392B)
-                                  : const Color(0xFFE0E0E0),
-                            ),
-                          ),
-                          shape: WidgetStatePropertyAll(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          textStyle: WidgetStatePropertyAll(
-                            GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 24),
 
                       // Mensaje de error inline
                       if (errorMsg != null)
@@ -392,7 +334,7 @@ class _RegistroTransaccionScreenState
                               child: Text(
                                 'Cancelar',
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFF787D7D),
+                                  color: const Color(0xFF8C8474),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -415,32 +357,32 @@ class _RegistroTransaccionScreenState
                                 ),
                                 child: ElevatedButton(
                                   onPressed: creando
-                                      ? null
-                                      : () async {
-                                          // Validación local
-                                          if (!formKey.currentState!
-                                              .validate()) {
-                                            setDialogState(() =>
-                                                errorMsg =
-                                                    'Completa todos los campos');
-                                            return;
-                                          }
-                                          if (tipoCat == null) {
-                                            setDialogState(() =>
-                                                errorMsg =
-                                                    'Selecciona un tipo');
-                                            return;
-                                          }
-                                          setDialogState(() {
-                                            creando = true;
-                                            errorMsg = null;
-                                          });
-                                          final resultado =
-                                              await _categoriasLogic
-                                                  .crearCategoria(
-                                            nombre: nombreCtrl.text,
-                                            tipo: tipoCat!,
-                                          );
+                                    ? null
+                                    : () async {
+                                        // Validación local
+                                        if (!formKey.currentState!
+                                            .validate()) {
+                                          setDialogState(() =>
+                                              errorMsg =
+                                                  'Completa todos los campos');
+                                          return;
+                                        }
+                                        if (_tipoSeleccionado == null) {
+                                          setDialogState(() =>
+                                              errorMsg =
+                                                  'Selecciona un tipo de transacción antes');
+                                          return;
+                                        }
+                                        setDialogState(() {
+                                          creando = true;
+                                          errorMsg = null;
+                                        });
+                                        final resultado =
+                                            await _categoriasLogic
+                                                .crearCategoria(
+                                          nombre: nombreCtrl.text,
+                                          tipo: _tipoSeleccionado!,
+                                        );
                                           if (!ctx.mounted) return;
                                           if (resultado.exito) {
                                             Navigator.pop(
@@ -587,16 +529,19 @@ class _RegistroTransaccionScreenState
                           color: Colors.transparent,
                           child: TextFormField(
                             controller: _montoController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [MilesInputFormatter()],
                             autovalidateMode:
                                 AutovalidateMode.onUserInteraction,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Ingresa un monto';
                               }
-                              final n = double.tryParse(value.trim());
+                              final digitsOnly = value
+                                  .trim()
+                                  .replaceAll(RegExp(r'[^0-9]'), '');
+                              if (digitsOnly.isEmpty) return 'Ingresa un monto';
+                              final n = double.tryParse(digitsOnly);
                               if (n == null || n <= 0) {
                                 return 'El monto debe ser mayor a 0';
                               }
@@ -615,7 +560,7 @@ class _RegistroTransaccionScreenState
                               ),
                               prefixIcon: const Icon(
                                 Icons.attach_money,
-                                color: Color(0xFF787D7D),
+                                color: Color(0xFFC9C2B0),
                               ),
                             ),
                           ),
@@ -659,7 +604,7 @@ class _RegistroTransaccionScreenState
                             foregroundColor: WidgetStateProperty.resolveWith(
                               (s) => s.contains(WidgetState.selected)
                                   ? Colors.white
-                                  : const Color(0xFF787D7D),
+                                  : const Color(0xFF8C8474),
                             ),
                             backgroundColor: WidgetStateProperty.resolveWith(
                               (s) => s.contains(WidgetState.selected)
@@ -691,6 +636,84 @@ class _RegistroTransaccionScreenState
                             padding: const EdgeInsets.only(top: 6, left: 4),
                             child: Text(
                               _errorTipo!,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFC0392B),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+
+                        // ===== Selector Método de pago =====
+                        Text(
+                          'Método de pago',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF2B2B2B),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment<String>(
+                              value: 'efectivo',
+                              label: Text('Efectivo'),
+                              icon: Icon(Icons.payments_outlined),
+                            ),
+                            ButtonSegment<String>(
+                              value: 'transferencia',
+                              label: Text('Transferencia'),
+                              icon: Icon(Icons.account_balance_outlined),
+                            ),
+                          ],
+                          emptySelectionAllowed: true,
+                          selected: {
+                            _metodoPagoSeleccionado,
+                          }.whereType<String>().toSet(),
+                          onSelectionChanged: (s) {
+                            setState(() {
+                              _metodoPagoSeleccionado = s.first;
+                              _errorMetodoPago = null;
+                            });
+                          },
+                          style: ButtonStyle(
+                            foregroundColor: WidgetStateProperty.resolveWith(
+                              (s) => s.contains(WidgetState.selected)
+                                  ? Colors.white
+                                  : const Color(0xFF8C8474),
+                            ),
+                            backgroundColor: WidgetStateProperty.resolveWith(
+                              (s) => s.contains(WidgetState.selected)
+                                  ? const Color(0xFF58774B)
+                                  : Colors.white,
+                            ),
+                            side: WidgetStatePropertyAll(
+                              BorderSide(
+                                color: _errorMetodoPago != null
+                                    ? const Color(0xFFC0392B)
+                                    : const Color(0xFFE0E0E0),
+                              ),
+                            ),
+                            shape: WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            textStyle: WidgetStatePropertyAll(
+                              GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_errorMetodoPago != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: Text(
+                              _errorMetodoPago!,
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFFC0392B),
                                 fontSize: 12,
@@ -791,7 +814,7 @@ class _RegistroTransaccionScreenState
                                         labelText: 'Categoría',
                                         prefixIcon: const Icon(
                                           Icons.category_outlined,
-                                          color: Color(0xFF787D7D),
+                                          color: Color(0xFFC9C2B0),
                                         ),
                                         errorStyle: GoogleFonts.poppins(
                                           color: const Color(0xFFC0392B),
@@ -814,19 +837,27 @@ class _RegistroTransaccionScreenState
                                         }),
                                         DropdownMenuItem<String>(
                                           value: '__crear_nueva__',
+                                          enabled: _tipoSeleccionado != null,
                                           child: Row(
                                             children: [
-                                              const Icon(
-                                                Icons.add,
-                                                color: Color(0xFF58774B),
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 6),
+                                              if (_tipoSeleccionado != null)
+                                                const Icon(
+                                                  Icons.add,
+                                                  color: Color(0xFF58774B),
+                                                  size: 18,
+                                                )
+                                              else
+                                                const SizedBox(width: 18),
+                                              if (_tipoSeleccionado != null)
+                                                const SizedBox(width: 6)
+                                              else
+                                                const SizedBox(width: 6),
                                               Text(
                                                 'Crear nueva categoría',
                                                 style: GoogleFonts.poppins(
-                                                  color:
-                                                      const Color(0xFF58774B),
+                                                  color: _tipoSeleccionado != null
+                                                      ? const Color(0xFF58774B)
+                                                      : const Color(0xFFC9C2B0),
                                                   fontSize: 14,
                                                   fontWeight:
                                                       FontWeight.w600,
@@ -856,7 +887,7 @@ class _RegistroTransaccionScreenState
                                       ),
                                       icon: const Icon(
                                         Icons.keyboard_arrow_down,
-                                        color: Color(0xFF787D7D),
+                                        color: Color(0xFFC9C2B0),
                                       ),
                                     ),
                                   ),
@@ -896,7 +927,7 @@ class _RegistroTransaccionScreenState
                               labelText: 'Fecha',
                               prefixIcon: const Icon(
                                 Icons.calendar_today_outlined,
-                                color: Color(0xFF787D7D),
+                                color: Color(0xFFC9C2B0),
                               ),
                             ),
                             style: GoogleFonts.poppins(
@@ -931,7 +962,7 @@ class _RegistroTransaccionScreenState
                                 padding: EdgeInsets.only(bottom: 40),
                                 child: Icon(
                                   Icons.edit_note,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                               ),
                               alignLabelWithHint: true,

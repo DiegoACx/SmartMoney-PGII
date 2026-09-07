@@ -154,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF787D7D),
+                        color: const Color(0xFF8C8474),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -183,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 labelText: 'Correo electrónico',
                                 prefixIcon: const Icon(
                                   Icons.email_outlined,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                               ),
                             ),
@@ -210,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 labelText: 'Contraseña',
                                 prefixIcon: const Icon(
                                   Icons.lock_outline,
-                                  color: Color(0xFF787D7D),
+                                  color: Color(0xFFC9C2B0),
                                 ),
                                 suffixIcon: IconButton(
                                   onPressed: () {
@@ -222,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     _obscureContrasena
                                         ? Icons.visibility_off
                                         : Icons.visibility,
-                                    color: const Color(0xFF787D7D),
+                                    color: const Color(0xFFC9C2B0),
                                   ),
                                 ),
                               ),
@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           text: TextSpan(
                             text: '¿No tienes cuenta? ',
                             style: GoogleFonts.poppins(
-                              color: const Color(0xFF787D7D),
+                              color: const Color(0xFF8C8474),
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
                             ),

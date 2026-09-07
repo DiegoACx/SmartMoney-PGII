@@ -181,7 +181,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF787D7D),
+            color: const Color(0xFF8C8474),
           ),
         ),
         const SizedBox(height: 32),
@@ -209,7 +209,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     labelText: 'Correo electrónico',
                     prefixIcon: Icon(
                       Icons.email_outlined,
-                      color: Color(0xFF787D7D),
+                      color: Color(0xFFC9C2B0),
                     ),
                   ),
                 ),
@@ -283,7 +283,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               text: TextSpan(
                 text: '¿Ya tienes cuenta? ',
                 style: GoogleFonts.poppins(
-                  color: const Color(0xFF787D7D),
+                  color: const Color(0xFF8C8474),
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
@@ -341,13 +341,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
-            text: 'Te enviamos un enlace para restablecer tu contraseña a ',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF787D7D),
-              height: 1.5,
-            ),
+              text: 'Te enviamos un enlace para restablecer tu contraseña a ',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF8C8474),
+                height: 1.5,
+              ),
             children: [
               TextSpan(
                 text: _correoController.text.trim(),

@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
     const Color primaryColor = Color(0xFF58774B);
     const Color lightPrimary = Color(0xFF7A9B6C);
     const Color backgroundColor = Color(0xFFFAF6EA);
-    const Color secondaryColor = Color(0xFF787D7D);
+    const Color secondaryColor = Color(0xFF8C8474);
     const Color textColor = Color(0xFF2B2B2B);
     const Color errorColor = Color(0xFFC0392B);
 
