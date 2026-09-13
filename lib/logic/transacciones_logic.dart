@@ -36,6 +36,18 @@ enum PeriodoDashboard {
   anual,
 }
 
+/// Periodo de agrupación temporal para análisis de consumo.
+enum PeriodoAgrupacion { semana, mes }
+
+String _claveMes(DateTime fecha) =>
+    '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}';
+
+String _claveSemana(DateTime fecha) {
+  final lunes = fecha.subtract(Duration(days: fecha.weekday - 1));
+  return '${lunes.year}-${lunes.month.toString().padLeft(2, '0')}-'
+      '${lunes.day.toString().padLeft(2, '0')}';
+}
+
 class TransaccionesLogic {
   final TransaccionesRepository _repository = TransaccionesRepository();
 
@@ -243,5 +255,79 @@ class TransaccionesLogic {
     String usuarioId,
   ) async {
     return await _repository.obtenerTodasLasTransacciones(usuarioId);
+  }
+
+  /// Agrupa transacciones por periodo (semana o mes) y, dentro de cada
+  /// periodo, por categoría, sumando los montos. Por defecto solo considera
+  /// egresos (tipo: 'egreso'), ya que esta función alimenta el análisis de
+  /// patrones de consumo/gasto. Pasa tipo: null si necesitas incluir ambos
+  /// tipos, o tipo: 'ingreso' para solo ingresos.
+  Map<String, Map<String, double>> agruparPorCategoriaYPeriodo(
+    List<Map<String, dynamic>> transacciones,
+    PeriodoAgrupacion periodo, {
+    String? tipo = 'egreso',
+  }) {
+    final Map<String, Map<String, double>> resultado = {};
+    for (final t in transacciones) {
+      if (tipo != null && t['tipo'] != tipo) continue;
+      final fecha = DateTime.parse(t['fecha'] as String);
+      final clavePeriodo = periodo == PeriodoAgrupacion.mes
+          ? _claveMes(fecha)
+          : _claveSemana(fecha);
+      final cat = t['categorias'];
+      final nombreCategoria = (cat is Map)
+          ? (cat['nombre']?.toString() ?? 'Sin categoría')
+          : 'Sin categoría';
+      final monto = (t['monto'] as num).toDouble();
+      resultado.putIfAbsent(clavePeriodo, () => {});
+      resultado[clavePeriodo]!.update(
+        nombreCategoria,
+        (v) => v + monto,
+        ifAbsent: () => monto,
+      );
+    }
+    return resultado;
+  }
+
+  /// Calcula, para el mes de [mes] (se usa solo year/month, se ignora el
+  /// día), qué porcentaje representa el gasto de cada categoría respecto al
+  /// ingreso TOTAL de ese mismo mes. Si no hay ningún ingreso registrado en
+  /// el mes (totalIngresoMes <= 0), retorna un mapa vacío, ya que no se
+  /// puede calcular un porcentaje sin una base de ingreso.
+  Map<String, double> calcularPorcentajeGastoPorCategoria(
+    List<Map<String, dynamic>> transacciones,
+    DateTime mes,
+  ) {
+    final inicioMes = DateTime(mes.year, mes.month, 1);
+    final finMes = DateTime(mes.year, mes.month + 1, 0);
+    double totalIngresoMes = 0;
+    final Map<String, double> gastoPorCategoria = {};
+
+    for (final t in transacciones) {
+      final fecha = DateTime.parse(t['fecha'] as String);
+      if (fecha.isBefore(inicioMes) || fecha.isAfter(finMes)) continue;
+      final monto = (t['monto'] as num).toDouble();
+      final tipo = t['tipo'] as String;
+      if (tipo == 'ingreso') {
+        totalIngresoMes += monto;
+      } else if (tipo == 'egreso') {
+        final cat = t['categorias'];
+        final nombreCategoria = (cat is Map)
+            ? (cat['nombre']?.toString() ?? 'Sin categoría')
+            : 'Sin categoría';
+        gastoPorCategoria.update(
+          nombreCategoria,
+          (v) => v + monto,
+          ifAbsent: () => monto,
+        );
+      }
+    }
+
+    if (totalIngresoMes <= 0) return {};
+
+    return gastoPorCategoria.map(
+      (categoria, gasto) =>
+          MapEntry(categoria, (gasto / totalIngresoMes) * 100),
+    );
   }
 }
