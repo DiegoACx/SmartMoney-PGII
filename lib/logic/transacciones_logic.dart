@@ -48,6 +48,11 @@ String _claveSemana(DateTime fecha) {
       '${lunes.day.toString().padLeft(2, '0')}';
 }
 
+DateTime _primerDiaDeMesesAtras(int mesesAtras) {
+  final ahora = DateTime.now();
+  return DateTime(ahora.year, ahora.month - mesesAtras, 1);
+}
+
 class TransaccionesLogic {
   final TransaccionesRepository _repository = TransaccionesRepository();
 
@@ -329,5 +334,94 @@ class TransaccionesLogic {
       (categoria, gasto) =>
           MapEntry(categoria, (gasto / totalIngresoMes) * 100),
     );
+  }
+
+  /// Retorna una lista ordenada cronológicamente (más antiguo primero) con
+  /// los últimos [meses] meses, cada uno con su total de ingresos y egresos.
+  /// Siempre incluye TODOS los meses del rango, aunque no tengan
+  /// transacciones (con totales en 0), para que el eje X de la gráfica sea
+  /// consistente.
+  List<Map<String, dynamic>> obtenerTotalesMensuales(
+    List<Map<String, dynamic>> transacciones, {
+    int meses = 6,
+  }) {
+    final Map<String, Map<String, double>> acumulado = {};
+    final List<DateTime> mesesRango = [];
+    for (int i = meses - 1; i >= 0; i--) {
+      final mes = _primerDiaDeMesesAtras(i);
+      final clave = _claveMes(mes);
+      mesesRango.add(mes);
+      acumulado[clave] = {'ingresos': 0, 'egresos': 0};
+    }
+    for (final t in transacciones) {
+      final fecha = DateTime.parse(t['fecha'] as String);
+      final clave = _claveMes(fecha);
+      if (!acumulado.containsKey(clave)) continue;
+      final monto = (t['monto'] as num).toDouble();
+      final tipo = t['tipo'] as String;
+      if (tipo == 'ingreso') {
+        acumulado[clave]!['ingresos'] = acumulado[clave]!['ingresos']! + monto;
+      } else if (tipo == 'egreso') {
+        acumulado[clave]!['egresos'] = acumulado[clave]!['egresos']! + monto;
+      }
+    }
+    return mesesRango.map((mes) {
+      final clave = _claveMes(mes);
+      return {
+        'mes': mes,
+        'ingresos': acumulado[clave]!['ingresos']!,
+        'egresos': acumulado[clave]!['egresos']!,
+      };
+    }).toList();
+  }
+
+  /// Retorna, para los últimos [meses] meses, tanto el neto de cada mes
+  /// (ingresos - egresos de ESE mes) como el saldo acumulado (la suma
+  /// corrida de los netos hasta ese mes, incluido). Reutiliza
+  /// obtenerTotalesMensuales() para no duplicar el cálculo de totales.
+  List<Map<String, dynamic>> obtenerFlujoCajaMensual(
+    List<Map<String, dynamic>> transacciones, {
+    int meses = 6,
+  }) {
+    final totalesMensuales = obtenerTotalesMensuales(transacciones, meses: meses);
+    double acumulado = 0;
+    return totalesMensuales.map((m) {
+      final neto = (m['ingresos'] as double) - (m['egresos'] as double);
+      acumulado += neto;
+      return {
+        'mes': m['mes'],
+        'neto': neto,
+        'acumulado': acumulado,
+      };
+    }).toList();
+  }
+
+  /// Retorna el monto total gastado (egresos) por categoría, dentro del mes
+  /// de [mes] (se usa solo year/month). Solo incluye categorías con gasto
+  /// mayor a 0 en ese mes (no incluye categorías vacías, a diferencia de
+  /// agruparPorCategoria).
+  Map<String, double> obtenerDistribucionGastosPorCategoria(
+    List<Map<String, dynamic>> transacciones,
+    DateTime mes,
+  ) {
+    final inicioMes = DateTime(mes.year, mes.month, 1);
+    final finMes = DateTime(mes.year, mes.month + 1, 0);
+    final Map<String, double> resultado = {};
+    for (final t in transacciones) {
+      if (t['tipo'] != 'egreso') continue;
+      final fecha = DateTime.parse(t['fecha'] as String);
+      if (fecha.isBefore(inicioMes) || fecha.isAfter(finMes)) continue;
+      final cat = t['categorias'];
+      final nombreCategoria = (cat is Map)
+          ? (cat['nombre']?.toString() ?? 'Sin categoría')
+          : 'Sin categoría';
+      final monto = (t['monto'] as num).toDouble();
+      resultado.update(
+        nombreCategoria,
+        (v) => v + monto,
+        ifAbsent: () => monto,
+      );
+    }
+    return resultado;
   }
 }

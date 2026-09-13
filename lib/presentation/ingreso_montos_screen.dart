@@ -324,16 +324,19 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
   Widget _buildPorCategoria() {
     final grupos =
         _transaccionesLogic.agruparPorCategoria(_transacciones, _categorias);
-    if (grupos.isEmpty) return _buildEstadoVacio();
+    final gruposConMovimientos = Map.fromEntries(
+      grupos.entries.where((e) => e.value.isNotEmpty),
+    );
+    if (gruposConMovimientos.isEmpty) return _buildEstadoVacio();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: grupos.length,
+        itemCount: gruposConMovimientos.length,
         separatorBuilder: (_, _) => const SizedBox(height: 24),
         itemBuilder: (_, i) {
-          final entry = grupos.entries.elementAt(i);
+          final entry = gruposConMovimientos.entries.elementAt(i);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -346,34 +349,23 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (entry.value.isEmpty)
-                Text(
-                  'Aún no has ingresado montos por esta categoría',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF8C8474),
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: entry.value.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, j) {
-                    final t = entry.value[j];
-                    return _TarjetaTransaccion(
-                      transaccion: t,
-                      nombreCategoria: entry.key,
-                      nota: _nota(t),
-                      metodoPago: _metodoPago(t),
-                      monto: _monto(t),
-                      fechaDia: _fechaDia(t),
-                    );
-                  },
-                ),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: entry.value.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (_, j) {
+                  final t = entry.value[j];
+                  return _TarjetaTransaccion(
+                    transaccion: t,
+                    nombreCategoria: entry.key,
+                    nota: _nota(t),
+                    metodoPago: _metodoPago(t),
+                    monto: _monto(t),
+                    fechaDia: _fechaDia(t),
+                  );
+                },
+              ),
             ],
           );
         },
