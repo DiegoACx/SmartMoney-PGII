@@ -335,74 +335,120 @@ class HomeScreenState extends State<HomeScreen> {
       subtitulo: 'Últimos 6 meses',
       altura: 240,
       child: hayDatos
-          ? Padding(
-              padding: const EdgeInsets.only(top: 8, right: 8),
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: _maxYParaBars(totalesMensuales),
-                  groupsSpace: 12,
-                  barTouchData: BarTouchData(enabled: false),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF58774B),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Ingresos',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF2B2B2B),
+                      ),
                     ),
-                    leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                    const SizedBox(width: 16),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFC0392B),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 24,
-                        getTitlesWidget: (value, meta) {
-                          final idx = value.toInt();
-                          if (idx < 0 || idx >= totalesMensuales.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final mes = totalesMensuales[idx]['mes'] as DateTime;
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              _mesAbrev(mes),
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                color: const Color(0xFF8C8474),
-                              ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Egresos',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF2B2B2B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, right: 8),
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: _maxYParaBars(totalesMensuales),
+                        groupsSpace: 12,
+                        barTouchData: BarTouchData(enabled: false),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          leftTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 24,
+                              getTitlesWidget: (value, meta) {
+                                final idx = value.toInt();
+                                if (idx < 0 || idx >= totalesMensuales.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                final mes = totalesMensuales[idx]['mes'] as DateTime;
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    _mesAbrev(mes),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      color: const Color(0xFF8C8474),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: false),
+                        barGroups: [
+                          for (int i = 0; i < totalesMensuales.length; i++)
+                            BarChartGroupData(
+                              x: i,
+                              barsSpace: 4,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: totalesMensuales[i]['ingresos'] as double,
+                                  color: const Color(0xFF58774B),
+                                  width: 10,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                BarChartRodData(
+                                  toY: totalesMensuales[i]['egresos'] as double,
+                                  color: const Color(0xFFC0392B),
+                                  width: 10,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                  barGroups: [
-                    for (int i = 0; i < totalesMensuales.length; i++)
-                      BarChartGroupData(
-                        x: i,
-                        barsSpace: 4,
-                        barRods: [
-                          BarChartRodData(
-                            toY: totalesMensuales[i]['ingresos'] as double,
-                            color: const Color(0xFF58774B),
-                            width: 10,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          BarChartRodData(
-                            toY: totalesMensuales[i]['egresos'] as double,
-                            color: const Color(0xFFC0392B),
-                            width: 10,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ],
-                      ),
-                  ],
                 ),
-              ),
+              ],
             )
           : _buildEstadoVacio(
               'Aún no hay suficientes datos para esta gráfica',
@@ -610,6 +656,28 @@ class HomeScreenState extends State<HomeScreen> {
                                   );
                                 },
                               ),
+                            ),
+                          ),
+                          lineTouchData: LineTouchData(
+                            handleBuiltInTouches: true,
+                            touchTooltipData: LineTouchTooltipData(
+                              getTooltipColor: (_) => const Color(0xFF2B2B2B),
+                              tooltipBorderRadius: BorderRadius.circular(8),
+                              fitInsideHorizontally: true,
+                              fitInsideVertically: true,
+                              getTooltipItems: (spots) {
+                                return spots.map((spot) {
+                                  final valor = FormatoUtils.moneda.format(spot.y);
+                                  return LineTooltipItem(
+                                    valor,
+                                    GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  );
+                                }).toList();
+                              },
                             ),
                           ),
                           borderData: FlBorderData(show: false),
