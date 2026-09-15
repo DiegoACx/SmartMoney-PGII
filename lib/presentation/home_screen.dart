@@ -59,6 +59,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   bool _cargando = true;
   List<Map<String, dynamic>> _transacciones = [];
+  List<MapEntry<String, double>> _categoriasEnAlerta = [];
   PeriodoDashboard _periodo = PeriodoDashboard.mesActual;
   String _modoFlujoCaja = 'acumulado';
 
@@ -92,9 +93,18 @@ class HomeScreenState extends State<HomeScreen> {
       }
       final data =
           await _transaccionesLogic.obtenerTodasLasTransacciones(usuarioId);
+      final alertas = _transaccionesLogic.calcularPorcentajeGastoPorCategoria(
+        data,
+        DateTime.now(),
+      );
+      final categoriasEnAlerta = alertas.entries
+          .where((e) => e.value >= 40)
+          .toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
       if (!mounted) return;
       setState(() {
         _transacciones = data;
+        _categoriasEnAlerta = categoriasEnAlerta;
         _cargando = false;
       });
     } catch (e) {
@@ -179,6 +189,79 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // ===== Tarjeta de alerta de gasto excesivo =====
+                if (_categoriasEnAlerta.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC0392B).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color:
+                              const Color(0xFFC0392B).withValues(alpha: 0.30),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_outlined,
+                            color: Color(0xFFC0392B),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Builder(
+                              builder: (_) {
+                                final children = <Widget>[];
+                                final max = _categoriasEnAlerta.length > 2
+                                    ? 2
+                                    : _categoriasEnAlerta.length;
+                                for (int i = 0; i < max; i++) {
+                                  children.add(
+                                    Text(
+                                      "Tu gasto en '${_categoriasEnAlerta[i].key}' representa el ${_categoriasEnAlerta[i].value.toStringAsFixed(0)}% de tu ingreso este mes",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: const Color(0xFF2B2B2B),
+                                      ),
+                                    ),
+                                  );
+                                  final esUltimaVisible = i == max - 1;
+                                  final hayMas =
+                                      _categoriasEnAlerta.length > 2;
+                                  if (!esUltimaVisible || hayMas) {
+                                    children.add(const SizedBox(height: 6));
+                                  }
+                                }
+                                if (_categoriasEnAlerta.length > 2) {
+                                  children.add(
+                                    Text(
+                                      '+ ${_categoriasEnAlerta.length - 2} categoría(s) más',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: const Color(0xFF8C8474),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: children,
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (_categoriasEnAlerta.isNotEmpty)
+                  const SizedBox(height: 16),
 
                 // ===== Selector de periodo =====
                 Padding(

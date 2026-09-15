@@ -213,6 +213,73 @@ class TransaccionesLogic {
     }
   }
 
+  /// Valida y edita una transacción existente.
+  /// Retorna null si todo sale bien, o un String con el mensaje de error.
+  Future<String?> editarTransaccion({
+    required String transaccionId,
+    required double monto,
+    required String tipo,
+    required String categoriaId,
+    required DateTime fecha,
+    String? nota,
+    required List<String> categoriasValidas,
+    required String metodoPago,
+  }) async {
+    final validacion = validarTransaccion(
+      monto: monto,
+      categoriaId: categoriaId,
+      categoriasValidas: categoriasValidas,
+    );
+    if (!validacion.esValido) {
+      return validacion.mensajeError;
+    }
+    if (metodoPago != 'efectivo' && metodoPago != 'transferencia') {
+      return 'Selecciona un método de pago válido';
+    }
+
+    try {
+      await _repository.editarTransaccion(
+        transaccionId: transaccionId,
+        tipo: tipo,
+        monto: monto,
+        categoriaId: categoriaId,
+        descripcion: nota,
+        fecha: fecha,
+        metodoPago: metodoPago,
+      );
+      return null;
+    } catch (e) {
+      return 'Ocurrió un error al actualizar la transacción. Intenta de nuevo.';
+    }
+  }
+
+  /// Elimina una transacción existente.
+  /// Retorna null si todo sale bien, o un String con el mensaje de error.
+  Future<String?> eliminarTransaccion(String transaccionId) async {
+    try {
+      await _repository.eliminarTransaccion(transaccionId);
+      return null;
+    } catch (e) {
+      return 'Ocurrió un error al eliminar la transacción. Intenta de nuevo.';
+    }
+  }
+
+  /// Calcula el total neto (ingresos - egresos) sobre TODA la lista
+  /// recibida, sin filtrar por fecha.
+  double calcularTotalNeto(List<Map<String, dynamic>> transacciones) {
+    double total = 0;
+    for (final t in transacciones) {
+      final monto = (t['monto'] as num).toDouble();
+      final tipo = t['tipo'] as String;
+      if (tipo == 'ingreso') {
+        total += monto;
+      } else if (tipo == 'egreso') {
+        total -= monto;
+      }
+    }
+    return total;
+  }
+
   // ===== Filtros y agrupaciones (síncronos, sobre lista en memoria) =====
 
   /// Deja solo las transacciones cuyo [tipo] coincide ('ingreso' / 'egreso').
