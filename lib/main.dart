@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'presentation/auth_gate.dart';
+import 'services/notificaciones_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,8 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  await NotificacionesService().inicializar();
 
   runApp(const MyApp());
 }

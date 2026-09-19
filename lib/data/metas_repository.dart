@@ -57,11 +57,14 @@ class MetasRepository {
     String? nombre,
     double? montoObjetivo,
     DateTime? fechaLimite,
+    bool quitarFecha = false,
   }) async {
     final updates = <String, dynamic>{};
     if (nombre != null) updates['nombre'] = nombre;
     if (montoObjetivo != null) updates['monto_objetivo'] = montoObjetivo;
-    if (fechaLimite != null) {
+    if (quitarFecha) {
+      updates['fecha_limite'] = null;
+    } else if (fechaLimite != null) {
       updates['fecha_limite'] = fechaLimite.toIso8601String().split('T')[0];
     }
 
