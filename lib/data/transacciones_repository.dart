@@ -63,6 +63,7 @@ class TransaccionesRepository {
     String? categoriaId,
     String? descripcion,
     DateTime? fecha,
+    String? metodoPago,
   }) async {
     final updates = <String, dynamic>{};
     if (tipo != null) updates['tipo'] = tipo;
@@ -70,6 +71,7 @@ class TransaccionesRepository {
     if (categoriaId != null) updates['categoria_id'] = categoriaId;
     if (descripcion != null) updates['descripcion'] = descripcion;
     if (fecha != null) updates['fecha'] = fecha.toIso8601String().split('T')[0];
+    if (metodoPago != null) updates['metodo_pago'] = metodoPago;
 
     if (updates.isEmpty) return;
 

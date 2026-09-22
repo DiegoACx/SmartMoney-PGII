@@ -6,7 +6,10 @@ import '../logic/auth_logic.dart';
 import '../logic/categorias_logic.dart';
 import '../logic/formato_utils.dart';
 import '../logic/transacciones_logic.dart';
+import 'detalle_movimientos_screen.dart';
 import 'registro_transaccion_screen.dart';
+import 'utils/transaccion_options.dart';
+import 'widgets/tarjeta_transaccion.dart';
 
 // ===== Clipper curvo idéntico al de home_screen =====
 class _CurvedHeaderClipper extends CustomClipper<Path> {
@@ -149,12 +152,62 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
     return _formatoDia.format(DateTime.parse(t['fecha'] as String));
   }
 
+  // ===== Widget: monto formateado con signo y color =====
+  Widget _textoNeto(double monto, {double fontSize = 15}) {
+    final signo = monto >= 0 ? '+' : '-';
+    final color = monto >= 0
+        ? const Color(0xFF58774B)
+        : const Color(0xFFC0392B);
+    return Text(
+      '$signo ${FormatoUtils.moneda.format(monto.abs())}',
+      style: GoogleFonts.poppins(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+        color: color,
+      ),
+    );
+  }
+
+  // ===== Widget: botón "Ver más" =====
+  Widget _verMasButton(VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Center(
+        child: TextButton(
+          onPressed: onTap,
+          child: Text(
+            'Ver más',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF58774B),
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== Abrir bottom sheet con opciones de transacción =====
+  Future<void> _mostrarOpcionesTransaccion(
+      Map<String, dynamic> transaccion) async {
+    await mostrarOpcionesTransaccion(
+      context: context,
+      transaccion: transaccion,
+      nombreCategoria: _nombreCategoria(transaccion),
+      monto: _monto(transaccion),
+      onRecargar: _cargarDatos,
+    );
+  }
+
   // ===== Build principal =====
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_ingresos',
         onPressed: _irARegistro,
         backgroundColor: const Color(0xFF58774B),
         foregroundColor: Colors.white,
@@ -282,14 +335,18 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
   Widget _buildContenido() {
     switch (_filtro) {
       case _FiltroMovimientos.todos:
-        return _buildListaPlana(_transacciones);
+        return _buildTodos();
       case _FiltroMovimientos.ingresos:
         return _buildListaPlana(
           _transaccionesLogic.filtrarPorTipo(_transacciones, 'ingreso'),
+          tituloVerMas: 'Todos los ingresos',
+          filtroTipo: 'ingreso',
         );
       case _FiltroMovimientos.egresos:
         return _buildListaPlana(
           _transaccionesLogic.filtrarPorTipo(_transacciones, 'egreso'),
+          tituloVerMas: 'Todos los egresos',
+          filtroTipo: 'egreso',
         );
       case _FiltroMovimientos.categoria:
         return _buildPorCategoria();
@@ -298,55 +355,246 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
     }
   }
 
-  // ===== Lista plana (Todos / Ingresos / Egresos) =====
-  Widget _buildListaPlana(List<Map<String, dynamic>> lista) {
+  // ===== Modo TODOS: Total general arriba + lista limitada 5 =====
+  Widget _buildTodos() {
+    final lista = _transacciones;
     if (lista.isEmpty) return _buildEstadoVacio();
+
+    final total = _transaccionesLogic.calcularTotalNeto(lista);
+    final signoTotal = total >= 0 ? '+' : '-';
+    final colorTotal = total >= 0
+        ? const Color(0xFF58774B)
+        : const Color(0xFFC0392B);
+
+    final limitada = lista.take(5).toList();
+    final hayMas = lista.length > 5;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: lista.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (_, i) => _TarjetaTransaccion(
-          transaccion: lista[i],
-          nombreCategoria: _nombreCategoria(lista[i]),
-          nota: _nota(lista[i]),
-          metodoPago: _metodoPago(lista[i]),
-          monto: _monto(lista[i]),
-          fechaDia: _fechaDia(lista[i]),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Total general
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'Total',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8C8474),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '$signoTotal ${FormatoUtils.moneda.format(total.abs())}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: colorTotal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Lista limitada
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: limitada.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => TarjetaTransaccion(
+              transaccion: limitada[i],
+              nombreCategoria: _nombreCategoria(limitada[i]),
+              nota: _nota(limitada[i]),
+              metodoPago: _metodoPago(limitada[i]),
+              monto: _monto(limitada[i]),
+              fechaDia: _fechaDia(limitada[i]),
+              onTap: () => _mostrarOpcionesTransaccion(limitada[i]),
+            ),
+          ),
+          if (hayMas)
+            _verMasButton(() {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetalleMovimientosScreen(
+                    titulo: 'Todos los movimientos',
+                    transacciones: lista,
+                  ),
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
 
-  // ===== Agrupado por categoría =====
+  // ===== Lista plana (Ingresos / Egresos): total arriba + límite 5 + Ver más =====
+  Widget _buildListaPlana(
+    List<Map<String, dynamic>> lista, {
+    required String tituloVerMas,
+    String? filtroTipo,
+    String? filtroCategoriaId,
+  }) {
+    if (lista.isEmpty) return _buildEstadoVacio();
+
+    final total = _transaccionesLogic.calcularTotalNeto(lista);
+    final signoTotal = total >= 0 ? '+' : '-';
+    final colorTotal = total >= 0
+        ? const Color(0xFF58774B)
+        : const Color(0xFFC0392B);
+
+    final limitada = lista.take(5).toList();
+    final hayMas = lista.length > 5;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'Total',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8C8474),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '$signoTotal ${FormatoUtils.moneda.format(total.abs())}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: colorTotal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: limitada.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => TarjetaTransaccion(
+              transaccion: limitada[i],
+              nombreCategoria: _nombreCategoria(limitada[i]),
+              nota: _nota(limitada[i]),
+              metodoPago: _metodoPago(limitada[i]),
+              monto: _monto(limitada[i]),
+              fechaDia: _fechaDia(limitada[i]),
+              onTap: () => _mostrarOpcionesTransaccion(limitada[i]),
+            ),
+          ),
+          if (hayMas)
+            _verMasButton(() {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetalleMovimientosScreen(
+                    titulo: tituloVerMas,
+                    transacciones: lista,
+                    filtroTipo: filtroTipo,
+                    filtroCategoriaId: filtroCategoriaId,
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // ===== Modo POR CATEGORÍA: con movimientos primero, luego vacías =====
   Widget _buildPorCategoria() {
     final grupos =
         _transaccionesLogic.agruparPorCategoria(_transacciones, _categorias);
-    if (grupos.isEmpty) return _buildEstadoVacio();
+
+    // Reordenar: categorías CON movimientos primero (orden del Map),
+    // luego categorías VACÍAS (orden del Map).
+    final todasLasCategoriasOrdenadas = grupos.entries.toList();
+    final conMovimientos =
+        todasLasCategoriasOrdenadas.where((e) => e.value.isNotEmpty).toList();
+    final vacias =
+        todasLasCategoriasOrdenadas.where((e) => e.value.isEmpty).toList();
+    final ordenado = [...conMovimientos, ...vacias];
+
+    if (conMovimientos.isEmpty && vacias.isEmpty) return _buildEstadoVacio();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: grupos.length,
+        itemCount: ordenado.length,
         separatorBuilder: (_, _) => const SizedBox(height: 24),
         itemBuilder: (_, i) {
-          final entry = grupos.entries.elementAt(i);
+          final entry = ordenado[i];
+          final nombreCategoria = entry.key;
+          final transaccionesDeCategoria = entry.value;
+          final esVacia = transaccionesDeCategoria.isEmpty;
+
+          final total = esVacia
+              ? 0.0
+              : _transaccionesLogic.calcularTotalNeto(transaccionesDeCategoria);
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                entry.key,
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2B2B2B),
-                ),
+              // Encabezado (nombre + total si no está vacía)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Expanded(
+                    child: Text(
+                      nombreCategoria,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF2B2B2B),
+                      ),
+                    ),
+                  ),
+                  if (!esVacia) _textoNeto(total),
+                ],
               ),
               const SizedBox(height: 12),
-              if (entry.value.isEmpty)
+
+              if (esVacia)
                 Text(
                   'Aún no has ingresado montos por esta categoría',
                   style: GoogleFonts.poppins(
@@ -357,20 +605,20 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
                   ),
                 )
               else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: entry.value.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, j) {
-                    final t = entry.value[j];
-                    return _TarjetaTransaccion(
-                      transaccion: t,
-                      nombreCategoria: entry.key,
-                      nota: _nota(t),
-                      metodoPago: _metodoPago(t),
-                      monto: _monto(t),
-                      fechaDia: _fechaDia(t),
+                _buildBloqueTransaccionesConVerMas(
+                  transaccionesDeCategoria,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetalleMovimientosScreen(
+                          titulo: nombreCategoria,
+                          transacciones: transaccionesDeCategoria,
+                          filtroCategoriaId: transaccionesDeCategoria
+                              .first['categoria_id']
+                              ?.toString(),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -381,54 +629,142 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
     );
   }
 
-  // ===== Agrupado por fecha =====
+  // ===== Modo POR FECHA: máximo 5 transacciones EN TOTAL (sumando grupos) =====
   Widget _buildPorFecha() {
     final grupos = _transaccionesLogic.agruparPorFecha(_transacciones);
     if (grupos.isEmpty) return _buildEstadoVacio();
+
+    // Calcular cuántos elementos (fecha entry + transacciones dentro) mostramos
+    // respetando el límite de 5 transacciones TOTALES, y luego "Ver más".
+    const limiteTotal = 5;
+    int acumulado = 0;
+    final gruposMostrados = <MapEntry<String, List<Map<String, dynamic>>>>[];
+    final cortesPorGrupo = <int, int>{}; // índice grupo → cuántas transacciones
+    for (int g = 0; g < grupos.length; g++) {
+      final entry = grupos.entries.elementAt(g);
+      final disponiblesEnGrupo = entry.value.length;
+      final cupoRestante = limiteTotal - acumulado;
+      if (cupoRestante <= 0) break;
+      final mostrar = disponiblesEnGrupo > cupoRestante
+          ? cupoRestante
+          : disponiblesEnGrupo;
+      gruposMostrados.add(entry);
+      cortesPorGrupo[g] = mostrar;
+      acumulado += mostrar;
+      if (acumulado >= limiteTotal) break;
+    }
+    final hayMas = _transacciones.length > limiteTotal;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: grupos.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 24),
-        itemBuilder: (_, i) {
-          final entry = grupos.entries.elementAt(i);
-          final fechaLegible =
-              _formatoEncabezado.format(DateTime.parse(entry.key));
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                fechaLegible,
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2B2B2B),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: gruposMostrados.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 24),
+            itemBuilder: (_, i) {
+              final entry = gruposMostrados[i];
+              final fechaLegible =
+                  _formatoEncabezado.format(DateTime.parse(entry.key));
+              final mostrarCant = cortesPorGrupo[i]!;
+              final totalDelDia =
+                  _transaccionesLogic.calcularTotalNeto(entry.value);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Encabezado fecha + total del día
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          fechaLegible,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2B2B2B),
+                          ),
+                        ),
+                      ),
+                      _textoNeto(totalDelDia),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: mostrarCant,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (_, j) {
+                      final t = entry.value[j];
+                      return TarjetaTransaccion(
+                        transaccion: t,
+                        nombreCategoria: _nombreCategoria(t),
+                        nota: _nota(t),
+                        metodoPago: _metodoPago(t),
+                        monto: _monto(t),
+                        fechaDia: _fechaDia(t),
+                        onTap: () => _mostrarOpcionesTransaccion(t),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          if (hayMas)
+            _verMasButton(() {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetalleMovimientosScreen(
+                    titulo: 'Todos los movimientos por fecha',
+                    transacciones: _transacciones,
+                    agruparPorFecha: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: entry.value.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, j) {
-                  final t = entry.value[j];
-                  return _TarjetaTransaccion(
-                    transaccion: t,
-                    nombreCategoria: _nombreCategoria(t),
-                    nota: _nota(t),
-                    metodoPago: _metodoPago(t),
-                    monto: _monto(t),
-                    fechaDia: _fechaDia(t),
-                  );
-                },
-              ),
-            ],
-          );
-        },
+              );
+            }),
+        ],
       ),
+    );
+  }
+
+  // ===== Helper: bloque de transacciones limitado a 5 + botón "Ver más" =====
+  Widget _buildBloqueTransaccionesConVerMas(
+    List<Map<String, dynamic>> lista,
+    VoidCallback onVerMas,
+  ) {
+    final limitada = lista.take(5).toList();
+    final hayMas = lista.length > 5;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: limitada.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
+          itemBuilder: (_, j) {
+            final t = limitada[j];
+            return TarjetaTransaccion(
+              transaccion: t,
+              nombreCategoria: _nombreCategoria(t),
+              nota: _nota(t),
+              metodoPago: _metodoPago(t),
+              monto: _monto(t),
+              fechaDia: _fechaDia(t),
+              onTap: () => _mostrarOpcionesTransaccion(t),
+            );
+          },
+        ),
+        if (hayMas) _verMasButton(onVerMas),
+      ],
     );
   }
 
@@ -472,155 +808,6 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ===== Widget auxiliar: tarjeta de transacción =====
-class _TarjetaTransaccion extends StatelessWidget {
-  final Map<String, dynamic> transaccion;
-  final String nombreCategoria;
-  final String? nota;
-  final String? metodoPago;
-  final double monto;
-  final String fechaDia;
-
-  const _TarjetaTransaccion({
-    required this.transaccion,
-    required this.nombreCategoria,
-    required this.nota,
-    required this.metodoPago,
-    required this.monto,
-    required this.fechaDia,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tipo = transaccion['tipo'] as String;
-    final esIngreso = tipo == 'ingreso';
-    final colorBorde =
-        esIngreso ? const Color(0xFF58774B) : const Color(0xFFC0392B);
-    final signo = esIngreso ? '+' : '-';
-    final colorMonto =
-        esIngreso ? const Color(0xFF58774B) : const Color(0xFFC0392B);
-
-    final tieneNota = nota != null;
-    final tieneMetodo = metodoPago != null;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
-        border: Border(
-          left: BorderSide(color: colorBorde, width: 5),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Categoría + fecha
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          nombreCategoria,
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF2B2B2B),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        fechaDia,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF8C8474),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (tieneNota) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 1),
-                          child: Icon(
-                            Icons.sticky_note_2_outlined,
-                            size: 13,
-                            color: Color(0xFFC9C2B0),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            nota!,
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF8C8474),
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (tieneMetodo) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(
-                          metodoPago == 'efectivo'
-                              ? Icons.payments_outlined
-                              : Icons.account_balance_outlined,
-                          size: 14,
-                          color: const Color(0xFFC9C2B0),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          metodoPago == 'efectivo' ? 'Efectivo' : 'Transferencia',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF8C8474),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '$signo ${FormatoUtils.moneda.format(monto)}',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: colorMonto,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

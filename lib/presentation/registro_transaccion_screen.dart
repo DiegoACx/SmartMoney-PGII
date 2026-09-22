@@ -38,7 +38,12 @@ class _CurvedHeaderClipper extends CustomClipper<Path> {
 }
 
 class RegistroTransaccionScreen extends StatefulWidget {
-  const RegistroTransaccionScreen({super.key});
+  final Map<String, dynamic>? transaccionExistente;
+
+  const RegistroTransaccionScreen({
+    super.key,
+    this.transaccionExistente,
+  });
 
   @override
   State<RegistroTransaccionScreen> createState() =>
@@ -47,6 +52,8 @@ class RegistroTransaccionScreen extends StatefulWidget {
 
 class _RegistroTransaccionScreenState
     extends State<RegistroTransaccionScreen> {
+  bool get _esModoEdicion => widget.transaccionExistente != null;
+
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   final _fechaController = TextEditingController();
@@ -65,6 +72,7 @@ class _RegistroTransaccionScreenState
   final _transaccionesLogic = TransaccionesLogic();
   final _categoriasLogic = CategoriasLogic();
   final _dateFormat = DateFormat('dd/MM/yyyy');
+  final _formatoMiles = NumberFormat.decimalPattern('es_CO');
 
   @override
   void initState() {
@@ -94,6 +102,9 @@ class _RegistroTransaccionScreenState
         _categorias = lista;
         _cargandoCategorias = false;
       });
+      if (_esModoEdicion) {
+        _prellenarDesdeTransaccionExistente(lista);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -101,6 +112,32 @@ class _RegistroTransaccionScreenState
         _cargandoCategorias = false;
       });
     }
+  }
+
+  void _prellenarDesdeTransaccionExistente(
+      List<Map<String, dynamic>> categoriasCargadas) {
+    final t = widget.transaccionExistente!;
+    final monto = (t['monto'] as num).toDouble();
+    final montoInt = monto.toInt();
+    setState(() {
+      _montoController.text = _formatoMiles.format(montoInt);
+      _tipoSeleccionado = t['tipo'] as String?;
+      _fechaSeleccionada = DateTime.parse(t['fecha'] as String);
+      _fechaController.text = _dateFormat.format(_fechaSeleccionada);
+      _metodoPagoSeleccionado = t['metodo_pago'] as String?;
+      final desc = t['descripcion'];
+      if (desc != null && desc.toString().trim().isNotEmpty) {
+        _notaController.text = desc.toString().trim();
+      }
+      final catId = t['categoria_id']?.toString();
+      if (catId != null) {
+        final existe = categoriasCargadas
+            .any((c) => c['id'].toString() == catId);
+        if (existe) {
+          _categoriaSeleccionadaId = catId;
+        }
+      }
+    });
   }
 
   // ===== Validación custom de tipo, categoría y método de pago =====
@@ -134,24 +171,48 @@ class _RegistroTransaccionScreenState
     setState(() => _isLoading = true);
 
     final montoStr = _montoController.text.trim().replaceAll('.', '');
-    final error = await _transaccionesLogic.registrarTransaccion(
-      monto: double.parse(montoStr),
-      tipo: _tipoSeleccionado!,
-      categoriaId: _categoriaSeleccionadaId!,
-      fecha: _fechaSeleccionada,
-      nota: _notaController.text.trim().isEmpty
-          ? null
-          : _notaController.text.trim(),
-      categoriasValidas: categoriasIds,
-      metodoPago: _metodoPagoSeleccionado!,
-    );
+    final monto = double.parse(montoStr);
+    final tipo = _tipoSeleccionado!;
+    final categoriaId = _categoriaSeleccionadaId!;
+    final fecha = _fechaSeleccionada;
+    final nota = _notaController.text.trim().isEmpty
+        ? null
+        : _notaController.text.trim();
+    final metodoPago = _metodoPagoSeleccionado!;
+
+    String? error;
+    if (_esModoEdicion) {
+      final transaccionId = widget.transaccionExistente!['id'].toString();
+      error = await _transaccionesLogic.editarTransaccion(
+        transaccionId: transaccionId,
+        monto: monto,
+        tipo: tipo,
+        categoriaId: categoriaId,
+        fecha: fecha,
+        nota: nota,
+        categoriasValidas: categoriasIds,
+        metodoPago: metodoPago,
+      );
+    } else {
+      error = await _transaccionesLogic.registrarTransaccion(
+        monto: monto,
+        tipo: tipo,
+        categoriaId: categoriaId,
+        fecha: fecha,
+        nota: nota,
+        categoriasValidas: categoriasIds,
+        metodoPago: metodoPago,
+      );
+    }
 
     if (!mounted) return;
 
     if (error == null) {
+      final mensajeExito =
+          _esModoEdicion ? 'Cambios guardados' : '¡Transacción guardada!';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('¡Transacción guardada!'),
+          content: Text(mensajeExito),
           backgroundColor: const Color(0xFF7A9B6C),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -160,21 +221,28 @@ class _RegistroTransaccionScreenState
           duration: const Duration(seconds: 2),
         ),
       );
-      // Limpiar formulario
-      _formKey.currentState!.reset();
-      _montoController.clear();
-      _notaController.clear();
-      setState(() {
-        _tipoSeleccionado = null;
-        _categoriaSeleccionadaId = null;
-        _metodoPagoSeleccionado = null;
-        _fechaSeleccionada = DateTime.now();
-        _fechaController.text = _dateFormat.format(_fechaSeleccionada);
-        _isLoading = false;
-      });
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      Navigator.pop(context);
+      if (_esModoEdicion) {
+        setState(() => _isLoading = false);
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      } else {
+        // Limpiar formulario
+        _formKey.currentState!.reset();
+        _montoController.clear();
+        _notaController.clear();
+        setState(() {
+          _tipoSeleccionado = null;
+          _categoriaSeleccionadaId = null;
+          _metodoPagoSeleccionado = null;
+          _fechaSeleccionada = DateTime.now();
+          _fechaController.text = _dateFormat.format(_fechaSeleccionada);
+          _isLoading = false;
+        });
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        Navigator.pop(context);
+      }
     } else {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -489,7 +557,9 @@ class _RegistroTransaccionScreenState
                       ),
                       child: Center(
                         child: Text(
-                          'Nueva transacción',
+                          _esModoEdicion
+                              ? 'Editar transacción'
+                              : 'Nueva transacción',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 24,
@@ -1010,7 +1080,9 @@ class _RegistroTransaccionScreenState
                                       ),
                                     )
                                   : Text(
-                                      'Guardar transacción',
+                                      _esModoEdicion
+                                          ? 'Guardar cambios'
+                                          : 'Guardar transacción',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontSize: 16,
