@@ -207,6 +207,7 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_ingresos',
         onPressed: _irARegistro,
         backgroundColor: const Color(0xFF58774B),
         foregroundColor: Colors.white,

@@ -130,6 +130,7 @@ class _MetasScreenState extends State<MetasScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_metas',
         onPressed: _cargando
             ? null
             : () async {

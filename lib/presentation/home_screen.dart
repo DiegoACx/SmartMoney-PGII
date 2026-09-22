@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,7 +7,9 @@ import 'package:intl/intl.dart';
 
 import '../logic/auth_logic.dart';
 import '../logic/formato_utils.dart';
+import '../logic/metas_logic.dart';
 import '../logic/transacciones_logic.dart';
+import 'registro_meta_screen.dart';
 
 const List<Color> _paletteCategorias = [
   Color(0xFF58774B),
@@ -56,12 +60,19 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   final _transaccionesLogic = TransaccionesLogic();
   final _authLogic = AuthLogic();
+  final _metasLogic = MetasLogic();
 
   bool _cargando = true;
   List<Map<String, dynamic>> _transacciones = [];
   List<MapEntry<String, double>> _categoriasEnAlerta = [];
   PeriodoDashboard _periodo = PeriodoDashboard.mesActual;
   String _modoFlujoCaja = 'acumulado';
+
+  List<Map<String, dynamic>> _metas = [];
+  final _metasPageController = PageController();
+  int _metaActualIndex = 0;
+  Timer? _metaAutoTimer;
+  Timer? _metaResumeTimer;
 
   // ===== Label visible por periodo (para el selector) =====
   static const Map<PeriodoDashboard, String> _labelsPeriodo = {
@@ -76,6 +87,14 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     cargarTransacciones();
+  }
+
+  @override
+  void dispose() {
+    _metaAutoTimer?.cancel();
+    _metaResumeTimer?.cancel();
+    _metasPageController.dispose();
+    super.dispose();
   }
 
   // ===== Carga inicial y recarga manual/pull-to-refresh =====
@@ -115,6 +134,48 @@ class HomeScreenState extends State<HomeScreen> {
         _cargando = false;
       });
     }
+
+    _cargarMetas();
+  }
+
+  Future<void> _cargarMetas() async {
+    try {
+      final usuarioId = _authLogic.obtenerUsuarioId();
+      if (usuarioId == null) return;
+      final lista = await _metasLogic.obtenerMetas(usuarioId);
+      if (!mounted) return;
+
+      final necesitaReset = _metaActualIndex >= lista.length;
+
+      setState(() {
+        _metas = lista;
+        _metaActualIndex = necesitaReset ? 0 : _metaActualIndex;
+      });
+
+      if (necesitaReset && _metasPageController.hasClients) {
+        _metasPageController.jumpToPage(0);
+      }
+
+      _iniciarAutoAvanceMetas();
+    } catch (e) {
+      debugPrint('ERROR AL CARGAR METAS EN DASHBOARD: $e');
+    }
+  }
+
+  void _iniciarAutoAvanceMetas() {
+    _metaAutoTimer?.cancel();
+    _metaResumeTimer?.cancel();
+    if (_metas.length <= 1) return;
+
+    _metaAutoTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      final siguiente = (_metaActualIndex + 1) % _metas.length;
+      _metasPageController.animateToPage(
+        siguiente,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   // ===== Cerrar sesión =====
@@ -391,6 +452,13 @@ class HomeScreenState extends State<HomeScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: _buildTarjetaLineChart(_transacciones),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ===== TARJETA 4: Resumen de metas de ahorro =====
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildTarjetaMetas(),
                   ),
                 ],
               ],
@@ -852,6 +920,236 @@ class HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 6),
         boton('porPeriodo', 'Por mes'),
       ],
+    );
+  }
+
+  // ================================================================
+  // TARJETA 4 — Resumen de metas de ahorro (carrusel)
+  // ================================================================
+  Widget _buildTarjetaMetas() {
+    return Card(
+      elevation: 1,
+      color: Colors.white,
+      shadowColor: const Color(0x0D000000),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Tus metas de ahorro',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF2B2B2B),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (_metas.isEmpty)
+              _buildEstadoVacioMetas()
+            else
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollStartNotification) {
+                    _metaAutoTimer?.cancel();
+                    _metaResumeTimer?.cancel();
+                  } else if (notification is ScrollEndNotification) {
+                    _metaResumeTimer = Timer(
+                      const Duration(seconds: 3),
+                      _iniciarAutoAvanceMetas,
+                    );
+                  }
+                  return false;
+                },
+                child: SizedBox(
+                  height: 100,
+                  child: PageView.builder(
+                    controller: _metasPageController,
+                    itemCount: _metas.length,
+                    onPageChanged: (i) =>
+                        setState(() => _metaActualIndex = i),
+                    itemBuilder: (_, i) => _buildPaginaMeta(_metas[i]),
+                  ),
+                ),
+              ),
+            if (_metas.isNotEmpty) const SizedBox(height: 10),
+            if (_metas.length > 1)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (int i = 0; i < _metas.length; i++) ...[
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height: 6,
+                      width: i == _metaActualIndex ? 18 : 6,
+                      decoration: BoxDecoration(
+                        color: i == _metaActualIndex
+                            ? const Color(0xFF58774B)
+                            : const Color(0xFFC9C2B0),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    if (i < _metas.length - 1) const SizedBox(width: 4),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEstadoVacioMetas() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFF58774B).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.flag,
+              size: 26,
+              color: Color(0xFF58774B),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Aún no tienes metas de ahorro',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF2B2B2B),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 36,
+            child: ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RegistroMetaScreen(),
+                  ),
+                );
+                if (result == true) {
+                  _cargarMetas();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                backgroundColor: const Color(0xFF58774B),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF58774B), Color(0xFF7A9B6C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  alignment: Alignment.center,
+                  constraints: const BoxConstraints(minWidth: 88),
+                  child: Text(
+                    'Crear meta',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginaMeta(Map<String, dynamic> meta) {
+    final nombre = meta['nombre'].toString();
+    final montoActual = (meta['monto_actual'] as num?)?.toDouble() ?? 0;
+    final montoObjetivo = (meta['monto_objetivo'] as num).toDouble();
+    final porcentaje = _metasLogic.calcularPorcentajeAvance(meta);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  nombre,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2B2B2B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${porcentaje.toStringAsFixed(0)}%',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF58774B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: porcentaje / 100,
+              backgroundColor: const Color(0xFFC9C2B0),
+              color: const Color(0xFF58774B),
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                TextSpan(
+                  text: FormatoUtils.moneda.format(montoActual),
+                  style: const TextStyle(color: Color(0xFF2B2B2B)),
+                ),
+                TextSpan(
+                  text: ' de ',
+                  style: const TextStyle(color: Color(0xFF8C8474)),
+                ),
+                TextSpan(
+                  text: FormatoUtils.moneda.format(montoObjetivo),
+                  style: const TextStyle(color: Color(0xFF2B2B2B)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
