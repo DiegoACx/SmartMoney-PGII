@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -5,35 +7,81 @@ import '../logic/auth_logic.dart';
 import '../logic/educacion_logic.dart';
 import '../logic/formato_utils.dart';
 import 'escalon_detalle_screen.dart';
+import 'widgets/indicador_progreso_escalones.dart';
 
-class _LineaConectora extends CustomPainter {
-  final Color color;
-  final bool izquierdaADerecha;
+const double _altoEscalonWidget = 110;
+const double _altoIntermedio = 36;
+const double _anchoCirculo = 64;
+const double _anchoEscalonBox = 140;
 
-  const _LineaConectora({
-    required this.color,
-    required this.izquierdaADerecha,
+class _CaminoNivel extends CustomPainter {
+  final List<Offset> centrosCirculos;
+  final Color colorNivel;
+  final bool nivelBloqueado;
+
+  const _CaminoNivel({
+    required this.centrosCirculos,
+    required this.colorNivel,
+    required this.nivelBloqueado,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    final inicio = izquierdaADerecha
-        ? const Offset(0, 0)
-        : Offset(size.width, 0);
-    final fin = izquierdaADerecha
-        ? Offset(size.width, size.height)
-        : Offset(0, size.height);
-    canvas.drawLine(inicio, fin, paint);
+    if (centrosCirculos.length < 2) return;
+
+    final path = Path();
+    path.moveTo(centrosCirculos.first.dx, centrosCirculos.first.dy);
+
+    for (int i = 0; i < centrosCirculos.length - 1; i++) {
+      final p0 = centrosCirculos[i];
+      final p1 = centrosCirculos[i + 1];
+
+      final midY = (p0.dy + p1.dy) / 2;
+      final cp1 = Offset(p0.dx, midY);
+      final cp2 = Offset(p1.dx, midY);
+
+      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p1.dx, p1.dy);
+    }
+
+    final paintAsfalto = Paint()
+      ..color = nivelBloqueado
+          ? const Color(0xFFD9D5CB)
+          : colorNivel.withValues(alpha: 0.25)
+      ..strokeWidth = 16
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(path, paintAsfalto);
+
+    final paintGuion = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final metrics = path.computeMetrics().toList();
+    for (final metric in metrics) {
+      final total = metric.length;
+      double cursor = 0;
+      const guion = 14.0;
+      const espacio = 10.0;
+      while (cursor < total) {
+        final finGuion = cursor + guion;
+        if (finGuion > total) break;
+        final segmento = metric.extractPath(cursor, finGuion);
+        canvas.drawPath(segmento, paintGuion);
+        cursor = finGuion + espacio;
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _LineaConectora oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.izquierdaADerecha != izquierdaADerecha;
+  bool shouldRepaint(covariant _CaminoNivel oldDelegate) {
+    return oldDelegate.colorNivel != colorNivel ||
+        oldDelegate.nivelBloqueado != nivelBloqueado ||
+        oldDelegate.centrosCirculos.length != centrosCirculos.length ||
+        (oldDelegate.centrosCirculos.asMap().entries.any((e) =>
+            centrosCirculos[e.key] != e.value));
   }
 }
 
@@ -51,11 +99,18 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
 
   bool _cargando = true;
   List<NivelConEstado> _niveles = [];
+  final ValueNotifier<double> _scrollOffset = ValueNotifier(0);
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+  }
+
+  @override
+  void dispose() {
+    _scrollOffset.dispose();
+    super.dispose();
   }
 
   Future<void> _cargarDatos() async {
@@ -89,45 +144,62 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
       backgroundColor: const Color(0xFFFAF6EA),
       body: Stack(
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 160,
-            child: _buildFranjaCielo(),
+          ValueListenableBuilder<double>(
+            valueListenable: _scrollOffset,
+            builder: (_, offset, _) {
+              final t = (offset.clamp(0, 40) / 40).toDouble();
+              return Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 160,
+                child: _buildFranjaCielo(t),
+              );
+            },
           ),
           SafeArea(
             child: RefreshIndicator(
               color: const Color(0xFF58774B),
               onRefresh: _cargarDatos,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 110),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _cargando
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF58774B),
-                              ),
-                            )
-                          : _niveles.isEmpty
-                              ? _buildEstadoVacio()
-                              : Column(
-                                  children: [
-                                    for (final nivel in _niveles)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 28),
-                                        child: _buildNivel(context, nivel),
-                                      ),
-                                  ],
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollUpdateNotification) {
+                    final px = notification.metrics.pixels;
+                    if (px != _scrollOffset.value) {
+                      _scrollOffset.value = px;
+                    }
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 110),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _cargando
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF58774B),
                                 ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                              )
+                            : _niveles.isEmpty
+                                ? _buildEstadoVacio()
+                                : Column(
+                                    children: [
+                                      for (final nivel in _niveles)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 28),
+                                          child: _buildNivel(context, nivel),
+                                        ),
+                                    ],
+                                  ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -137,76 +209,105 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
     );
   }
 
-  Widget _buildFranjaCielo() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFBEE3F8), Color(0xFFFAF6EA)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+  Widget _buildFranjaCielo(double progress) {
+    final sigma = progress * 15.0;
+    final alphaFondo = progress * 0.55;
+
+    final child = Stack(
+      children: [
+        if (alphaFondo < 1)
+          Positioned.fill(
+            child: Opacity(
+              opacity: 1 - alphaFondo,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFBEE3F8), Color(0xFFFAF6EA)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (alphaFondo > 0)
+          Positioned.fill(
+            child: Opacity(
+              opacity: alphaFondo,
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        Positioned(
+          top: 30,
+          left: 20,
+          child: Container(
+            width: 80,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(50),
+            ),
+          ),
         ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 30,
-            left: 20,
-            child: Container(
-              width: 80,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(50),
-              ),
+        Positioned(
+          top: 55,
+          right: 30,
+          child: Container(
+            width: 60,
+            height: 30,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(50),
             ),
           ),
-          Positioned(
-            top: 55,
-            right: 30,
-            child: Container(
-              width: 60,
-              height: 30,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(50),
-              ),
+        ),
+        Positioned(
+          top: 75,
+          left: 80,
+          child: Container(
+            width: 100,
+            height: 45,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(50),
             ),
           ),
-          Positioned(
-            top: 75,
-            left: 80,
-            child: Container(
-              width: 100,
-              height: 45,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(50),
-              ),
+        ),
+        Positioned(
+          top: 20,
+          right: 100,
+          child: Container(
+            width: 70,
+            height: 35,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(50),
             ),
           ),
-          Positioned(
-            top: 20,
-            right: 100,
-            child: Container(
-              width: 70,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(50),
-              ),
+        ),
+        Center(
+          child: Text(
+            'Educación Financiera',
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2B2B2B),
             ),
           ),
-          Center(
-            child: Text(
-              'Educación Financiera',
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF2B2B2B),
-              ),
-            ),
-          ),
-        ],
+        ),
+      ],
+    );
+
+    if (sigma <= 0) {
+      return child;
+    }
+
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+        child: child,
       ),
     );
   }
@@ -315,7 +416,6 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
   }
 
   Widget _buildEncabezadoDesbloqueado(NivelConEstado nivel, Color colorNivel) {
-    final progreso = nivel.porcentajeProgreso;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,30 +427,10 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
             color: colorNivel,
           ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progreso / 100,
-                  backgroundColor: colorNivel.withValues(alpha: 0.2),
-                  color: colorNivel,
-                  minHeight: 8,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              '${progreso.toStringAsFixed(0)}% completado',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF8C8474),
-              ),
-            ),
-          ],
+        const SizedBox(height: 12),
+        IndicadorProgresoEscalones(
+          escalones: nivel.escalones,
+          colorNivel: colorNivel,
         ),
       ],
     );
@@ -364,46 +444,57 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
     final escalones = nivel.escalones;
     if (escalones.isEmpty) return const SizedBox.shrink();
 
-    final anchoPantalla = MediaQuery.of(context).size.width;
-    final margenLado = anchoPantalla * 0.15;
+    final total = escalones.length;
+    final altoStack =
+        total * _altoEscalonWidget + (total - 1) * _altoIntermedio;
 
-    return Column(
-      children: [
-        for (int i = 0; i < escalones.length; i++) ...[
-          Align(
-            alignment: i % 2 == 0
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: i % 2 == 0 ? margenLado : 0,
-                right: i % 2 == 1 ? margenLado : 0,
-              ),
-              child: _buildEscalon(
-                context,
-                escalones[i],
-                nivel,
-                colorNivel,
-                i,
-              ),
-            ),
-          ),
-          if (i < escalones.length - 1)
-            SizedBox(
-              height: 36,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _LineaConectora(
-                  color: (escalones[i].desbloqueado &&
-                          escalones[i + 1].desbloqueado)
-                      ? colorNivel
-                      : const Color(0xFFD9D5CB),
-                  izquierdaADerecha: i % 2 == 0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final anchoBloque = constraints.maxWidth;
+        final margenLado = anchoBloque * 0.15;
+
+        final centrosCirculos = <Offset>[];
+        for (int i = 0; i < total; i++) {
+          final yWidgetTop = i * (_altoEscalonWidget + _altoIntermedio);
+          final yCentroCirculo = yWidgetTop + (_anchoCirculo / 2);
+          final centroBox = _anchoEscalonBox / 2;
+          final xCirculo = i % 2 == 0
+              ? margenLado + centroBox
+              : (anchoBloque - margenLado) - centroBox;
+          centrosCirculos.add(Offset(xCirculo, yCentroCirculo));
+        }
+
+        return SizedBox(
+          width: anchoBloque,
+          height: altoStack,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _CaminoNivel(
+                    centrosCirculos: centrosCirculos,
+                    colorNivel: colorNivel,
+                    nivelBloqueado: !nivel.desbloqueado,
+                  ),
                 ),
               ),
-            ),
-        ],
-      ],
+              for (int i = 0; i < total; i++)
+                Positioned(
+                  top: i * (_altoEscalonWidget + _altoIntermedio),
+                  left: i % 2 == 0 ? margenLado : null,
+                  right: i % 2 == 1 ? margenLado : null,
+                  child: _buildEscalon(
+                    context,
+                    escalones[i],
+                    nivel,
+                    colorNivel,
+                    i,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -478,13 +569,14 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
             }
           : null,
       child: SizedBox(
-        width: 120,
+        width: _anchoEscalonBox,
+        height: _altoEscalonWidget,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: _anchoCirculo,
+              height: _anchoCirculo,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: fondoCirculo,
@@ -499,15 +591,16 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              escalon.titulo,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: colorTitulo,
+            Expanded(
+              child: Text(
+                escalon.titulo,
+                maxLines: 3,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: colorTitulo,
+                ),
               ),
             ),
           ],

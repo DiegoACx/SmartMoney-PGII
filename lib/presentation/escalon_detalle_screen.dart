@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../logic/auth_logic.dart';
 import '../logic/educacion_logic.dart';
 import '../logic/formato_utils.dart';
+import 'widgets/indicador_progreso_escalones.dart';
 
 class _CurvedHeaderClipper extends CustomClipper<Path> {
   @override
@@ -449,7 +450,6 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     final colorClaro = Color.lerp(colorNivel, Colors.white, 0.35) ?? colorNivel;
     final posicion = _obtenerPosicionEscalon();
     final total = widget.nivel.escalones.length;
-    final progreso = widget.nivel.porcentajeProgreso;
     final todasRespondidas = _todasLasPreguntasRespondidas();
 
     return Scaffold(
@@ -582,15 +582,12 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                               color: const Color(0xFF8C8474),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: progreso / 100,
-                              backgroundColor:
-                                  colorNivel.withValues(alpha: 0.15),
-                              color: colorNivel,
-                              minHeight: 7,
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.center,
+                            child: IndicadorProgresoEscalones(
+                              escalones: widget.nivel.escalones,
+                              colorNivel: colorNivel,
                             ),
                           ),
                         ],
@@ -1118,7 +1115,6 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     final colorClaro = Color.lerp(colorNivel, Colors.white, 0.35) ?? colorNivel;
     final posicion = _obtenerPosicionEscalon();
     final total = widget.nivel.escalones.length;
-    final progreso = widget.nivel.porcentajeProgreso;
 
     final contenidoRaw = widget.escalon.escalon['contenido']?.toString() ?? '';
     final partes = contenidoRaw.split('\n\n');
@@ -1220,15 +1216,12 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                               color: const Color(0xFF8C8474),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: progreso / 100,
-                              backgroundColor:
-                                  colorNivel.withValues(alpha: 0.15),
-                              color: colorNivel,
-                              minHeight: 7,
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.center,
+                            child: IndicadorProgresoEscalones(
+                              escalones: widget.nivel.escalones,
+                              colorNivel: colorNivel,
                             ),
                           ),
                         ],
