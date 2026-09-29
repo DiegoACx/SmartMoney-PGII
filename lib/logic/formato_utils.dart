@@ -1,6 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+Color colorFromHex(String hex) {
+  final limpio = hex.trim().replaceFirst('#', '');
+  if (limpio.length == 6) {
+    return Color(int.parse('0xFF$limpio'));
+  }
+  return Color(int.parse(limpio));
+}
+
 /// Utilidades de formato reutilizables en toda la capa presentation.
 ///
 /// Usamos un solo lugar para centralizar cómo se ven los montos y las fechas,

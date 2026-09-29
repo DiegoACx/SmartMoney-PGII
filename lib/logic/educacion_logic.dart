@@ -134,11 +134,40 @@ class EducacionLogic {
     final puntaje = total == 0 ? 0.0 : (correctas / total) * 100;
     final aprobado = puntaje >= 70;
 
+    final progresoAnterior = await _repository.obtenerProgresoEscalon(
+      usuarioId: usuarioId,
+      escalonId: escalonId,
+    );
+
+    final bool completadoAGuardar;
+    final double? puntajeAGuardar;
+
+    if (progresoAnterior == null) {
+      completadoAGuardar = aprobado;
+      puntajeAGuardar = puntaje;
+    } else {
+      final anteriorCompletado = progresoAnterior['completado'] == true;
+      final anteriorPuntaje =
+          (progresoAnterior['puntaje'] as num?)?.toDouble();
+
+      if (anteriorCompletado) {
+        completadoAGuardar = true;
+        if (anteriorPuntaje == null || puntaje > anteriorPuntaje) {
+          puntajeAGuardar = puntaje;
+        } else {
+          puntajeAGuardar = anteriorPuntaje;
+        }
+      } else {
+        completadoAGuardar = aprobado;
+        puntajeAGuardar = puntaje;
+      }
+    }
+
     await _repository.guardarProgreso(
       usuarioId: usuarioId,
       escalonId: escalonId,
-      completado: aprobado,
-      puntaje: puntaje,
+      completado: completadoAGuardar,
+      puntaje: puntajeAGuardar,
     );
 
     return ResultadoEvaluacion(

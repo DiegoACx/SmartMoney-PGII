@@ -41,6 +41,21 @@ class EducacionRepository {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  Future<Map<String, dynamic>?> obtenerProgresoEscalon({
+    required String usuarioId,
+    required String escalonId,
+  }) async {
+    final data = await _client
+        .from('educacion_progreso')
+        .select()
+        .eq('usuario_id', usuarioId)
+        .eq('escalon_id', escalonId)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return Map<String, dynamic>.from(data);
+  }
+
   Future<void> guardarProgreso({
     required String usuarioId,
     required String escalonId,
