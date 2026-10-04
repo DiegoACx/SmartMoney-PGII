@@ -1308,7 +1308,7 @@ class HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 )
-              // CASO B — Completó TODO
+              // CASO B — CompletóTODO
               else if (todosCompletados)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
