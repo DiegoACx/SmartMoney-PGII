@@ -13,6 +13,7 @@ const double _altoEscalonWidget = 110;
 const double _altoIntermedio = 36;
 const double _anchoCirculo = 64;
 const double _anchoEscalonBox = 140;
+const double _yReferenciaTitulo = 80;
 
 class _CaminoNivel extends CustomPainter {
   final List<Offset> centrosCirculos;
@@ -318,6 +319,38 @@ class EducacionFinancieraScreenState
         offsetCentroCirculo;
   }
 
+  NivelConEstado? _nivelEnPosicion(double y) {
+    if (_niveles.isEmpty) return null;
+
+    const double offsetInicial = 110.0;
+    double cursor = offsetInicial;
+
+    final nivelesRenderizados = _niveles.reversed.toList();
+
+    if (y < offsetInicial) {
+      return nivelesRenderizados.first;
+    }
+
+    for (final n in nivelesRenderizados) {
+      final altura = _calcularAlturaNivel(n) + 28;
+      if (y >= cursor && y < cursor + altura) {
+        return n;
+      }
+      cursor += altura;
+    }
+
+    return nivelesRenderizados.last;
+  }
+
+  Color _colorTituloParaNivel(NivelConEstado? n) {
+    if (n == null) return const Color(0xFF2B2B2B);
+    final c = colorFromHex(n.colorHex);
+    final hsl = HSLColor.fromColor(c);
+    return hsl
+        .withLightness(hsl.lightness > 0.38 ? 0.38 : hsl.lightness)
+        .toColor();
+  }
+
   void _centrarEnEscalonObjetivo() {
     if (!_scrollController.hasClients) return;
     final escalon = _calcularEscalonObjetivo();
@@ -352,12 +385,15 @@ class EducacionFinancieraScreenState
             valueListenable: _scrollOffset,
             builder: (_, offset, _) {
               final t = (offset.clamp(0, 40) / 40).toDouble();
+              final nivelVisible =
+                  _nivelEnPosicion(offset + _yReferenciaTitulo);
+              final colorTitulo = _colorTituloParaNivel(nivelVisible);
               return Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 height: 160,
-                child: _buildFranjaCielo(t),
+                child: _buildFranjaCielo(t, colorTitulo),
               );
             },
           ),
@@ -415,7 +451,7 @@ class EducacionFinancieraScreenState
     );
   }
 
-  Widget _buildFranjaCielo(double progress) {
+  Widget _buildFranjaCielo(double progress, Color colorTitulo) {
     final sigma = progress * 15.0;
     final alphaFondo = progress * 0.55;
 
@@ -494,13 +530,20 @@ class EducacionFinancieraScreenState
           ),
         ),
         Center(
-          child: Text(
-            'Educación Financiera',
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 300),
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF2B2B2B),
+              color: colorTitulo,
+              shadows: [
+                Shadow(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  blurRadius: 6,
+                ),
+              ],
             ),
+            child: const Text('Educación Financiera'),
           ),
         ),
       ],
@@ -768,7 +811,7 @@ class EducacionFinancieraScreenState
     return GestureDetector(
       onTap: tocable
           ? () async {
-              final result = await Navigator.push<bool>(
+              await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (_) => EscalonDetalleScreen(
@@ -777,9 +820,8 @@ class EducacionFinancieraScreenState
                   ),
                 ),
               );
-              if (result == true) {
-                _cargarDatosYCentrar();
-              }
+              if (!mounted) return;
+              await recargarYCentrar();
             }
           : null,
       child: SizedBox(

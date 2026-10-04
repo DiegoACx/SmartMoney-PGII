@@ -55,6 +55,7 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
   final _authLogic = AuthLogic();
 
   bool _isLoading = false;
+  bool _navegando = false;
 
   // ——— Estado de la evaluación ———
   bool _evalCargando = true;
@@ -596,7 +597,7 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       if (_esUltimoEscalonDelNivel()) {
         await _manejarFinalizacionExitosaUltimoEscalon();
       } else {
-        Navigator.pop(context, true);
+        await _continuarAlSiguienteEscalon();
       }
     } catch (e) {
       if (!mounted) return;
@@ -956,12 +957,27 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      final aprobado =
-                                          _resultadoEvaluacion?.aprobado ??
-                                              false;
-                                      Navigator.pop(context, aprobado);
-                                    },
+                                    onPressed: (_resultadoEvaluacion
+                                                    ?.aprobado ==
+                                                true &&
+                                            !_esUltimoEscalonDelNivel() &&
+                                            _navegando)
+                                        ? null
+                                        : () async {
+                                            final aprobado =
+                                                _resultadoEvaluacion
+                                                        ?.aprobado ??
+                                                    false;
+                                            if (aprobado) {
+                                              if (_esUltimoEscalonDelNivel()) {
+                                                Navigator.pop(context, true);
+                                              } else {
+                                                await _continuarAlSiguienteEscalon();
+                                              }
+                                            } else {
+                                              Navigator.pop(context, false);
+                                            }
+                                          },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
@@ -970,16 +986,29 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                                             BorderRadius.circular(16),
                                       ),
                                     ),
-                                    child: Text(
-                                      _resultadoEvaluacion?.aprobado == true
-                                          ? 'Continuar'
-                                          : 'Regresar',
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                    child: (_resultadoEvaluacion?.aprobado ==
+                                                true &&
+                                            !_esUltimoEscalonDelNivel() &&
+                                            _navegando)
+                                        ? const SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2.5,
+                                            ),
+                                          )
+                                        : Text(
+                                            _resultadoEvaluacion?.aprobado ==
+                                                    true
+                                                ? 'Continuar'
+                                                : 'Regresar',
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),
@@ -1367,6 +1396,111 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     );
   }
 
+  Future<void> _continuarAlSiguienteEscalon() async {
+    if (_navegando) return;
+    setState(() => _navegando = true);
+
+    final usuarioId = _authLogic.obtenerUsuarioId();
+    if (usuarioId == null) {
+      if (mounted) {
+        setState(() => _navegando = false);
+      }
+      return;
+    }
+
+    List<NivelConEstado> arbolRecargado = [];
+    try {
+      arbolRecargado =
+          await _educacionLogic.cargarArbolCompleto(usuarioId);
+    } catch (e) {
+      debugPrint('ERROR RECARGAR ARBOL SIGUIENTE ESCALON: $e');
+    }
+
+    if (!mounted) return;
+
+    final idNivelActual = widget.nivel.id;
+    NivelConEstado? nivelRecargado;
+    for (final n in arbolRecargado) {
+      if (n.id == idNivelActual) {
+        nivelRecargado = n;
+        break;
+      }
+    }
+    if (nivelRecargado == null) {
+      setState(() => _navegando = false);
+      return;
+    }
+
+    final ordenActualRaw = widget.escalon.escalon['orden'];
+    final ordenActual = ordenActualRaw is num
+        ? ordenActualRaw.toInt()
+        : int.tryParse(ordenActualRaw.toString()) ?? 0;
+
+    EscalonConEstado? siguienteEscalon;
+    for (final e in nivelRecargado.escalones) {
+      final ordenRaw = e.escalon['orden'];
+      final orden = ordenRaw is num
+          ? ordenRaw.toInt()
+          : int.tryParse(ordenRaw.toString()) ?? 0;
+      if (orden == ordenActual + 1) {
+        siguienteEscalon = e;
+        break;
+      }
+    }
+
+    if (siguienteEscalon == null) {
+      await _manejarFinalizacionExitosaUltimoEscalon();
+      return;
+    }
+
+    if (!siguienteEscalon.desbloqueado || !siguienteEscalon.disponible) {
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              const Text('El siguiente contenido estará disponible pronto'),
+          backgroundColor: const Color(0xFF8C8474),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final nivelOK = nivelRecargado;
+    final escalonOK = siguienteEscalon;
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        transitionsBuilder: (ctx, anim, secAnim, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.12),
+              end: Offset.zero,
+            ).animate(curved),
+            child: FadeTransition(
+              opacity: curved,
+              child: child,
+            ),
+          );
+        },
+        pageBuilder: (ctx, anim, secAnim) => EscalonDetalleScreen(
+          escalon: escalonOK,
+          nivel: nivelOK,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPantallaLeccion() {
     final colorNivel = colorFromHex(widget.nivel.colorHex);
     final colorClaro = Color.lerp(colorNivel, Colors.white, 0.35) ?? colorNivel;
@@ -1380,199 +1514,265 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
 
     final yaCompletado = widget.escalon.completado;
 
+    final hslOscuro = HSLColor.fromColor(colorNivel);
+    final colorTextoOscuro = hslOscuro
+        .withLightness(hslOscuro.lightness > 0.38 ? 0.38 : hslOscuro.lightness)
+        .toColor();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.25,
-                width: double.infinity,
-                child: ClipPath(
-                  clipper: _CurvedHeaderClipper(),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [colorNivel, colorClaro],
-                      ),
-                    ),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const Icon(
-                                  Icons.arrow_back_ios_new,
-                                  color: Colors.white,
-                                ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.25,
+                      width: double.infinity,
+                      child: ClipPath(
+                        clipper: _CurvedHeaderClipper(),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [colorNivel, colorClaro],
+                            ),
+                          ),
+                          child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Align(
+                                    alignment: Alignment.topLeft,
+                                    child: IconButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      icon: const Icon(
+                                        Icons.arrow_back_ios_new,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(flex: 2),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Text(
+                                      widget.escalon.titulo,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(flex: 3),
+                                ],
                               ),
                             ),
-                            const Spacer(flex: 2),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Text(
-                                widget.escalon.titulo,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                            const Spacer(flex: 3),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '$posicion de $total',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF8C8474),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$posicion de $total',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF8C8474),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: IndicadorProgresoEscalones(
+                                    escalones: widget.nivel.escalones,
+                                    colorNivel: colorNivel,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.center,
-                            child: IndicadorProgresoEscalones(
-                              escalones: widget.nivel.escalones,
-                              colorNivel: colorNivel,
+                          const SizedBox(height: 28),
+                          if (textoPrincipal.isNotEmpty)
+                            Text(
+                              textoPrincipal,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF2B2B2B),
+                                height: 1.7,
+                              ),
                             ),
-                          ),
+                          if (textoPrincipal.isNotEmpty && textoEjemplo.isNotEmpty)
+                            const SizedBox(height: 24),
+                          if (textoEjemplo.isNotEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: colorNivel.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: colorNivel.withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: colorNivel.withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.lightbulb_outline,
+                                      color: colorNivel,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      textoEjemplo,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFF2B2B2B),
+                                        height: 1.6,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 24),
+                          if (yaCompletado)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: colorNivel.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: colorNivel.withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: colorNivel,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Ya completaste esta sección',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorTextoOscuro,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    if (textoPrincipal.isNotEmpty)
-                      Text(
-                        textoPrincipal,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF2B2B2B),
-                          height: 1.7,
-                        ),
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF6EA),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 12,
+                      offset: Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [colorNivel, colorClaro],
                       ),
-                    if (textoPrincipal.isNotEmpty && textoEjemplo.isNotEmpty)
-                      const SizedBox(height: 24),
-                    if (textoEjemplo.isNotEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colorNivel.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: colorNivel.withValues(alpha: 0.25),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: colorNivel.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.lightbulb_outline,
-                                color: colorNivel,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                textoEjemplo,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF2B2B2B),
-                                  height: 1.6,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [colorNivel, colorClaro],
-                          ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: (_isLoading || _navegando)
+                          ? null
+                          : (yaCompletado
+                              ? _continuarAlSiguienteEscalon
+                              : _completarLeccion),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: ElevatedButton(
-                          onPressed: (_isLoading || yaCompletado)
-                              ? null
-                              : _completarLeccion,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Text(
+                      ),
+                      child: (!yaCompletado && _isLoading) || _navegando
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
                                   yaCompletado
-                                      ? 'Ya completaste esta lección'
+                                      ? 'Ir al siguiente escalón'
                                       : 'Completar y continuar',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
@@ -1580,14 +1780,22 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                        ),
-                      ),
+                                if (yaCompletado) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ],
+                              ],
+                            ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
