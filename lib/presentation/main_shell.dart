@@ -19,11 +19,12 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
   final _homeScreenKey = GlobalKey<HomeScreenState>();
+  final _educacionScreenKey = GlobalKey<EducacionFinancieraScreenState>();
 
   late final List<Widget> _paginas = [
     HomeScreen(key: _homeScreenKey),
     const IaScreen(),
-    const EducacionFinancieraScreen(),
+    EducacionFinancieraScreen(key: _educacionScreenKey),
     const IngresoMontosScreen(),
     const MetasScreen(),
     const PerfilScreen(),
@@ -61,6 +62,8 @@ class _MainShellState extends State<MainShell> {
               setState(() => _index = i);
               if (i == 0) {
                 _homeScreenKey.currentState?.cargarTransacciones();
+              } else if (i == 2) {
+                _educacionScreenKey.currentState?.recargarYCentrar();
               }
             },
             destinations: const [

@@ -90,27 +90,44 @@ class EducacionFinancieraScreen extends StatefulWidget {
 
   @override
   State<EducacionFinancieraScreen> createState() =>
-      _EducacionFinancieraScreenState();
+      EducacionFinancieraScreenState();
 }
 
-class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
+class EducacionFinancieraScreenState
+    extends State<EducacionFinancieraScreen> {
   final _educacionLogic = EducacionLogic();
   final _authLogic = AuthLogic();
 
   bool _cargando = true;
   List<NivelConEstado> _niveles = [];
   final ValueNotifier<double> _scrollOffset = ValueNotifier(0);
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _cargarDatos();
+    _scrollController = ScrollController();
+    _cargarDatosYCentrar();
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _scrollOffset.dispose();
     super.dispose();
+  }
+
+  Future<void> recargarYCentrar() async {
+    await _cargarDatosYCentrar();
+  }
+
+  Future<void> _cargarDatosYCentrar() async {
+    await _cargarDatos();
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _centrarEnEscalonObjetivo();
+    });
   }
 
   Future<void> _cargarDatos() async {
@@ -136,6 +153,193 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
       _niveles = lista;
       _cargando = false;
     });
+  }
+
+  EscalonConEstado? _calcularEscalonObjetivo() {
+    if (_niveles.isEmpty) return null;
+
+    final ordenados = List<NivelConEstado>.from(_niveles)
+      ..sort((a, b) {
+        final oa = a.nivel['orden'] is num
+            ? (a.nivel['orden'] as num).toInt()
+            : int.tryParse(a.nivel['orden'].toString()) ?? 0;
+        final ob = b.nivel['orden'] is num
+            ? (b.nivel['orden'] as num).toInt()
+            : int.tryParse(b.nivel['orden'].toString()) ?? 0;
+        return oa.compareTo(ob);
+      });
+
+    EscalonConEstado? ultimoExperto;
+    final ultimoNivel = ordenados.last;
+    if (ultimoNivel.escalones.isNotEmpty) {
+      ultimoExperto = ultimoNivel.escalones.last;
+    }
+
+    for (final nivel in ordenados) {
+      final escalonesOrdenados = List<EscalonConEstado>.from(nivel.escalones)
+        ..sort((a, b) {
+          final oa = a.escalon['orden'] is num
+              ? (a.escalon['orden'] as num).toInt()
+              : int.tryParse(a.escalon['orden'].toString()) ?? 0;
+          final ob = b.escalon['orden'] is num
+              ? (b.escalon['orden'] as num).toInt()
+              : int.tryParse(b.escalon['orden'].toString()) ?? 0;
+          return oa.compareTo(ob);
+        });
+      for (final escalon in escalonesOrdenados) {
+        if (escalon.desbloqueado && !escalon.completado) {
+          return escalon;
+        }
+      }
+    }
+    return ultimoExperto;
+  }
+
+  double _ordenNivel(NivelConEstado n) {
+    final raw = n.nivel['orden'];
+    if (raw is num) return raw.toDouble();
+    return (int.tryParse(raw.toString()) ?? 0).toDouble();
+  }
+
+  int _ordenEscalon(EscalonConEstado e) {
+    final raw = e.escalon['orden'];
+    if (raw is num) return raw.toInt();
+    return int.tryParse(raw.toString()) ?? 0;
+  }
+
+  double _calcularAlturaNivel(NivelConEstado nivel) {
+    if (!nivel.desbloqueado) {
+      const double altoIcono = 32;
+      const double altoGap1 = 12;
+      const double altoTitulo = 20;
+      const double altoGap2 = 6;
+      const double altoSubtitulo = 16;
+      const double altoEncabezadoCol =
+          altoIcono + altoGap1 + altoTitulo + altoGap2 + altoSubtitulo;
+      const double paddingContainerAll = 20 + 20;
+      return altoEncabezadoCol + paddingContainerAll;
+    }
+    final total = nivel.escalones.length;
+    if (total == 0) {
+      const double alturaColDesbloqueadoSinProgreso = 20 + 12 + 18;
+      const double paddingContainerAll = 20 + 20;
+      return alturaColDesbloqueadoSinProgreso + paddingContainerAll;
+    }
+    final altoContenidoEscalones =
+        total * _altoEscalonWidget + (total - 1) * _altoIntermedio;
+    const double alturaTextoNombre = 20;
+    const double sizedGap1 = 12;
+    const double alturaIndicadorProgreso = 18;
+    const double sizedBoxFinColumna = 12;
+    const double margenSuperiorCol = 20;
+    const double alturaColDesbloqueado = margenSuperiorCol +
+        alturaTextoNombre +
+        sizedGap1 +
+        alturaIndicadorProgreso +
+        sizedBoxFinColumna +
+        4;
+    const double sizedSeparadorHeaderEscalones = 20;
+    const double paddingContainerAll = 20 + 20;
+    return alturaColDesbloqueado +
+        sizedSeparadorHeaderEscalones +
+        altoContenidoEscalones +
+        paddingContainerAll;
+  }
+
+  double _calcularOffsetYEscalon(EscalonConEstado escalonObjetivo) {
+    const double offsetInicial = 110.0;
+    const double paddingHorizontalTopInterno = 0;
+
+    NivelConEstado? nivelDelEscalon;
+    for (final n in _niveles) {
+      if (n.escalones.any((e) => e.id == escalonObjetivo.id)) {
+        nivelDelEscalon = n;
+        break;
+      }
+    }
+    if (nivelDelEscalon == null) return 0;
+
+    final ordenNivelActual = _ordenNivel(nivelDelEscalon);
+
+    double alturaNivelesSuperiores = 0;
+    for (final n in _niveles) {
+      if (_ordenNivel(n) > ordenNivelActual) {
+        alturaNivelesSuperiores += _calcularAlturaNivel(n) + 28;
+      }
+    }
+
+    final escalonesOrdenOriginal = nivelDelEscalon.escalones;
+    final total = escalonesOrdenOriginal.length;
+    final ordenEscalonActual = _ordenEscalon(escalonObjetivo);
+    int io = 0;
+    for (int k = 0; k < total; k++) {
+      if (_ordenEscalon(escalonesOrdenOriginal[k]) == ordenEscalonActual) {
+        io = k;
+        break;
+      }
+    }
+    final ir = total - 1 - io;
+
+    double alturaDentroContainerHastaInicioEscalones;
+    if (nivelDelEscalon.desbloqueado) {
+      const double alturaTextoNombre = 20;
+      const double sizedGap1 = 12;
+      const double alturaIndicadorProgreso = 18;
+      const double sizedBoxFinColumna = 12;
+      const double margenSuperiorCol = 20;
+      const double alturaColDesbloqueado = margenSuperiorCol +
+          alturaTextoNombre +
+          sizedGap1 +
+          alturaIndicadorProgreso +
+          sizedBoxFinColumna +
+          4;
+      const double sizedSeparadorHeaderEscalones = 20;
+      alturaDentroContainerHastaInicioEscalones = 20 +
+          alturaColDesbloqueado +
+          sizedSeparadorHeaderEscalones;
+    } else {
+      const double altoIcono = 32;
+      const double altoGap1 = 12;
+      const double altoTitulo = 20;
+      const double altoGap2 = 6;
+      const double altoSubtitulo = 16;
+      const double altoEncabezadoCol =
+          altoIcono + altoGap1 + altoTitulo + altoGap2 + altoSubtitulo;
+      alturaDentroContainerHastaInicioEscalones = 20 + altoEncabezadoCol;
+    }
+
+    final topDentroDelBloque = ir * (_altoEscalonWidget + _altoIntermedio);
+    final offsetCentroCirculo = topDentroDelBloque + (_anchoCirculo / 2);
+
+    return offsetInicial +
+        paddingHorizontalTopInterno +
+        alturaNivelesSuperiores +
+        alturaDentroContainerHastaInicioEscalones +
+        offsetCentroCirculo;
+  }
+
+  void _centrarEnEscalonObjetivo() {
+    if (!_scrollController.hasClients) return;
+    final escalon = _calcularEscalonObjetivo();
+    if (escalon == null) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final minScroll = 0.0;
+
+    final alturaVista = MediaQuery.of(context).size.height;
+    final ajusteCentrado = alturaVista / 3;
+
+    double offsetBruto = _calcularOffsetYEscalon(escalon) - ajusteCentrado;
+    if (offsetBruto < minScroll) offsetBruto = minScroll;
+    if (offsetBruto > maxScroll) offsetBruto = maxScroll;
+
+    final offsetFinal = offsetBruto.clamp(minScroll, maxScroll);
+
+    _scrollController.animateTo(
+      offsetFinal,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -172,6 +376,7 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
                   return false;
                 },
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
@@ -188,7 +393,8 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
                                 ? _buildEstadoVacio()
                                 : Column(
                                     children: [
-                                      for (final nivel in _niveles)
+                                      for (final nivel
+                                          in _niveles.reversed.toList())
                                         Padding(
                                           padding:
                                               const EdgeInsets.only(bottom: 28),
@@ -441,10 +647,11 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
     NivelConEstado nivel,
     Color colorNivel,
   ) {
-    final escalones = nivel.escalones;
-    if (escalones.isEmpty) return const SizedBox.shrink();
+    final escalonesOrdenOriginal = nivel.escalones;
+    if (escalonesOrdenOriginal.isEmpty) return const SizedBox.shrink();
 
-    final total = escalones.length;
+    final escalonesRenderizado = escalonesOrdenOriginal.reversed.toList();
+    final total = escalonesRenderizado.length;
     final altoStack =
         total * _altoEscalonWidget + (total - 1) * _altoIntermedio;
 
@@ -454,11 +661,13 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
         final margenLado = anchoBloque * 0.15;
 
         final centrosCirculos = <Offset>[];
-        for (int i = 0; i < total; i++) {
-          final yWidgetTop = i * (_altoEscalonWidget + _altoIntermedio);
+        for (int ir = 0; ir < total; ir++) {
+          final escalon = escalonesRenderizado[ir];
+          final io = escalonesOrdenOriginal.indexWhere((e) => e.id == escalon.id);
+          final yWidgetTop = ir * (_altoEscalonWidget + _altoIntermedio);
           final yCentroCirculo = yWidgetTop + (_anchoCirculo / 2);
           final centroBox = _anchoEscalonBox / 2;
-          final xCirculo = i % 2 == 0
+          final xCirculo = io % 2 == 0
               ? margenLado + centroBox
               : (anchoBloque - margenLado) - centroBox;
           centrosCirculos.add(Offset(xCirculo, yCentroCirculo));
@@ -478,19 +687,24 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
                   ),
                 ),
               ),
-              for (int i = 0; i < total; i++)
-                Positioned(
-                  top: i * (_altoEscalonWidget + _altoIntermedio),
-                  left: i % 2 == 0 ? margenLado : null,
-                  right: i % 2 == 1 ? margenLado : null,
-                  child: _buildEscalon(
-                    context,
-                    escalones[i],
-                    nivel,
-                    colorNivel,
-                    i,
-                  ),
-                ),
+              for (int ir = 0; ir < total; ir++)
+                () {
+                  final escalonActual = escalonesRenderizado[ir];
+                  final ioOriginal = escalonesOrdenOriginal
+                      .indexWhere((e) => e.id == escalonActual.id);
+                  return Positioned(
+                    top: ir * (_altoEscalonWidget + _altoIntermedio),
+                    left: ioOriginal % 2 == 0 ? margenLado : null,
+                    right: ioOriginal % 2 == 1 ? margenLado : null,
+                    child: _buildEscalon(
+                      context,
+                      escalonActual,
+                      nivel,
+                      colorNivel,
+                      ioOriginal,
+                    ),
+                  );
+                }(),
             ],
           ),
         );
@@ -564,7 +778,7 @@ class _EducacionFinancieraScreenState extends State<EducacionFinancieraScreen> {
                 ),
               );
               if (result == true) {
-                _cargarDatos();
+                _cargarDatosYCentrar();
               }
             }
           : null,

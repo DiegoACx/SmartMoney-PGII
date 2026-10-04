@@ -310,6 +310,253 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     );
   }
 
+  bool _esUltimoEscalonDelNivel() {
+    final escalones = widget.nivel.escalones;
+    if (escalones.isEmpty) return false;
+    final ordenes = escalones
+        .map((e) {
+          final raw = e.escalon['orden'];
+          return raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? 0;
+        })
+        .toList();
+    final maxOrden = ordenes.reduce((a, b) => a > b ? a : b);
+    final ordenActualRaw = widget.escalon.escalon['orden'];
+    final ordenActual = ordenActualRaw is num
+        ? ordenActualRaw.toInt()
+        : int.tryParse(ordenActualRaw.toString()) ?? 0;
+    return ordenActual == maxOrden;
+  }
+
+  Future<void> _manejarFinalizacionExitosaUltimoEscalon() async {
+    final usuarioId = _authLogic.obtenerUsuarioId();
+    if (usuarioId == null) {
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      return;
+    }
+
+    List<NivelConEstado> arbolActualizado = [];
+    try {
+      arbolActualizado =
+          await _educacionLogic.cargarArbolCompleto(usuarioId);
+    } catch (e) {
+      debugPrint('ERROR RECARGAR ARBOL POST-COMPLETADO: $e');
+    }
+
+    if (!mounted) return;
+
+    final ordenNivelActualRaw = widget.nivel.nivel['orden'];
+    final ordenNivelActual = ordenNivelActualRaw is num
+        ? ordenNivelActualRaw.toInt()
+        : int.tryParse(ordenNivelActualRaw.toString()) ?? 0;
+
+    NivelConEstado? nivelSiguiente;
+    for (final n in arbolActualizado) {
+      final ordenRaw = n.nivel['orden'];
+      final orden = ordenRaw is num
+          ? ordenRaw.toInt()
+          : int.tryParse(ordenRaw.toString()) ?? 0;
+      if (orden == ordenNivelActual + 1) {
+        nivelSiguiente = n;
+        break;
+      }
+    }
+
+    if (nivelSiguiente != null && nivelSiguiente.desbloqueado) {
+      final NivelConEstado nivelSiguienteOK = nivelSiguiente;
+      final colorNivelActual = colorFromHex(widget.nivel.colorHex);
+      final colorNivelSiguiente = colorFromHex(nivelSiguienteOK.colorHex);
+      final colorClaroSiguiente =
+          Color.lerp(colorNivelSiguiente, Colors.white, 0.35) ??
+              colorNivelSiguiente;
+      final primerEscalonSiguiente = nivelSiguienteOK.escalones.first;
+
+      final accionElegida = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: colorNivelActual.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.celebration,
+                  size: 32,
+                  color: colorNivelActual,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '¡Nivel completado!',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2B2B2B),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Completaste el nivel ${widget.nivel.nombre}. ¿Quieres continuar directo con el nivel ${nivelSiguienteOK.nombre}?',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF2B2B2B),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'cancelar'),
+              child: Text(
+                'Ahora no',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF8C8474),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 160,
+              height: 44,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [colorNivelSiguiente, colorClaroSiguiente],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, 'continuar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Sí, continuar',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (accionElegida == 'continuar') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EscalonDetalleScreen(
+              escalon: primerEscalonSiguiente,
+              nivel: nivelSiguienteOK,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pop(context, true);
+      }
+      return;
+    }
+
+    final colorNivelActual = colorFromHex(widget.nivel.colorHex);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: colorNivelActual.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.celebration,
+                size: 32,
+                color: colorNivelActual,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '¡Felicidades!',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2B2B2B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Completaste TODA la educación financiera. Eres todo un experto en finanzas.',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF2B2B2B),
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          SizedBox(
+            width: 160,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorNivelActual,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Continuar',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
   Future<void> _completarLeccion() async {
     final usuarioId = _authLogic.obtenerUsuarioId();
     if (usuarioId == null) return;
@@ -345,7 +592,12 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context, true);
+
+      if (_esUltimoEscalonDelNivel()) {
+        await _manejarFinalizacionExitosaUltimoEscalon();
+      } else {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -417,6 +669,11 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
         if (mensajeMotivacional != null &&
             mensajeMotivacional.trim().isNotEmpty) {
           await _mostrarMensajeMotivacional(mensajeMotivacional.trim());
+        }
+
+        if (!mounted) return;
+        if (_esUltimoEscalonDelNivel()) {
+          await _manejarFinalizacionExitosaUltimoEscalon();
         }
       }
     } catch (e) {
