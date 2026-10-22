@@ -15,6 +15,7 @@ import {
   esRepeticion,
   puntuarHallazgos,
   seleccionar,
+  yaRecomendado,
 } from "./puntaje.ts";
 
 function hallazgo(
@@ -104,6 +105,82 @@ Deno.test("esRepeticion compara tipo y objetivo dentro de los últimos 7 días",
     creadoEn: "2026-10-20",
   }];
   assertEquals(esRepeticion(objetivo, otroTipo, "2026-10-21"), false);
+});
+
+// --- Deduplicación de recomendaciones recientes ------------------------------
+// Da igual si la anterior fue respondida o no: cualquier recomendación del
+// mismo tipo y objetivo dentro de los últimos 7 días bloquea la repetición.
+
+Deno.test("yaRecomendado bloquea el mismo tipo y objetivo de los últimos 7 días", () => {
+  const hoy = "2026-10-21";
+  const objetivo = {
+    tipo: "sobregasto_categoria",
+    objetivo: "grupo:7",
+  } as const;
+  const previa = (
+    tipo: "sobregasto_categoria" | "logro",
+    obj: string,
+    creadoEn: string,
+  ): RecomendacionPrevia => ({ tipo, objetivo: obj, creadoEn });
+
+  // Respondida como útil hace 3 días → no se inserta otra.
+  assertEquals(
+    yaRecomendado(
+      objetivo,
+      [previa("sobregasto_categoria", "grupo:7", "2026-10-18")],
+      hoy,
+    ),
+    true,
+  );
+
+  // Respondida como no útil hace 6 días → tampoco.
+  assertEquals(
+    yaRecomendado(
+      objetivo,
+      [previa("sobregasto_categoria", "grupo:7", "2026-10-15")],
+      hoy,
+    ),
+    true,
+  );
+
+  // Sin responder hace 2 días → tampoco.
+  assertEquals(
+    yaRecomendado(
+      objetivo,
+      [previa("sobregasto_categoria", "grupo:7", "2026-10-19")],
+      hoy,
+    ),
+    true,
+  );
+
+  // Hace 8 días la ventana ya caducó → sí se puede volver a emitir.
+  assertEquals(
+    yaRecomendado(
+      objetivo,
+      [previa("sobregasto_categoria", "grupo:7", "2026-10-13")],
+      hoy,
+    ),
+    false,
+  );
+
+  // Otro objetivo (mismo tipo) → sí se puede emitir.
+  assertEquals(
+    yaRecomendado(
+      objetivo,
+      [previa("sobregasto_categoria", "grupo:1", "2026-10-20")],
+      hoy,
+    ),
+    false,
+  );
+
+  // Mismo objetivo pero otro tipo → tampoco bloquea.
+  assertEquals(
+    yaRecomendado(objetivo, [previa("logro", "grupo:7", "2026-10-20")], hoy),
+    false,
+  );
+
+  // Sin recomendaciones previas nada se bloquea.
+  assertEquals(yaRecomendado(objetivo, [], hoy), false);
 });
 
 // --- Puntaje de todos los hallazgos ------------------------------------------

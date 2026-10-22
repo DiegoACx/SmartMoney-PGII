@@ -67,6 +67,23 @@ export function esRepeticion(
   );
 }
 
+/**
+ * ¿Ya hubo una recomendación de los últimos 7 días con el mismo tipo y el mismo
+ * objetivo, esté respondida o no (útil o no útil)? En ese caso no se emite otra:
+ * el hallazgo se guarda igual, pero la recomendación no se duplica.
+ */
+export function yaRecomendado(
+  hallazgo: Pick<HallazgoBase, "tipo" | "objetivo">,
+  previas: RecomendacionPrevia[],
+  hoy: string,
+): boolean {
+  return previas.some((previa) =>
+    previa.tipo === hallazgo.tipo &&
+    previa.objetivo === hallazgo.objetivo &&
+    diasEntre(previa.creadoEn, hoy) <= DIAS_REPETICION
+  );
+}
+
 /** Puntúa todos los hallazgos, sin descartar ninguno. */
 export function puntuarHallazgos(params: {
   hallazgos: HallazgoBase[];

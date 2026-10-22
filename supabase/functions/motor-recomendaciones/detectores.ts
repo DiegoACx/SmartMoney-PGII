@@ -18,8 +18,9 @@ import {
   IMPACTO_LECCION,
   IMPACTO_SIN_INGRESO,
   K,
-  MIN_SEMANAS_ANOMALIA,
+  MIN_MOVIMIENTOS_ANOMALIA,
   RELEVANCIA_MIN,
+  SEMANAS_POR_MES,
   SEVERIDAD_RIESGO,
   SEVERIDAD_Z_MAX,
   TITULO_PROXIMAMENTE,
@@ -31,13 +32,16 @@ import {
   type TipoHallazgo,
 } from "./config.ts";
 import {
-  type LineaBaseCategoria,
+  type AgregadoClave,
   type LineaBaseGrupo,
   type TransaccionBase,
   diaDelMes,
   diasDelMes,
   diasEntre,
+  mad,
+  mediana,
   pesoPersonal,
+  semanasHistorial,
   sumarMontos,
   zRobusto,
 } from "./estadistica.ts";
@@ -163,7 +167,11 @@ export function detectarSobregastoCategoria(params: {
         proyeccion,
         normal_mensual: normal,
         umbral_sobregasto: UMBRAL_SOBREGASTO,
+        promedio_semanal: linea.promedio_semanal,
+        referencia_semanal: linea.referencia_semanal,
+        p: linea.p,
         n_semanas: linea.n,
+        ingreso_mensual: ingresoMensual,
         severidad,
         impacto,
       },
@@ -176,50 +184,59 @@ export function detectarSobregastoCategoria(params: {
 
 /**
  * Marca egresos sueltos de los últimos 7 días que se alejan del patrón de su
- * categoría (z robusto > Z_UMBRAL). Solo categorías con n ≥ MIN_SEMANAS_ANOMALIA.
+ * categoría. La mediana y la MAD se calculan sobre los MONTOS DE CADA MOVIMIENTO
+ * de la categoría (no sobre totales semanales), excluyendo el movimiento
+ * evaluado. Hacen falta al menos MIN_MOVIMIENTOS_ANOMALIA movimientos previos y
+ * una mediana mayor que cero; con MAD = 0 solo es anómalo si el monto supera
+ * FACTOR_MAD_CERO × mediana.
+ * `movimientosPorCategoria` debe venir ya filtrado (ventana de historial, sin
+ * gastos de trabajo).
  */
 export function detectarGastoAnomalo(params: {
   ingresoMensual: number | null;
   egresosUltimos7Dias: TransaccionBase[];
-  lineasBaseCategorias: LineaBaseCategoria[];
+  movimientosPorCategoria: Map<string, TransaccionBase[]>;
   nombresCategorias: Map<string, string>;
 }): HallazgoBase[] {
   const {
     ingresoMensual,
     egresosUltimos7Dias,
-    lineasBaseCategorias,
+    movimientosPorCategoria,
     nombresCategorias,
   } = params;
 
-  const basePorCategoria = new Map<string, LineaBaseCategoria>();
-  for (const linea of lineasBaseCategorias) {
-    basePorCategoria.set(linea.categoria_id, linea);
-  }
-
   const hallazgos: HallazgoBase[] = [];
   for (const t of egresosUltimos7Dias) {
-    const linea = basePorCategoria.get(t.categoria_id);
-    if (!linea || linea.n_semanas < MIN_SEMANAS_ANOMALIA) continue;
+    const previos = (movimientosPorCategoria.get(t.categoria_id) ?? [])
+      .filter((movimiento) => movimiento.id !== t.id)
+      .map((movimiento) => movimiento.monto);
+    if (previos.length < MIN_MOVIMIENTOS_ANOMALIA) continue;
 
+    const medianaMonto = mediana(previos);
+    // Sin patrón de gasto previo (mediana 0) cualquier monto parecería anómalo.
+    if (medianaMonto <= 0) continue;
+
+    const madMonto = mad(previos, medianaMonto);
     let z: number;
     let anomalo: boolean;
-    if (linea.mad === 0) {
-      anomalo = t.monto > FACTOR_MAD_CERO * linea.mediana;
+    if (madMonto === 0) {
+      anomalo = t.monto > FACTOR_MAD_CERO * medianaMonto;
       z = Z_MAD_CERO;
     } else {
-      z = zRobusto(t.monto, linea.mediana, linea.mad);
+      z = zRobusto(t.monto, medianaMonto, madMonto);
       anomalo = z > Z_UMBRAL;
     }
     if (!anomalo) continue;
 
     const severidad = limitar(z / SEVERIDAD_Z_MAX);
     const impacto = calcularImpacto(t.monto, ingresoMensual);
+    const nMovimientos = previos.length;
 
     hallazgos.push({
       tipo: "gasto_anomalo",
       severidad,
       impacto,
-      p: pesoPersonal(linea.n_semanas),
+      p: pesoPersonal(nMovimientos, MIN_MOVIMIENTOS_ANOMALIA),
       objetivo: `categoria:${t.categoria_id}`,
       datos: {
         transaccion_id: t.id,
@@ -227,10 +244,10 @@ export function detectarGastoAnomalo(params: {
         nombre_categoria: nombresCategorias.get(t.categoria_id) ?? "tu categoría",
         monto: t.monto,
         fecha: t.fecha,
-        mediana_semanal: linea.mediana,
-        mad_semanal: linea.mad,
+        mediana_monto: medianaMonto,
+        mad_monto: madMonto,
+        n_movimientos: nMovimientos,
         z,
-        n_semanas: linea.n_semanas,
         severidad,
         impacto,
       },
@@ -428,52 +445,85 @@ export function detectarLeccionSugerida(params: {
 // --- e) Logro del último mes completo ---------------------------------------
 
 /**
- * Reconocimiento del último mes calendario completo: grupos 1..12 con n ≥ K
- * cuyo gasto quedó por debajo del 90 % de su normal mensual. Un logro por
- * grupo y por mes.
+ * Reconocimiento del último mes calendario completo: grupos 1..12 que gastaron
+ * menos del UMBRAL_LOGRO de su promedio habitual. La comparación es contra el
+ * historial PERSONAL — el promedio semanal de las semanas anteriores al mes
+ * evaluado, sin mezclarlo con la referencia DANE — y hacen falta al menos K
+ * semanas de historial previo. La confianza sale de p = n / (n + K) con esas
+ * mismas semanas previas. Un logro por grupo y por mes.
  * `egresosMes` debe venir filtrado: mes completo y sin gastos de trabajo.
+ * `historialPorGrupo` son los agregados semanales anteriores a ese mes, y
+ * `sobregastos` los hallazgos de la misma ejecución: si un grupo ya tiene
+ * sobregasto, no se le genera logro.
  */
 export function detectarLogro(params: {
   mes: string;
   ingresoMensual: number | null;
   lineasBaseGrupos: LineaBaseGrupo[];
+  historialPorGrupo: Map<string, AgregadoClave>;
+  sobregastos: HallazgoBase[];
   egresosMes: TransaccionBase[];
 }): HallazgoBase[] {
-  const { mes, ingresoMensual, lineasBaseGrupos, egresosMes } = params;
+  const {
+    mes,
+    ingresoMensual,
+    lineasBaseGrupos,
+    historialPorGrupo,
+    sobregastos,
+    egresosMes,
+  } = params;
   const gastadoPorGrupo = gastoPorGrupoDelMes(egresosMes);
+  const gruposConSobregasto = new Set(
+    sobregastos.map((hallazgo) => Number(hallazgo.datos.grupo_id)),
+  );
   const hallazgos: HallazgoBase[] = [];
 
   for (const linea of lineasBaseGrupos) {
     if (linea.grupo_id > GRUPO_REFERENCIA_MAX) continue;
-    const normal = linea.normal_mensual;
-    if (normal === null || normal <= 0) continue;
-    if (linea.n < K) continue;
+    if (gruposConSobregasto.has(linea.grupo_id)) continue;
 
-    const gastoMes = gastadoPorGrupo.get(linea.grupo_id) ?? 0;
-    if (gastoMes > normal * UMBRAL_LOGRO) continue;
+    const historial = historialPorGrupo.get(String(linea.grupo_id));
+    if (!historial) continue;
+
+    const semanasPrevias = semanasHistorial(historial.serie);
+    if (semanasPrevias < K) continue;
+
+    const normalPersonalMensual = historial.promedio_semanal * SEMANAS_POR_MES;
+    if (normalPersonalMensual <= 0) continue;
 
     const relevante = ingresoMensual === null || ingresoMensual <= 0
-      ? normal > 0
-      : normal >= RELEVANCIA_MIN * ingresoMensual;
+      ? true
+      : normalPersonalMensual >= RELEVANCIA_MIN * ingresoMensual;
     if (!relevante) continue;
 
-    const severidad = limitar((1 - gastoMes / normal) / VENTANA_LOGRO);
-    const impacto = calcularImpacto(normal - gastoMes, ingresoMensual);
+    const gastoMes = gastadoPorGrupo.get(linea.grupo_id) ?? 0;
+    if (gastoMes > normalPersonalMensual * UMBRAL_LOGRO) continue;
+
+    const p = pesoPersonal(semanasPrevias);
+    const severidad = limitar(
+      (1 - gastoMes / normalPersonalMensual) / VENTANA_LOGRO,
+    );
+    const impacto = calcularImpacto(
+      normalPersonalMensual - gastoMes,
+      ingresoMensual,
+    );
 
     hallazgos.push({
       tipo: "logro",
       severidad,
       impacto,
-      p: linea.p,
+      p,
       objetivo: `grupo:${linea.grupo_id}`,
       datos: {
         grupo_id: linea.grupo_id,
         nombre_grupo: linea.nombre,
         mes,
         gasto_mes: gastoMes,
-        normal_mensual: normal,
-        ahorro_mes: normal - gastoMes,
-        n_semanas: linea.n,
+        normal_personal_mensual: normalPersonalMensual,
+        semanas_previas: semanasPrevias,
+        ahorro_mes: normalPersonalMensual - gastoMes,
+        p,
+        ingreso_mensual: ingresoMensual,
         severidad,
         impacto,
       },

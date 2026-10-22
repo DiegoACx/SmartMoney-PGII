@@ -1,6 +1,18 @@
 import '../data/usuario_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Resultado del registro: [requiereConfirmacion] es true cuando Supabase
+/// creó la cuenta pero no devolvió sesión (confirmación por correo pendiente).
+class ResultadoRegistro {
+  final String? error;
+  final bool requiereConfirmacion;
+
+  ResultadoRegistro.error(this.error) : requiereConfirmacion = false;
+  ResultadoRegistro.exito({required this.requiereConfirmacion}) : error = null;
+
+  bool get exito => error == null;
+}
+
 class AuthLogic {
   final UsuarioRepository _repository = UsuarioRepository();
 
@@ -36,31 +48,39 @@ class AuthLogic {
   }
 
   /// Registra un usuario, validando los datos antes de llamar a Supabase.
-  Future<String?> registrar({
+  Future<ResultadoRegistro> registrar({
     required String correo,
     required String contrasena,
     required String nombre,
   }) async {
     final errorCorreo = validarCorreo(correo);
-    if (errorCorreo != null) return errorCorreo;
+    if (errorCorreo != null) return ResultadoRegistro.error(errorCorreo);
 
     final errorContrasena = validarContrasena(contrasena);
-    if (errorContrasena != null) return errorContrasena;
+    if (errorContrasena != null) {
+      return ResultadoRegistro.error(errorContrasena);
+    }
 
     final errorNombre = validarNombre(nombre);
-    if (errorNombre != null) return errorNombre;
+    if (errorNombre != null) return ResultadoRegistro.error(errorNombre);
 
     try {
-      await _repository.registrarUsuario(
+      final respuesta = await _repository.registrarUsuario(
         correo: correo,
         contrasena: contrasena,
         nombre: nombre,
       );
-      return null; // null significa que todo salió bien, sin errores
+      // Sin sesión: la cuenta quedó pendiente de confirmar por correo.
+      return ResultadoRegistro.exito(
+        requiereConfirmacion: respuesta.session == null,
+      );
     } on AuthException catch (e) {
-      return e.message; // Supabase devuelve mensajes como "User already registered"
+      // Supabase devuelve mensajes como "User already registered"
+      return ResultadoRegistro.error(e.message);
     } catch (e) {
-      return 'Ocurrió un error inesperado. Intenta de nuevo.';
+      return ResultadoRegistro.error(
+        'Ocurrió un error inesperado. Intenta de nuevo.',
+      );
     }
   }
 

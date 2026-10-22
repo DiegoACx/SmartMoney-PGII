@@ -38,8 +38,12 @@ export const FACTOR_CONSUMO = 0.83;
 /** Umbral del z robusto a partir del cual un gasto es anómalo. */
 export const Z_UMBRAL = 3;
 
-/** Semanas mínimas con registros en una categoría para evaluar anomalías. */
-export const MIN_SEMANAS_ANOMALIA = 4;
+/**
+ * Movimientos previos mínimos en una categoría para evaluar anomalías.
+ * También es la fuerza del suavizado de la confianza del hallazgo anómalo:
+ * p = n_mov / (n_mov + MIN_MOVIMIENTOS_ANOMALIA).
+ */
+export const MIN_MOVIMIENTOS_ANOMALIA = 5;
 
 /** Multiplicador sobre normal_mensual a partir del cual hay sobregasto. */
 export const UMBRAL_SOBREGASTO = 1.2;

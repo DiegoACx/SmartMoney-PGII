@@ -63,7 +63,7 @@ const PLANTILLAS: Record<TipoHallazgo, (h: HallazgoPuntuado) => string> = {
   },
   gasto_anomalo: (h) => {
     const categoria = texto(h.datos, "nombre_categoria");
-    return `Registraste un gasto de ${formatearCOP(numero(h.datos, "monto"))} en ${categoria} el ${formatearFecha(texto(h.datos, "fecha"))}, bastante más alto de lo que sueles gastar ahí (${formatearCOP(numero(h.datos, "mediana_semanal"))} por semana). Revisa si fue un gasto puntual o si se te coló un registro repetido.`;
+    return `Registraste un gasto de ${formatearCOP(numero(h.datos, "monto"))} en ${categoria} el ${formatearFecha(texto(h.datos, "fecha"))}, bastante más alto de lo que sueles gastar ahí (lo normal son ${formatearCOP(numero(h.datos, "mediana_monto"))}). Revisa si fue un gasto puntual o si se te coló un registro repetido.`;
   },
   aporte_meta: (h) => {
     const meta = texto(h.datos, "nombre_meta");
@@ -79,12 +79,12 @@ const PLANTILLAS: Record<TipoHallazgo, (h: HallazgoPuntuado) => string> = {
   },
   logro: (h) => {
     const grupo = texto(h.datos, "nombre_grupo");
-    const normal = numero(h.datos, "normal_mensual");
+    const normal = numero(h.datos, "normal_personal_mensual");
     const gasto = numero(h.datos, "gasto_mes");
     const porcentaje = normal > 0
       ? Math.round((1 - gasto / normal) * 100)
       : 0;
-    return `¡Buen trabajo! En ${formatearMes(texto(h.datos, "mes"))} gastaste ${formatearCOP(gasto)} en ${grupo}, un ${porcentaje}% por debajo de lo normal para ti (${formatearCOP(normal)}). Sigue así.`;
+    return `¡Buen trabajo! En ${formatearMes(texto(h.datos, "mes"))} gastaste ${formatearCOP(gasto)} en ${grupo}, un ${porcentaje}% por debajo de tu promedio habitual (${formatearCOP(normal)}). Sigue así.`;
   },
   riesgo_fin_de_mes: (h) => {
     return `Con lo que llevas gastado y tus ingresos del mes, si sigues a este ritmo te faltarían ${formatearCOP(numero(h.datos, "faltante"))} para terminar el mes. Baja el ritmo en estos ${numero(h.datos, "dias_restantes")} días.`;

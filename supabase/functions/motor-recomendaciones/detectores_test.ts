@@ -18,11 +18,13 @@ import {
   detectarSobregastoCategoria,
   estaDesbloqueado,
 } from "./detectores.ts";
-import type {
-  LineaBaseCategoria,
-  LineaBaseGrupo,
-  TransaccionBase,
+import {
+  type AgregadoClave,
+  type LineaBaseGrupo,
+  type TransaccionBase,
+  agregarPorClave,
 } from "./estadistica.ts";
+import { K, SEMANAS_POR_MES, VENTANA_LOGRO } from "./config.ts";
 
 const INGRESO = 4_000_000; // 10 % = 400.000 (unidad de impacto)
 
@@ -49,7 +51,7 @@ function lineaGrupo(
   return {
     nombre: "Mercado",
     proporcion_referencia: 13.2,
-    mediana: 0,
+    promedio_semanal: 0,
     n: 0,
     p: 0.5,
     referencia_semanal: 0,
@@ -59,10 +61,9 @@ function lineaGrupo(
   };
 }
 
-function lineaCategoria(
-  parcial: Partial<LineaBaseCategoria> & { categoria_id: string },
-): LineaBaseCategoria {
-  return { mediana: 0, mad: 0, n_semanas: 0, ...parcial };
+/** Movimientos de mercado alrededor de los 100.000, para el baseline por monto. */
+function movimientos(montosPorFecha: [string, number][]): TransaccionBase[] {
+  return montosPorFecha.map(([fecha, monto]) => egreso(fecha, monto));
 }
 
 /** Hallazgo de sobregasto mínimo, para alimentar el detector de lecciones. */
@@ -155,54 +156,78 @@ Deno.test("sobregasto no dispara: proyección baja o mes muy nuevo", () => {
 
 // --- b) gasto_anomalo --------------------------------------------------------
 
-Deno.test("gasto anómalo dispara con z robusto > 3", () => {
+Deno.test("gasto anómalo dispara con z robusto > 3 sobre los montos por movimiento", () => {
+  const evaluado = egreso("2026-10-20", 300_000);
   const hallazgos = detectarGastoAnomalo({
     ingresoMensual: INGRESO,
-    egresosUltimos7Dias: [egreso("2026-10-20", 300_000)],
-    lineasBaseCategorias: [
-      lineaCategoria({
-        categoria_id: "cat-1",
-        mediana: 200_000,
-        mad: 20_000,
-        n_semanas: 6,
-      }),
-    ],
+    egresosUltimos7Dias: [evaluado],
+    // mediana 200.000 y MAD 20.000 (el movimiento evaluado no entra al cálculo)
+    movimientosPorCategoria: new Map([[
+      "cat-1",
+      [
+        ...movimientos([
+          ["2026-09-01", 160_000],
+          ["2026-09-08", 180_000],
+          ["2026-09-15", 200_000],
+          ["2026-09-22", 200_000],
+          ["2026-09-29", 220_000],
+          ["2026-10-06", 240_000],
+        ]),
+        evaluado,
+      ],
+    ]]),
     nombresCategorias: new Map([["cat-1", "Mercado"]]),
   });
 
   assertEquals(hallazgos.length, 1);
   assertEquals(hallazgos[0].tipo, "gasto_anomalo");
   assertEquals(hallazgos[0].datos.transaccion_id, "t-2026-10-20-300000");
+  assertEquals(hallazgos[0].datos.mediana_monto, 200_000);
+  assertEquals(hallazgos[0].datos.mad_monto, 20_000);
+  assertEquals(hallazgos[0].datos.n_movimientos, 6);
   assertAlmostEquals(hallazgos[0].datos.z as number, 100_000 / 29_652, 1e-6);
   assertAlmostEquals(hallazgos[0].severidad, (100_000 / 29_652) / 6, 1e-9);
   assertAlmostEquals(hallazgos[0].impacto, 300_000 / (0.1 * INGRESO), 1e-9);
+  // confianza = 0,5 + 0,5 × n_mov/(n_mov + 5) → p = 6/11
+  assertAlmostEquals(hallazgos[0].p, 6 / 11, 1e-12);
 });
 
-Deno.test("gasto anómalo no dispara: z bajo, categoría sin historial o MAD = 0", () => {
-  const base = lineaCategoria({
-    categoria_id: "cat-1",
-    mediana: 200_000,
-    mad: 20_000,
-    n_semanas: 6,
-  });
+Deno.test("gasto anómalo no dispara: z bajo, pocos movimientos o MAD = 0 sin exceso", () => {
+  const previos: [string, number][] = [
+    ["2026-09-01", 160_000],
+    ["2026-09-08", 180_000],
+    ["2026-09-15", 200_000],
+    ["2026-09-22", 200_000],
+    ["2026-09-29", 220_000],
+    ["2026-10-06", 240_000],
+  ];
 
   // z = 1,69
   assertEquals(
     detectarGastoAnomalo({
       ingresoMensual: INGRESO,
       egresosUltimos7Dias: [egreso("2026-10-20", 250_000)],
-      lineasBaseCategorias: [base],
+      movimientosPorCategoria: new Map([["cat-1", movimientos(previos)]]),
       nombresCategorias: new Map(),
     }).length,
     0,
   );
 
-  // n < MIN_SEMANAS_ANOMALIA
+  // Menos de MIN_MOVIMIENTOS_ANOMALIA (5) movimientos previos
   assertEquals(
     detectarGastoAnomalo({
       ingresoMensual: INGRESO,
       egresosUltimos7Dias: [egreso("2026-10-20", 5_000_000)],
-      lineasBaseCategorias: [{ ...base, n_semanas: 3 }],
+      movimientosPorCategoria: new Map([[
+        "cat-1",
+        movimientos([
+          ["2026-09-01", 200_000],
+          ["2026-09-08", 200_000],
+          ["2026-09-15", 200_000],
+          ["2026-09-22", 200_000],
+          ["2026-10-20", 5_000_000], // solo el evaluado
+        ]),
+      ]]),
       nombresCategorias: new Map(),
     }).length,
     0,
@@ -213,25 +238,95 @@ Deno.test("gasto anómalo no dispara: z bajo, categoría sin historial o MAD = 0
     detectarGastoAnomalo({
       ingresoMensual: INGRESO,
       egresosUltimos7Dias: [egreso("2026-10-20", 250_000)],
-      lineasBaseCategorias: [{ ...base, mad: 0 }],
+      movimientosPorCategoria: new Map([[
+        "cat-1",
+        movimientos([
+          ["2026-09-01", 200_000],
+          ["2026-09-08", 200_000],
+          ["2026-09-15", 200_000],
+          ["2026-09-22", 200_000],
+          ["2026-09-29", 200_000],
+        ]),
+      ]]),
       nombresCategorias: new Map(),
     }).length,
     0,
   );
 });
 
+Deno.test("gasto anómalo no dispara nunca si la mediana de montos previos es 0", () => {
+  const evaluado = egreso("2026-10-20", 500_000);
+  assertEquals(
+    detectarGastoAnomalo({
+      ingresoMensual: INGRESO,
+      egresosUltimos7Dias: [evaluado],
+      // Devoluciones y montos en cero: mediana 0, MAD 0 → antes bastaba con
+      // superar 3 × mediana (0) para marcarlo.
+      movimientosPorCategoria: new Map([[
+        "cat-1",
+        [
+          ...movimientos([
+            ["2026-09-01", -150_000],
+            ["2026-09-08", 0],
+            ["2026-09-15", 0],
+            ["2026-09-22", 0],
+            ["2026-09-29", 0],
+            ["2026-10-06", 0],
+          ]),
+          evaluado,
+        ],
+      ]]),
+      nombresCategorias: new Map(),
+    }).length,
+    0,
+  );
+});
+
+Deno.test("gasto anómalo dispara con un mercado de 500.000 frente a mercados de ~100.000", () => {
+  const hallazgos = detectarGastoAnomalo({
+    ingresoMensual: INGRESO,
+    egresosUltimos7Dias: [egreso("2026-10-20", 500_000)],
+    // mediana 100.000 y MAD 2.000 por movimiento
+    movimientosPorCategoria: new Map([[
+      "cat-1",
+      movimientos([
+        ["2026-09-01", 95_000],
+        ["2026-09-08", 100_000],
+        ["2026-09-15", 100_000],
+        ["2026-09-22", 105_000],
+        ["2026-09-29", 98_000],
+        ["2026-10-06", 102_000],
+      ]),
+    ]]),
+    nombresCategorias: new Map([["cat-1", "Mercado"]]),
+  });
+
+  assertEquals(hallazgos.length, 1);
+  assertEquals(hallazgos[0].datos.mediana_monto, 100_000);
+  assertEquals(hallazgos[0].datos.mad_monto, 2_000);
+  assertEquals(hallazgos[0].datos.n_movimientos, 6);
+  assertAlmostEquals(
+    hallazgos[0].datos.z as number,
+    400_000 / (1.4826 * 2_000),
+    1e-6,
+  );
+  assertEquals(hallazgos[0].severidad, 1); // z muy por encima de SEVERIDAD_Z_MAX
+});
+
 Deno.test("gasto anómalo con MAD = 0 y monto > 3 × mediana toma z = 6", () => {
   const hallazgos = detectarGastoAnomalo({
     ingresoMensual: INGRESO,
     egresosUltimos7Dias: [egreso("2026-10-20", 400_000)],
-    lineasBaseCategorias: [
-      lineaCategoria({
-        categoria_id: "cat-1",
-        mediana: 100_000,
-        mad: 0,
-        n_semanas: 6,
-      }),
-    ],
+    movimientosPorCategoria: new Map([[
+      "cat-1",
+      movimientos([
+        ["2026-09-01", 100_000],
+        ["2026-09-08", 100_000],
+        ["2026-09-15", 100_000],
+        ["2026-09-22", 100_000],
+        ["2026-09-29", 100_000],
+      ]),
+    ]]),
     nombresCategorias: new Map(),
   });
 
@@ -437,78 +532,156 @@ Deno.test("lección sugerida: el respaldo de ruta se emite una sola vez", () => 
 
 // --- e) logro ----------------------------------------------------------------
 
-Deno.test("logro dispara cuando el gasto del mes quedó bajo el 90 % del normal", () => {
+/** Ocho semanas de mercado a 200.000, desde la semana del 2026-06-29. */
+function ochoSemanasDeMercado(): TransaccionBase[] {
+  const fechas = [
+    "2026-06-29",
+    "2026-07-06",
+    "2026-07-13",
+    "2026-07-20",
+    "2026-07-27",
+    "2026-08-03",
+    "2026-08-10",
+    "2026-08-17",
+  ];
+  return fechas.map((fecha) => egreso(fecha, 200_000));
+}
+
+/** Historial por grupo de 12 semanas (vacías las 4 primeras) hasta 2026-08-17. */
+function historialDeGrupo(
+  transacciones: TransaccionBase[],
+): Map<string, AgregadoClave> {
+  return agregarPorClave(
+    transacciones,
+    (t) => String(t.grupo_id),
+    "2026-06-01",
+    "2026-08-17",
+  );
+}
+
+Deno.test("logro dispara cuando el gasto del mes queda bajo el 90 % de su promedio habitual", () => {
+  const normalPersonal = 200_000 * SEMANAS_POR_MES; // 869.000
   const hallazgos = detectarLogro({
     mes: "2026-09",
     ingresoMensual: INGRESO,
-    lineasBaseGrupos: [
-      lineaGrupo({ grupo_id: 1, n: 8, p: 2 / 3, normal_mensual: 1_000_000 }),
-    ],
+    lineasBaseGrupos: [lineaGrupo({ grupo_id: 1 })],
+    historialPorGrupo: historialDeGrupo(ochoSemanasDeMercado()),
+    sobregastos: [],
     egresosMes: [
-      egreso("2026-09-10", 500_000),
+      egreso("2026-09-10", 400_000),
       egreso("2026-09-20", 300_000),
     ],
   });
 
   assertEquals(hallazgos.length, 1);
-  assertEquals(hallazgos[0].tipo, "logro");
-  assertEquals(hallazgos[0].datos.mes, "2026-09");
-  assertAlmostEquals(hallazgos[0].severidad, (1 - 0.8) / 0.3, 1e-9);
-  assertAlmostEquals(hallazgos[0].impacto, 200_000 / (0.1 * INGRESO), 1e-9);
+  const hallazgo = hallazgos[0];
+  assertEquals(hallazgo.tipo, "logro");
+  assertEquals(hallazgo.objetivo, "grupo:1");
+  assertEquals(hallazgo.datos.mes, "2026-09");
+  assertEquals(Number(hallazgo.datos.gasto_mes), 700_000);
+  assertEquals(Number(hallazgo.datos.semanas_previas), 8);
+  assertAlmostEquals(
+    Number(hallazgo.datos.normal_personal_mensual),
+    normalPersonal,
+    1e-9,
+  );
+  assertAlmostEquals(
+    Number(hallazgo.datos.ahorro_mes),
+    normalPersonal - 700_000,
+    1e-9,
+  );
+  // La confianza sale de p = n / (n + K) con las semanas previas al mes.
+  assertAlmostEquals(hallazgo.p, 8 / (8 + K), 1e-9);
+  assertAlmostEquals(
+    hallazgo.severidad,
+    (1 - 700_000 / normalPersonal) / VENTANA_LOGRO,
+    1e-9,
+  );
+  assertAlmostEquals(
+    hallazgo.impacto,
+    (normalPersonal - 700_000) / (0.1 * INGRESO),
+    1e-9,
+  );
 });
 
 Deno.test("logro no dispara: gasto alto, poco historial, grupo 13 o poca relevancia", () => {
-  const mes = "2026-09";
-  const egresosAltos = [egreso("2026-09-10", 950_000)];
+  const base = {
+    mes: "2026-09",
+    ingresoMensual: INGRESO,
+    lineasBaseGrupos: [lineaGrupo({ grupo_id: 1 })],
+  };
 
+  // El gasto del mes supera el 90 % del promedio habitual.
   assertEquals(
     detectarLogro({
-      mes,
-      ingresoMensual: INGRESO,
-      lineasBaseGrupos: [
-        lineaGrupo({ grupo_id: 1, n: 8, normal_mensual: 1_000_000 }),
-      ],
-      egresosMes: egresosAltos,
+      ...base,
+      historialPorGrupo: historialDeGrupo(ochoSemanasDeMercado()),
+      sobregastos: [],
+      egresosMes: [egreso("2026-09-10", 950_000)],
     }).length,
     0,
   );
 
-  // n < K
+  // Menos de K semanas de historial previo.
   assertEquals(
     detectarLogro({
-      mes,
-      ingresoMensual: INGRESO,
-      lineasBaseGrupos: [
-        lineaGrupo({ grupo_id: 1, n: 2, normal_mensual: 1_000_000 }),
-      ],
+      ...base,
+      historialPorGrupo: historialDeGrupo([
+        egreso("2026-08-10", 200_000),
+        egreso("2026-08-17", 200_000),
+      ]),
+      sobregastos: [],
       egresosMes: [egreso("2026-09-10", 100_000)],
     }).length,
     0,
   );
 
-  // grupo 13 queda fuera
+  // El grupo 13 (obligaciones) queda fuera del logro.
   assertEquals(
     detectarLogro({
-      mes,
-      ingresoMensual: INGRESO,
-      lineasBaseGrupos: [
-        lineaGrupo({ grupo_id: 13, n: 8, normal_mensual: 1_000_000 }),
-      ],
+      ...base,
+      lineasBaseGrupos: [lineaGrupo({ grupo_id: 13 })],
+      historialPorGrupo: historialDeGrupo(
+        ochoSemanasDeMercado().map((t) => ({ ...t, grupo_id: 13 })),
+      ),
+      sobregastos: [],
       egresosMes: [egreso("2026-09-10", 100_000, "cat-1", 13)],
     }).length,
     0,
   );
 
-  // normal_mensual por debajo del 2 % del ingreso: no vale la pena contarlo
+  // Promedio habitual por debajo del 2 % del ingreso: no vale la pena contarlo.
   assertEquals(
     detectarLogro({
-      mes,
-      ingresoMensual: INGRESO,
-      lineasBaseGrupos: [
-        lineaGrupo({ grupo_id: 1, n: 8, normal_mensual: 50_000 }),
-      ],
+      ...base,
+      historialPorGrupo: historialDeGrupo(
+        ochoSemanasDeMercado().map((t) => ({ ...t, monto: 1_000 })),
+      ),
+      sobregastos: [],
       egresosMes: [egreso("2026-09-10", 10_000)],
     }).length,
+    0,
+  );
+});
+
+Deno.test("logro no dispara si el grupo ya tiene sobregasto en la misma ejecución", () => {
+  const parametros = {
+    mes: "2026-09",
+    ingresoMensual: INGRESO,
+    lineasBaseGrupos: [lineaGrupo({ grupo_id: 1 })],
+    historialPorGrupo: historialDeGrupo(ochoSemanasDeMercado()),
+    egresosMes: [
+      egreso("2026-09-10", 400_000),
+      egreso("2026-09-20", 300_000),
+    ],
+  };
+
+  // Sin sobregasto del grupo, el mismo mes sí genera logro.
+  assertEquals(detectarLogro({ ...parametros, sobregastos: [] }).length, 1);
+
+  // Con un sobregasto_categoria del grupo, el logro se descarta.
+  assertEquals(
+    detectarLogro({ ...parametros, sobregastos: [sobregasto(1, 0.5)] }).length,
     0,
   );
 });

@@ -22,13 +22,27 @@ class _MainShellState extends State<MainShell> {
   final _educacionScreenKey = GlobalKey<EducacionFinancieraScreenState>();
 
   late final List<Widget> _paginas = [
-    HomeScreen(key: _homeScreenKey),
+    HomeScreen(key: _homeScreenKey, onCambiarPestana: _irAPestana),
     const IaScreen(),
     EducacionFinancieraScreen(key: _educacionScreenKey),
     const IngresoMontosScreen(),
     const MetasScreen(),
     const PerfilScreen(),
   ];
+
+  /// Cambia de pestaña desde el `NavigationBar` o desde el propio contenido
+  /// (por ejemplo las recomendaciones del Dashboard).
+  void _irAPestana(int i) {
+    if (i < 0 || i >= _paginas.length) return;
+    final cambioDePestana = i != _index;
+    if (!cambioDePestana) return;
+    setState(() => _index = i);
+    if (i == 0) {
+      _homeScreenKey.currentState?.cargarTransacciones();
+    } else if (i == 2) {
+      _educacionScreenKey.currentState?.recargarYCentrar();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +70,7 @@ class _MainShellState extends State<MainShell> {
             backgroundColor: Colors.white,
             indicatorColor:
                 const Color(0xFF58774B).withValues(alpha: 0.12),
-            onDestinationSelected: (i) {
-              final cambioDePestana = i != _index;
-              if (!cambioDePestana) return;
-              setState(() => _index = i);
-              if (i == 0) {
-                _homeScreenKey.currentState?.cargarTransacciones();
-              } else if (i == 2) {
-                _educacionScreenKey.currentState?.recargarYCentrar();
-              }
-            },
+            onDestinationSelected: _irAPestana,
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),

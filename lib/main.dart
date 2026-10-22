@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SmartMoney',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const _ScrollBehaviorApp(),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -55,6 +57,7 @@ class MyApp extends StatelessWidget {
         ).copyWith(
           primary: primaryColor,
           secondary: lightPrimary,
+          error: errorColor,
           surface: Colors.white,
           surfaceContainerHighest: backgroundColor,
         ),
@@ -158,4 +161,18 @@ class MyApp extends StatelessWidget {
       home: const AuthGate(),
     );
   }
+}
+
+/// Habilita el arrastre (y con él el pull-to-refresh) con mouse, trackpad y
+/// stylus, no solo con el dedo: en Flutter web el ratón no arrastra por defecto.
+class _ScrollBehaviorApp extends MaterialScrollBehavior {
+  const _ScrollBehaviorApp();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
 }

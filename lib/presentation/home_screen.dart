@@ -11,8 +11,10 @@ import '../logic/formato_utils.dart';
 import '../logic/metas_logic.dart';
 import '../logic/transacciones_logic.dart';
 import 'educacion_financiera_screen.dart';
+import 'escalon_detalle_screen.dart';
 import 'registro_meta_screen.dart';
 import 'widgets/indicador_progreso_escalones.dart';
+import 'widgets/tarjeta_recomendaciones.dart';
 
 const List<Color> _paletteCategorias = [
   Color(0xFF58774B),
@@ -54,7 +56,10 @@ class _CurvedHeaderClipper extends CustomClipper<Path> {
 /// `obtenerTodasLasTransacciones`; al cambiar de periodo solo se recalcula
 /// en memoria (`calcularTotalesPeriodo`) sin volver a consultar Supabase.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onCambiarPestana});
+
+  /// Cambia de pestaña en el `MainShell` (2 = Educación, 4 = Metas).
+  final ValueChanged<int>? onCambiarPestana;
 
   @override
   State<HomeScreen> createState() => HomeScreenState();
@@ -65,6 +70,7 @@ class HomeScreenState extends State<HomeScreen> {
   final _authLogic = AuthLogic();
   final _metasLogic = MetasLogic();
   final _educacionLogic = EducacionLogic();
+  final _recomendacionesKey = GlobalKey<TarjetaRecomendacionesState>();
 
   bool _cargando = true;
   List<Map<String, dynamic>> _transacciones = [];
@@ -143,6 +149,39 @@ class HomeScreenState extends State<HomeScreen> {
 
     _cargarMetas();
     _cargarEducacion();
+  }
+
+  /// Abre la lección sugerida por el motor; si no se puede abrir directamente
+  /// (no está desbloqueada o no está disponible), va a la pestaña de Educación.
+  void _verLeccionDesdeRecomendacion(String escalonId) {
+    EscalonConEstado? escalonEncontrado;
+    NivelConEstado? nivelEncontrado;
+    for (final nivel in _nivelesEducacion) {
+      for (final escalon in nivel.escalones) {
+        if (escalon.id == escalonId) {
+          escalonEncontrado = escalon;
+          nivelEncontrado = nivel;
+          break;
+        }
+      }
+      if (escalonEncontrado != null) break;
+    }
+
+    final escalon = escalonEncontrado;
+    final nivel = nivelEncontrado;
+    if (escalon != null &&
+        nivel != null &&
+        escalon.desbloqueado &&
+        escalon.disponible) {
+      Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EscalonDetalleScreen(escalon: escalon, nivel: nivel),
+        ),
+      );
+      return;
+    }
+    widget.onCambiarPestana?.call(2);
   }
 
   Future<void> _cargarMetas() async {
@@ -248,7 +287,10 @@ class HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFF58774B),
-          onRefresh: cargarTransacciones,
+          onRefresh: () async {
+            await cargarTransacciones();
+            await _recomendacionesKey.currentState?.recargar(forzar: true);
+          },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 24),
@@ -416,6 +458,13 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // ===== Recomendaciones del motor de IA =====
+                TarjetaRecomendaciones(
+                  key: _recomendacionesKey,
+                  onVerLeccion: _verLeccionDesdeRecomendacion,
+                  onVerMeta: () => widget.onCambiarPestana?.call(4),
+                ),
 
                 if (_cargando)
                   const Padding(

@@ -43,9 +43,14 @@ export interface GrupoReferencia {
 /** Línea base de una categoría: es lo que se persiste en linea_base_usuario. */
 export interface LineaBaseCategoria {
   categoria_id: string;
+  /** Mediana de los MONTOS POR MOVIMIENTO de la categoría. */
   mediana: number;
+  /** MAD de los MONTOS POR MOVIMIENTO de la categoría. */
   mad: number;
+  /** Semanas con registros de la categoría. */
   n_semanas: number;
+  /** Movimientos usados para la mediana y la MAD. */
+  n_movimientos: number;
 }
 
 /** Línea base de un grupo: se calcula en memoria, no se persiste. */
@@ -53,7 +58,8 @@ export interface LineaBaseGrupo {
   grupo_id: number;
   nombre: string;
   proporcion_referencia: number | null;
-  mediana: number;
+  /** Gasto semanal medio del grupo desde su primera semana con registros. */
+  promedio_semanal: number;
   n: number;
   p: number;
   referencia_semanal: number;
@@ -76,6 +82,8 @@ export interface AgregadoClave {
   semanas: SemanaGasto[];
   /** Montos alineados con la ventana consultada (semanas sin gasto valen 0). */
   serie: number[];
+  /** Suma de la serie / semanas de historial (desde la primera con registros). */
+  promedio_semanal: number;
   mediana: number;
   mad: number;
   /** Semanas con registros (monto > 0). */
@@ -98,6 +106,13 @@ export function mad(valores: number[], medianaValor?: number): number {
   if (valores.length === 0) return 0;
   const centro = medianaValor ?? mediana(valores);
   return mediana(valores.map((valor) => Math.abs(valor - centro)));
+}
+
+/** Promedio aritmético. Devuelve 0 si el arreglo está vacío. */
+export function promedio(valores: number[]): number {
+  if (valores.length === 0) return 0;
+  const total = valores.reduce((suma, valor) => suma + valor, 0);
+  return total / valores.length;
 }
 
 /**
@@ -132,13 +147,16 @@ export function referenciaSemanal(
   );
 }
 
-/** Normal semanal: mezcla el dato propio con la referencia según p. */
+/**
+ * Normal semanal: mezcla el componente personal (promedio semanal del propio
+ * usuario) con la referencia según p.
+ */
 export function normalSemanal(
   p: number,
-  medianaValor: number,
+  personalSemanal: number,
   referencia: number,
 ): number {
-  return p * medianaValor + (1 - p) * referencia;
+  return p * personalSemanal + (1 - p) * referencia;
 }
 
 /** Convierte un normal semanal en normal mensual. */
@@ -254,6 +272,16 @@ export function primeraSemanaConRegistros(
 }
 
 /**
+ * Semanas de historial de una serie: desde su primera semana con registros
+ * hasta la última de la serie; las semanas vacías intermedias cuentan.
+ * 0 si la serie no tiene ningún registro.
+ */
+export function semanasHistorial(serie: number[]): number {
+  const primera = serie.findIndex((monto) => monto > 0);
+  return primera < 0 ? 0 : serie.length - primera;
+}
+
+/**
  * Agrupa transacciones por una clave (categoría o grupo) y construye su serie
  * semanal sobre la ventana [lunesInicial, lunesFinal].
  *
@@ -284,6 +312,7 @@ export function agregarPorClave(
   const resultado = new Map<string, AgregadoClave>();
   for (const [llave, serie] of series) {
     const med = mediana(serie);
+    const nHistorial = semanasHistorial(serie);
     resultado.set(llave, {
       clave: llave,
       semanas: lunes.map((dia, indice) => ({
@@ -292,12 +321,37 @@ export function agregarPorClave(
         monto: serie[indice],
       })),
       serie,
+      // El promedio se divide entre las semanas de historial (desde la primera
+      // con registros), no entre todas las semanas de la ventana.
+      promedio_semanal: promedio(serie.slice(serie.length - nHistorial)),
       mediana: med,
       mad: mad(serie, med),
       n: serie.filter((monto) => monto > 0).length,
     });
   }
   return resultado;
+}
+
+/**
+ * Movimientos por categoría dentro de [lunesInicial, lunesFinal].
+ * El detector de anomalías usa esta lista para calcular la mediana y la MAD de
+ * los MONTOS POR MOVIMIENTO de cada categoría, excluyendo el movimiento que
+ * está evaluando (por eso se devuelven las transacciones, no solo los montos).
+ */
+export function movimientosPorCategoria(
+  transacciones: TransaccionBase[],
+  lunesInicial: string,
+  lunesFinal: string,
+): Map<string, TransaccionBase[]> {
+  const porCategoria = new Map<string, TransaccionBase[]>();
+  for (const transaccion of transacciones) {
+    const lunes = lunesDeSemana(transaccion.fecha);
+    if (lunes < lunesInicial || lunes > lunesFinal) continue;
+    const lista = porCategoria.get(transaccion.categoria_id);
+    if (lista) lista.push(transaccion);
+    else porCategoria.set(transaccion.categoria_id, [transaccion]);
+  }
+  return porCategoria;
 }
 
 /**
@@ -321,17 +375,27 @@ export function medianaIngresoMensual(
 
 // --- Línea base --------------------------------------------------------------
 
-/** Línea base por categoría a partir de los agregados semanales. */
-export function calcularLineaBaseCategorias(
-  agregados: Map<string, AgregadoClave>,
-): LineaBaseCategoria[] {
+/**
+ * Línea base por categoría: la mediana y la MAD se calculan sobre los MONTOS
+ * DE CADA MOVIMIENTO de la categoría (no sobre totales semanales), porque lo
+ * que se evalúa luego es el monto de un movimiento suelto.
+ * n_semanas sigue siendo el de los agregados semanales.
+ */
+export function calcularLineaBaseCategorias(params: {
+  agregados: Map<string, AgregadoClave>;
+  movimientos: Map<string, TransaccionBase[]>;
+}): LineaBaseCategoria[] {
+  const { agregados, movimientos } = params;
   const lineas: LineaBaseCategoria[] = [];
   for (const [categoriaId, agregado] of agregados) {
+    const montos = (movimientos.get(categoriaId) ?? []).map((t) => t.monto);
+    const med = mediana(montos);
     lineas.push({
       categoria_id: categoriaId,
-      mediana: agregado.mediana,
-      mad: agregado.mad,
+      mediana: med,
+      mad: mad(montos, med),
       n_semanas: agregado.n,
+      n_movimientos: montos.length,
     });
   }
   return lineas;
@@ -340,9 +404,13 @@ export function calcularLineaBaseCategorias(
 /**
  * Línea base por grupo (1..13).
  *   referencia_semanal = ingreso × FACTOR_CONSUMO × proporcion / 100 / 4,345
- *   p = n / (n + K)
- *   normal_semanal = p × mediana + (1 − p) × referencia_semanal
- * Si no hay ingreso mensual o el grupo es el 13, normal_semanal = mediana
+ *   promedio_semanal   = suma del gasto semanal / semanas de historial, es
+ *                        decir desde la primera semana con registros del grupo
+ *                        (las semanas vacías cuentan); 0 si no hay historial
+ *   p = n / (n + K), con n = semanas desde la primera semana con registros
+ *       del grupo hasta la semana actual (las semanas vacías cuentan)
+ *   normal_semanal = p × promedio_semanal + (1 − p) × referencia_semanal
+ * Si no hay ingreso mensual o el grupo es el 13, normal_semanal = promedio
  * (solo si n ≥ K; si no, queda sin normal).
  */
 export function calcularLineaBaseGrupos(params: {
@@ -357,8 +425,10 @@ export function calcularLineaBaseGrupos(params: {
     const agregado = agregados.get(String(grupo.id));
     if (!agregado) continue;
 
-    const n = agregado.n;
+    // Semanas desde la primera semana con registros del grupo (las vacías cuentan).
+    const n = semanasHistorial(agregado.serie);
     const p = pesoPersonal(n);
+    const promedioSemanal = agregado.promedio_semanal;
     const proporcion = grupo.proporcion_referencia;
     const usarReferencia = ingresoMensual !== null &&
       ingresoMensual > 0 &&
@@ -369,16 +439,16 @@ export function calcularLineaBaseGrupos(params: {
     let normalSem: number | null;
     if (usarReferencia) {
       referencia = referenciaSemanal(ingresoMensual!, proporcion!);
-      normalSem = normalSemanal(p, agregado.mediana, referencia);
+      normalSem = normalSemanal(p, promedioSemanal, referencia);
     } else {
-      normalSem = n >= K ? agregado.mediana : null;
+      normalSem = n >= K ? promedioSemanal : null;
     }
 
     lineas.push({
       grupo_id: grupo.id,
       nombre: grupo.nombre,
       proporcion_referencia: proporcion,
-      mediana: agregado.mediana,
+      promedio_semanal: promedioSemanal,
       n,
       p,
       referencia_semanal: referencia,

@@ -21,6 +21,7 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 import * as CFG from "./config.ts";
 import {
+  type AgregadoClave,
   type CategoriaBase,
   type GrupoReferencia,
   type LineaBaseCategoria,
@@ -34,6 +35,7 @@ import {
   medianaIngresoMensual,
   mesAnterior,
   mesDe,
+  movimientosPorCategoria,
   primeraSemanaConRegistros,
   sumarDias,
 } from "./estadistica.ts";
@@ -54,6 +56,7 @@ import {
   type RecomendacionPrevia,
   puntuarHallazgos,
   seleccionar,
+  yaRecomendado,
 } from "./puntaje.ts";
 import { textoRecomendacion } from "./plantillas.ts";
 
@@ -276,21 +279,28 @@ async function leerCatalogoEducativo(
   };
 }
 
-/** Recomendaciones ya emitidas en la ventana de repetición. */
-async function leerRecomendacionesPrevias(
+/**
+ * Recomendaciones de los últimos días. Sirven para penalizar repeticiones y
+ * para no volver a recomendar lo mismo: se traen todas, respondidas o no.
+ */
+async function leerRecomendacionesRecientes(
   admin: SupabaseClient,
   usuarioId: string,
 ): Promise<RecomendacionPrevia[]> {
+  const dias = Math.max(
+    CFG.DIAS_REPETICION,
+    CFG.DIAS_RECOMENDACION_VIGENTE,
+  );
   const { data, error } = await admin
     .from("recomendaciones")
-    .select("tipo, creado_en, hallazgos ( datos )")
+    .select("tipo, objetivo, creado_en")
     .eq("usuario_id", usuarioId)
-    .gte("creado_en", haceIso(CFG.DIAS_REPETICION * 24));
+    .gte("creado_en", haceIso(dias * 24));
   if (error) throw new Error(`No se pudieron leer las recomendaciones previas: ${error.message}`);
 
   return ((data ?? []) as Record<string, unknown>[]).map((fila) => ({
     tipo: String(fila["tipo"]) as CFG.TipoHallazgo,
-    objetivo: String(datosAnidados(fila)?.["objetivo"] ?? ""),
+    objetivo: String(fila["objetivo"] ?? ""),
     creadoEn: String(fila["creado_en"]).slice(0, 10),
   }));
 }
@@ -348,6 +358,7 @@ async function guardarLineaBase(
     mediana: linea.mediana,
     mad: linea.mad,
     n_semanas: linea.n_semanas,
+    n_movimientos: linea.n_movimientos,
     actualizado_en: new Date().toISOString(),
   }));
   const { error } = await admin
@@ -398,6 +409,7 @@ async function insertarHallazgo(
   return String((data as Record<string, unknown>)["id"]);
 }
 
+/** Inserta la recomendación. `objetivo` permite bloquear duplicados recientes. */
 async function insertarRecomendacion(
   admin: SupabaseClient,
   usuarioId: string,
@@ -411,6 +423,7 @@ async function insertarRecomendacion(
     texto: textoRecomendacion(hallazgo),
     origen_texto: "plantilla",
     prioridad: hallazgo.puntaje,
+    objetivo: hallazgo.objetivo,
   });
   if (error) throw new Error(`No se pudo guardar la recomendación: ${error.message}`);
 }
@@ -444,7 +457,7 @@ async function recalcular(
     admin,
     usuarioId,
   );
-  const previas = await leerRecomendacionesPrevias(admin, usuarioId);
+  const previas = await leerRecomendacionesRecientes(admin, usuarioId);
 
   // 2) Ingreso mensual y línea base (sin gastos de trabajo)
   const ingresoMensual = medianaIngresoMensual(
@@ -464,17 +477,21 @@ async function recalcular(
 
   let lineasCategorias: LineaBaseCategoria[] = [];
   let lineasGrupos: LineaBaseGrupo[] = [];
+  let movimientos: Map<string, TransaccionBase[]> = new Map();
+  let historialPorGrupo: Map<string, AgregadoClave> = new Map();
   if (primeraSemana !== null) {
     // Las semanas sin gasto cuentan como 0 desde la primera semana del usuario.
     const lunesInicial = fechaMayor(primeraSemana, lunesLimite);
-    lineasCategorias = calcularLineaBaseCategorias(
-      agregarPorClave(
+    movimientos = movimientosPorCategoria(egresosBase, lunesInicial, lunesFinal);
+    lineasCategorias = calcularLineaBaseCategorias({
+      agregados: agregarPorClave(
         egresosBase,
         (t) => t.categoria_id,
         lunesInicial,
         lunesFinal,
       ),
-    );
+      movimientos,
+    });
     lineasGrupos = calcularLineaBaseGrupos({
       agregados: agregarPorClave(
         egresosConGrupo,
@@ -485,6 +502,14 @@ async function recalcular(
       grupos,
       ingresoMensual,
     });
+    // Semanas anteriores al último mes completo: el logro se mide contra el
+    // promedio habitual del propio usuario, no contra la referencia DANE.
+    historialPorGrupo = agregarPorClave(
+      egresosConGrupo,
+      (t) => String(t.grupo_id),
+      lunesInicial,
+      sumarDias(lunesDeSemana(`${mesAnterior(hoy)}-01`), -7),
+    );
   }
 
   // 3) Detectores
@@ -506,7 +531,7 @@ async function recalcular(
     egresosUltimos7Dias: egresosBase.filter((t) =>
       t.fecha >= sumarDias(hoy, -(CFG.DIAS_GAS_ANOMALO - 1))
     ),
-    lineasBaseCategorias: lineasCategorias,
+    movimientosPorCategoria: movimientos,
     nombresCategorias,
   });
 
@@ -529,6 +554,8 @@ async function recalcular(
     mes: mesCompleto,
     ingresoMensual,
     lineasBaseGrupos: lineasGrupos,
+    historialPorGrupo,
+    sobregastos,
     egresosMes: egresosBase.filter((t) => mesDe(t.fecha) === mesCompleto),
   });
 
@@ -573,7 +600,15 @@ async function recalcular(
   );
   for (const hallazgo of seleccionados) {
     const hallazgoId = await insertarHallazgo(admin, usuarioId, hallazgo);
+    // El hallazgo siempre se guarda; la recomendación no se duplica si ya hubo
+    // una del mismo tipo y objetivo en los últimos 7 días, respondida o no.
+    if (yaRecomendado(hallazgo, previas, hoy)) continue;
     await insertarRecomendacion(admin, usuarioId, hallazgoId, hallazgo);
+    previas.push({
+      tipo: hallazgo.tipo,
+      objetivo: hallazgo.objetivo,
+      creadoEn: hoy,
+    });
   }
 }
 
