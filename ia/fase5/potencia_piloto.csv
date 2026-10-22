@@ -1,0 +1,2 @@
+escenario,usuarios_por_grupo,interacciones_por_usuario,repeticiones,observaciones_por_grupo,tasa_control_media,tasa_bandido_media,diferencia_media,ic95_diferencia_inferior,ic95_diferencia_superior,potencia_p_menor_0.05,prop_repeticiones_bandido_superior
+piloto_20_usuarios_10_interacciones,10,10,1000,100,0.5123,0.5201,0.0078,0.0036,0.0121,0.049,0.503

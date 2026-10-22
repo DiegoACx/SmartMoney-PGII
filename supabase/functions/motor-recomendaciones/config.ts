@@ -188,8 +188,16 @@ export const PESO_RIESGO_FIN_DE_MES = 1;
 /** Fuerza del prior poblacional: respuestas virtuales que aporta el diseño. */
 export const C_DISENO = 4;
 
-/** Fuerza del prior del usuario: respuestas virtuales que aporta la población. */
-export const M_PRIOR = 4;
+/**
+ * Fuerza del prior del usuario: respuestas virtuales que aporta la población.
+ *
+ * Calibrado con la simulación de la Fase 5 (ia/fase5, `sensibilidad_M.csv`,
+ * 300 usuarios × 30 interacciones × 50 semillas en dos escenarios): M = 1 nunca
+ * queda por debajo de Thompson sin prior en ninguno de los dos escenarios y es
+ * el mejor a 30 interacciones. Con M = 4 (valor anterior) el jerárquico caía por
+ * debajo del bandido sin prior en el escenario de «perfiles opuestos».
+ */
+export const M_PRIOR = 1;
 
 /** Interruptor del bandido: en false, todos usan los pesos de control. */
 export const BANDIDO_ACTIVO = true;
