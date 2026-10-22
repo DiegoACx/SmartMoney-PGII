@@ -3,7 +3,7 @@
 // Cada detector tiene un caso que dispara y un caso que no.
 // ============================================================================
 
-import { assertAlmostEquals, assertEquals } from "jsr:@std/assert";
+import { assertAlmostEquals, assertEquals } from "jsr:@std/assert@1";
 
 import {
   type EscalonCatalogo,

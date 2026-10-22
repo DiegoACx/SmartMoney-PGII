@@ -2,7 +2,7 @@
 // Pruebas de puntaje.ts  (deno test)
 // ============================================================================
 
-import { assertAlmostEquals, assertEquals } from "jsr:@std/assert";
+import { assertAlmostEquals, assertEquals } from "jsr:@std/assert@1";
 
 import type { TipoHallazgo } from "./config.ts";
 import type { HallazgoBase } from "./detectores.ts";

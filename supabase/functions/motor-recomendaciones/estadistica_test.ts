@@ -2,7 +2,7 @@
 // Pruebas de estadistica.ts  (deno test)
 // ============================================================================
 
-import { assert, assertAlmostEquals, assertEquals } from "jsr:@std/assert";
+import { assert, assertAlmostEquals, assertEquals } from "jsr:@std/assert@1";
 
 import {
   type TransaccionBase,
