@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../data/clasificador_repository.dart';
 import '../logic/transacciones_logic.dart';
 import '../logic/categorias_logic.dart';
 import '../logic/formato_utils.dart';
@@ -71,8 +74,19 @@ class _RegistroTransaccionScreenState
   bool _errorCategorias = false;
   bool _isLoading = false;
 
+  // ===== Sugerencia del clasificador (solo egresos) =====
+  SugerenciaCategoria? _sugerencia;
+  bool _consultandoSugerencia = false;
+  bool _categoriaElegidaManualmente = false;
+  bool _categoriaSugeridaAplicada = false;
+  bool _descripcionModificada = false;
+  String _descripcionOriginal = '';
+  Timer? _debounceClasificador;
+  int _peticionClasificador = 0;
+
   final _transaccionesLogic = TransaccionesLogic();
   final _categoriasLogic = CategoriasLogic();
+  final _clasificadorRepository = ClasificadorRepository();
   final _dateFormat = DateFormat('dd/MM/yyyy');
   final _formatoMiles = NumberFormat.decimalPattern('es_CO');
 
@@ -85,10 +99,44 @@ class _RegistroTransaccionScreenState
 
   @override
   void dispose() {
+    _debounceClasificador?.cancel();
     _montoController.dispose();
     _fechaController.dispose();
     _notaController.dispose();
     super.dispose();
+  }
+
+  /// La categoría seleccionada vino de la sugerencia y sigue vigente.
+  bool get _mostrarChipSugerida {
+    final sugerencia = _sugerencia;
+    return _categoriaSugeridaAplicada &&
+        sugerencia != null &&
+        _categoriaSeleccionadaId == sugerencia.categoriaId;
+  }
+
+  /// Sugerencia aplicable en modo edición: hay que tocarla para aceptarla.
+  /// Es null si no se cambió la descripción, si no hay sugerencia, si no pasa
+  /// el umbral (`preseleccionar`), si coincide con la categoría actual o si esa
+  /// categoría no está cargada.
+  SugerenciaCategoria? get _sugerenciaEdicion {
+    final sugerencia = _sugerencia;
+    if (!_esModoEdicion || !_descripcionModificada) return null;
+    if (sugerencia == null || sugerencia.categoriaId == null) return null;
+    if (!sugerencia.preseleccionar) return null;
+    if (sugerencia.categoriaId == _categoriaSeleccionadaId) return null;
+    final existe = _categoriasVisibles.any(
+      (c) => c['id'].toString() == sugerencia.categoriaId,
+    );
+    return existe ? sugerencia : null;
+  }
+
+  /// Acepta la sugerencia en edición: cuenta como elección del usuario.
+  void _aplicarSugerenciaEdicion(String categoriaId) {
+    setState(() {
+      _categoriaElegidaManualmente = true;
+      _categoriaSeleccionadaId = categoriaId;
+      _errorCategoria = null;
+    });
   }
 
   /// Categorías que corresponden al tipo seleccionado. Si todavía no se
@@ -156,6 +204,7 @@ class _RegistroTransaccionScreenState
       if (desc != null && desc.toString().trim().isNotEmpty) {
         _notaController.text = desc.toString().trim();
       }
+      _descripcionOriginal = _notaController.text.trim();
       final catId = t['categoria_id']?.toString();
       if (catId != null) {
         final existe = categoriasCargadas
@@ -164,6 +213,85 @@ class _RegistroTransaccionScreenState
           _categoriaSeleccionadaId = catId;
         }
       }
+    });
+  }
+
+  // ===== Sugerencia de categoría (clasificador, solo egresos) =====
+
+  /// Grupo de referencia de una categoría cargada (null si no se encuentra).
+  int? _grupoDeCategoria(String categoriaId) {
+    for (final c in _categorias) {
+      if (c['id'].toString() == categoriaId) {
+        final grupo = c['grupo_id'];
+        return grupo is num ? grupo.toInt() : null;
+      }
+    }
+    return null;
+  }
+
+  /// Se dispara con cada cambio de la descripción: espera 600 ms sin teclas
+  /// nuevas antes de consultar, y descarta cualquier respuesta anterior.
+  void _onDescripcionCambiada(String texto) {
+    if (_tipoSeleccionado != 'egreso') return;
+
+    if (_esModoEdicion) {
+      _descripcionModificada = texto.trim() != _descripcionOriginal;
+    }
+
+    _debounceClasificador?.cancel();
+    _peticionClasificador++;
+
+    final limpio = texto.trim();
+    if (limpio.length < 2) {
+      if (_sugerencia != null ||
+          _consultandoSugerencia ||
+          _categoriaSugeridaAplicada) {
+        setState(() {
+          _sugerencia = null;
+          _consultandoSugerencia = false;
+          _categoriaSugeridaAplicada = false;
+        });
+      }
+      return;
+    }
+
+    _debounceClasificador = Timer(
+      const Duration(milliseconds: 600),
+      () => _consultarSugerencia(limpio),
+    );
+  }
+
+  Future<void> _consultarSugerencia(String descripcion) async {
+    final peticion = ++_peticionClasificador;
+    if (mounted) setState(() => _consultandoSugerencia = true);
+
+    final sugerencia =
+        await _clasificadorRepository.sugerirCategoria(descripcion);
+
+    // Respuesta vieja: ya hay una consulta más reciente en curso.
+    if (!mounted || peticion != _peticionClasificador) return;
+
+    setState(() {
+      _consultandoSugerencia = false;
+      _sugerencia = sugerencia;
+
+      final categoriaId = sugerencia?.categoriaId;
+      // En edición solo se registra la sugerencia, nunca se reemplaza la
+      // categoría ya guardada.
+      if (sugerencia == null ||
+          !sugerencia.preseleccionar ||
+          categoriaId == null ||
+          _esModoEdicion ||
+          _categoriaElegidaManualmente) {
+        return;
+      }
+      if (!_categoriasVisibles.any((c) => c['id'].toString() == categoriaId)) {
+        return;
+      }
+
+      _categoriaSeleccionadaId = categoriaId;
+      _errorCategoria = null;
+      _categoriaSugeridaAplicada = true;
     });
   }
 
@@ -208,6 +336,26 @@ class _RegistroTransaccionScreenState
     final metodoPago = _metodoPagoSeleccionado!;
     final esGastoTrabajo = tipo == 'egreso' ? _esGastoTrabajo : false;
 
+    // ===== Metadatos de la sugerencia (solo egresos) =====
+    // En edición solo cuentan si el usuario cambió la descripción; si no, se
+    // conservan los valores ya guardados. Si la descripción cambió y no hubo
+    // sugerencia, se escriben en NULL explícito.
+    final escribirMetadatosSugerencia =
+        tipo == 'egreso' && (!_esModoEdicion || _descripcionModificada);
+    final sugerencia = escribirMetadatosSugerencia ? _sugerencia : null;
+    int? grupoSugeridoId;
+    double? confianzaSugerencia;
+    String? versionModelo;
+    bool? categoriaCorregida;
+    if (sugerencia != null) {
+      grupoSugeridoId = sugerencia.grupoId;
+      confianzaSugerencia = sugerencia.confianza;
+      versionModelo = sugerencia.versionModelo;
+      // Se comparan GRUPOS de referencia, no ids de categoría.
+      final grupoFinal = _grupoDeCategoria(categoriaId);
+      categoriaCorregida = grupoFinal == null || grupoFinal != grupoSugeridoId;
+    }
+
     String? error;
     if (_esModoEdicion) {
       final transaccionId = widget.transaccionExistente!['id'].toString();
@@ -221,6 +369,11 @@ class _RegistroTransaccionScreenState
         categoriasValidas: categoriasIds,
         metodoPago: metodoPago,
         esGastoTrabajo: esGastoTrabajo,
+        grupoSugeridoId: grupoSugeridoId,
+        confianzaSugerencia: confianzaSugerencia,
+        categoriaCorregida: categoriaCorregida,
+        versionModelo: versionModelo,
+        escribirMetadatosSugerencia: escribirMetadatosSugerencia,
       );
     } else {
       error = await _transaccionesLogic.registrarTransaccion(
@@ -232,6 +385,10 @@ class _RegistroTransaccionScreenState
         categoriasValidas: categoriasIds,
         metodoPago: metodoPago,
         esGastoTrabajo: esGastoTrabajo,
+        grupoSugeridoId: grupoSugeridoId,
+        confianzaSugerencia: confianzaSugerencia,
+        categoriaCorregida: categoriaCorregida,
+        versionModelo: versionModelo,
       );
     }
 
@@ -261,6 +418,8 @@ class _RegistroTransaccionScreenState
         _formKey.currentState!.reset();
         _montoController.clear();
         _notaController.clear();
+        _debounceClasificador?.cancel();
+        _peticionClasificador++;
         setState(() {
           _tipoSeleccionado = null;
           _categoriaSeleccionadaId = null;
@@ -268,6 +427,11 @@ class _RegistroTransaccionScreenState
           _esGastoTrabajo = false;
           _fechaSeleccionada = DateTime.now();
           _fechaController.text = _dateFormat.format(_fechaSeleccionada);
+          _sugerencia = null;
+          _consultandoSugerencia = false;
+          _categoriaElegidaManualmente = false;
+          _categoriaSugeridaAplicada = false;
+          _descripcionModificada = false;
           _isLoading = false;
         });
         await Future.delayed(const Duration(milliseconds: 500));
@@ -610,6 +774,7 @@ class _RegistroTransaccionScreenState
         _categorias.add(result);
         _categoriaSeleccionadaId = result['id'].toString();
         _errorCategoria = null;
+        _categoriaSugeridaAplicada = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -816,6 +981,11 @@ class _RegistroTransaccionScreenState
                               _errorTipo = null;
                               if (_tipoSeleccionado != 'egreso') {
                                 _esGastoTrabajo = false;
+                                _debounceClasificador?.cancel();
+                                _peticionClasificador++;
+                                _sugerencia = null;
+                                _consultandoSugerencia = false;
+                                _categoriaSugeridaAplicada = false;
                               }
                               // Si la categoría elegida no pertenece al nuevo
                               // tipo, se limpia la selección.
@@ -828,6 +998,11 @@ class _RegistroTransaccionScreenState
                                 _errorCategoria = null;
                               }
                             });
+                            // Si pasa a egreso con una descripción ya escrita
+                            // (por ejemplo una nota de ingreso), se clasifica.
+                            if (_tipoSeleccionado == 'egreso') {
+                              _onDescripcionCambiada(_notaController.text);
+                            }
                           },
                           style: ButtonStyle(
                             foregroundColor: WidgetStateProperty.resolveWith(
@@ -953,13 +1128,28 @@ class _RegistroTransaccionScreenState
                         const SizedBox(height: 20),
 
                         // ===== Selector Categoría =====
-                        Text(
-                          'Categoría',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF2B2B2B),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Categoría',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF2B2B2B),
+                              ),
+                            ),
+                            if (_consultandoSugerencia) ...[
+                              const SizedBox(width: 8),
+                              const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF58774B),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 6),
                         _cargandoCategorias
@@ -1098,6 +1288,9 @@ class _RegistroTransaccionScreenState
                                         ),
                                       ],
                                       onChanged: (v) {
+                                        // El usuario tocó el desplegable: la
+                                        // sugerencia ya no manda sobre ella.
+                                        _categoriaElegidaManualmente = true;
                                         if (v == '__crear_nueva__') {
                                           // No actualizamos _categoriaSeleccionadaId,
                                           // abrimos el diálogo y al cerrar
@@ -1107,6 +1300,7 @@ class _RegistroTransaccionScreenState
                                           setState(() {
                                             _categoriaSeleccionadaId = v;
                                             _errorCategoria = null;
+                                            _categoriaSugeridaAplicada = false;
                                           });
                                         }
                                       },
@@ -1121,6 +1315,49 @@ class _RegistroTransaccionScreenState
                                       ),
                                     ),
                                   ),
+                        if (_mostrarChipSugerida)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF58774B)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '✨ Sugerida',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF58774B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (_sugerenciaEdicion != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _aplicarSugerenciaEdicion(
+                                _sugerenciaEdicion!.categoriaId!,
+                              ),
+                              child: Text(
+                                '✨ Sugerencia: '
+                                '${_sugerenciaEdicion!.categoriaNombre ?? ''}',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF58774B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
                         if (_errorCategoria != null && !_errorCategorias)
                           Padding(
                             padding: const EdgeInsets.only(top: 6, left: 4),
@@ -1194,6 +1431,7 @@ class _RegistroTransaccionScreenState
                             controller: _notaController,
                             maxLines: 3,
                             minLines: 2,
+                            onChanged: _onDescripcionCambiada,
                             autovalidateMode:
                                 AutovalidateMode.onUserInteraction,
                             validator: (v) {

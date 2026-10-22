@@ -172,6 +172,9 @@ class TransaccionesLogic {
   }
 
   /// Valida y registra una nueva transacción.
+  /// [grupoSugeridoId], [confianzaSugerencia], [categoriaCorregida] y
+  /// [versionModelo] son los metadatos de la sugerencia del clasificador
+  /// (null cuando no hubo sugerencia).
   /// Retorna null si todo sale bien, o un String con el mensaje de error.
   Future<String?> registrarTransaccion({
     required double monto,
@@ -182,6 +185,10 @@ class TransaccionesLogic {
     required List<String> categoriasValidas,
     required String metodoPago,
     required bool esGastoTrabajo,
+    int? grupoSugeridoId,
+    double? confianzaSugerencia,
+    bool? categoriaCorregida,
+    String? versionModelo,
   }) async {
     // Primero validamos sin tocar el repositorio
     final validacion = validarTransaccion(
@@ -211,6 +218,10 @@ class TransaccionesLogic {
         fecha: fecha,
         metodoPago: metodoPago,
         esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
+        grupoSugeridoId: grupoSugeridoId,
+        confianzaSugerencia: confianzaSugerencia,
+        categoriaCorregida: categoriaCorregida,
+        versionModelo: versionModelo,
       );
       return null;
     } catch (e) {
@@ -222,6 +233,9 @@ class TransaccionesLogic {
   }
 
   /// Valida y edita una transacción existente.
+  /// Los metadatos de la sugerencia solo se escriben cuando
+  /// [escribirMetadatosSugerencia] es true (con null explícito si no hubo
+  /// sugerencia); si es false, se conservan los guardados.
   /// Retorna null si todo sale bien, o un String con el mensaje de error.
   Future<String?> editarTransaccion({
     required String transaccionId,
@@ -233,6 +247,11 @@ class TransaccionesLogic {
     required List<String> categoriasValidas,
     required String metodoPago,
     required bool esGastoTrabajo,
+    int? grupoSugeridoId,
+    double? confianzaSugerencia,
+    bool? categoriaCorregida,
+    String? versionModelo,
+    bool escribirMetadatosSugerencia = false,
   }) async {
     final validacion = validarTransaccion(
       monto: monto,
@@ -262,6 +281,11 @@ class TransaccionesLogic {
         fecha: fecha,
         metodoPago: metodoPago,
         esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
+        grupoSugeridoId: grupoSugeridoId,
+        confianzaSugerencia: confianzaSugerencia,
+        categoriaCorregida: categoriaCorregida,
+        versionModelo: versionModelo,
+        escribirMetadatosSugerencia: escribirMetadatosSugerencia,
       );
       return null;
     } catch (e) {

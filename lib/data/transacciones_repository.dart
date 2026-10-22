@@ -4,6 +4,9 @@ class TransaccionesRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
   /// Crea una nueva transacción para el usuario autenticado.
+  /// [grupoSugeridoId], [confianzaSugerencia], [categoriaCorregida] y
+  /// [versionModelo] son los metadatos de la sugerencia del clasificador;
+  /// van en null cuando no hubo sugerencia.
   Future<void> crearTransaccion({
     required String tipo,
     required double monto,
@@ -12,6 +15,10 @@ class TransaccionesRepository {
     required DateTime fecha,
     required String metodoPago,
     required bool esGastoTrabajo,
+    int? grupoSugeridoId,
+    double? confianzaSugerencia,
+    bool? categoriaCorregida,
+    String? versionModelo,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -27,6 +34,10 @@ class TransaccionesRepository {
       'fecha': fecha.toIso8601String().split('T')[0],
       'metodo_pago': metodoPago,
       'es_gasto_trabajo': esGastoTrabajo,
+      'grupo_sugerido_id': grupoSugeridoId,
+      'confianza_sugerencia': confianzaSugerencia,
+      'categoria_corregida': categoriaCorregida,
+      'version_modelo': versionModelo,
     });
   }
 
@@ -58,6 +69,10 @@ class TransaccionesRepository {
   }
 
   /// Edita una transacción existente por su id.
+  /// Los metadatos de la sugerencia solo se envían cuando
+  /// [escribirMetadatosSugerencia] es true: en ese caso se escriben los cuatro
+  /// tal cual (con null explícito si no hubo sugerencia). Si es false, no se
+  /// envían y se conservan los que ya estaban guardados.
   Future<void> editarTransaccion({
     required String transaccionId,
     String? tipo,
@@ -67,6 +82,11 @@ class TransaccionesRepository {
     DateTime? fecha,
     String? metodoPago,
     bool? esGastoTrabajo,
+    int? grupoSugeridoId,
+    double? confianzaSugerencia,
+    bool? categoriaCorregida,
+    String? versionModelo,
+    bool escribirMetadatosSugerencia = false,
   }) async {
     final updates = <String, dynamic>{};
     if (tipo != null) updates['tipo'] = tipo;
@@ -76,6 +96,12 @@ class TransaccionesRepository {
     if (fecha != null) updates['fecha'] = fecha.toIso8601String().split('T')[0];
     if (metodoPago != null) updates['metodo_pago'] = metodoPago;
     if (esGastoTrabajo != null) updates['es_gasto_trabajo'] = esGastoTrabajo;
+    if (escribirMetadatosSugerencia) {
+      updates['grupo_sugerido_id'] = grupoSugeridoId;
+      updates['confianza_sugerencia'] = confianzaSugerencia;
+      updates['categoria_corregida'] = categoriaCorregida;
+      updates['version_modelo'] = versionModelo;
+    }
 
     if (updates.isEmpty) return;
 

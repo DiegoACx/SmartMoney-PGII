@@ -24,3 +24,5 @@ doc/api/
 .flutter-plugins-dependencies
 .trae/
 supabase/.temp/
+# Caché de Kotlin
+android/.kotlin/
