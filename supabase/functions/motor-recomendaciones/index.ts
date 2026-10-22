@@ -14,7 +14,7 @@
 //   3. línea base      → estadistica.ts
 //   4. hallazgos       → detectores.ts
 //   5. puntaje/elección→ puntaje.ts
-//   6. textos          → plantillas.ts
+//   6. textos          → llm.ts (Gemini) con plantillas.ts como respaldo
 // ============================================================================
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -59,6 +59,7 @@ import {
   yaRecomendado,
 } from "./puntaje.ts";
 import { textoRecomendacion } from "./plantillas.ts";
+import { redactarConGemini } from "./llm.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL") ?? "";
 const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -409,6 +410,39 @@ async function insertarHallazgo(
   return String((data as Record<string, unknown>)["id"]);
 }
 
+/**
+ * Texto de la recomendación: el de Gemini si está activo y su salida es válida;
+ * si no, el de la plantilla. Deja una sola línea de log por recomendación, con
+ * el modelo y el motivo, pero nunca la clave ni el texto.
+ */
+async function redactarRecomendacion(
+  hallazgo: HallazgoPuntuado,
+): Promise<{
+  texto: string;
+  origen: "llm" | "plantilla";
+  modelo: string;
+  motivo: string;
+}> {
+  const plantilla = textoRecomendacion(hallazgo);
+
+  if (!CFG.LLM_ACTIVO) {
+    return {
+      texto: plantilla,
+      origen: "plantilla",
+      modelo: CFG.GEMINI_MODELO,
+      motivo: "desactivado",
+    };
+  }
+
+  const resultado = await redactarConGemini(hallazgo, plantilla);
+  return {
+    texto: resultado.texto ?? plantilla,
+    origen: resultado.texto === null ? "plantilla" : "llm",
+    modelo: resultado.modelo,
+    motivo: resultado.motivo,
+  };
+}
+
 /** Inserta la recomendación. `objetivo` permite bloquear duplicados recientes. */
 async function insertarRecomendacion(
   admin: SupabaseClient,
@@ -416,12 +450,17 @@ async function insertarRecomendacion(
   hallazgoId: string,
   hallazgo: HallazgoPuntuado,
 ): Promise<void> {
+  const { texto, origen, modelo, motivo } = await redactarRecomendacion(hallazgo);
+  console.log(
+    `[llm] tipo=${hallazgo.tipo} origen=${origen} modelo=${modelo} motivo=${motivo}`,
+  );
+
   const { error } = await admin.from("recomendaciones").insert({
     usuario_id: usuarioId,
     hallazgo_id: hallazgoId,
     tipo: hallazgo.tipo,
-    texto: textoRecomendacion(hallazgo),
-    origen_texto: "plantilla",
+    texto,
+    origen_texto: origen,
     prioridad: hallazgo.puntaje,
     objetivo: hallazgo.objetivo,
   });
