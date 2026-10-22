@@ -16,6 +16,9 @@ import 'registro_meta_screen.dart';
 import 'widgets/indicador_progreso_escalones.dart';
 import 'widgets/tarjeta_recomendaciones.dart';
 
+/// Texto mostrado en lugar de una gráfica cuando no hay datos que dibujar.
+const String _textoSinDatosGrafica = 'Aún no hay movimientos para graficar';
+
 const List<Color> _paletteCategorias = [
   Color(0xFF58774B),
   Color(0xFF7A9B6C),
@@ -687,20 +690,19 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             )
-          : _buildEstadoVacio(
-              'Aún no hay suficientes datos para esta gráfica',
-            ),
+          : _buildEstadoVacio(_textoSinDatosGrafica),
     );
   }
 
   double _maxYParaBars(List<Map<String, dynamic>> totalesMensuales) {
     double max = 0;
     for (final m in totalesMensuales) {
-      if ((m['ingresos'] as double) > max) max = m['ingresos'] as double;
-      if ((m['egresos'] as double) > max) max = m['egresos'] as double;
+      final ingresos = m['ingresos'] as double;
+      final egresos = m['egresos'] as double;
+      if (ingresos > max) max = ingresos;
+      if (egresos > max) max = egresos;
     }
-    if (max == 0) return 10;
-    return max * 1.15;
+    return _maxYValido(max) * 1.15;
   }
 
   // ================================================================
@@ -713,12 +715,14 @@ class HomeScreenState extends State<HomeScreen> {
       DateTime.now(),
     );
     final entradas = distribucion.entries.toList();
+    final total = entradas.fold<double>(0, (acc, e) => acc + e.value);
+    final hayDatos = entradas.isNotEmpty && total.isFinite && total > 0;
 
     return _buildTarjetaGraficaBase(
       titulo: 'Gastos por categoría',
       subtitulo: 'Mes actual',
       altura: 320,
-      child: entradas.isNotEmpty
+      child: hayDatos
           ? Column(
               children: [
                 SizedBox(
@@ -784,9 +788,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             )
-          : _buildEstadoVacio(
-              'Aún no tienes gastos registrados este mes',
-            ),
+          : _buildEstadoVacio(_textoSinDatosGrafica),
     );
   }
 
@@ -798,12 +800,19 @@ class HomeScreenState extends State<HomeScreen> {
       transacciones,
       meses: 6,
     );
-    final hayDatos = flujo.any((m) {
-      final v = _modoFlujoCaja == 'acumulado'
-          ? (m['acumulado'] as double)
-          : (m['neto'] as double);
-      return v != 0;
-    });
+    final valores = [
+      for (final m in flujo)
+        _modoFlujoCaja == 'acumulado'
+            ? (m['acumulado'] as double)
+            : (m['neto'] as double),
+    ];
+    final hayDatos = valores.any((v) => v != 0);
+    // maxY saneado: si el máximo de los datos es 0, negativo, NaN o infinito,
+    // se usa 1 para evitar un intervalo de cuadrícula nulo/infinito.
+    final maxY = _maxYValido(
+      valores.isEmpty ? 0 : valores.reduce((a, b) => a > b ? a : b),
+    );
+    final intervalo = _intervaloSeguro(maxY);
 
     return Card(
       elevation: 1,
@@ -851,10 +860,11 @@ class HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(right: 8, top: 8),
                       child: LineChart(
                         LineChartData(
+                          maxY: maxY,
                           gridData: FlGridData(
                             show: true,
                             drawVerticalLine: false,
-                            horizontalInterval: null,
+                            horizontalInterval: intervalo,
                             getDrawingHorizontalLine: (_) => const FlLine(
                               color: Color(0x1A8C8474),
                               strokeWidth: 0.8,
@@ -868,8 +878,11 @@ class HomeScreenState extends State<HomeScreen> {
                             rightTitles: const AxisTitles(
                               sideTitles: SideTitles(showTitles: false),
                             ),
-                            leftTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: false,
+                                interval: intervalo,
+                              ),
                             ),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
@@ -921,13 +934,8 @@ class HomeScreenState extends State<HomeScreen> {
                           lineBarsData: [
                             LineChartBarData(
                               spots: [
-                                for (int i = 0; i < flujo.length; i++)
-                                  FlSpot(
-                                    i.toDouble(),
-                                    (_modoFlujoCaja == 'acumulado'
-                                        ? flujo[i]['acumulado'] as double
-                                        : flujo[i]['neto'] as double),
-                                  ),
+                                for (int i = 0; i < valores.length; i++)
+                                  FlSpot(i.toDouble(), valores[i]),
                               ],
                               isCurved: true,
                               curveSmoothness: 0.2,
@@ -944,9 +952,7 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     )
-                  : _buildEstadoVacio(
-                      'Aún no hay suficientes datos para esta gráfica',
-                    ),
+                  : _buildEstadoVacio(_textoSinDatosGrafica),
             ),
           ],
         ),
@@ -1511,6 +1517,22 @@ class HomeScreenState extends State<HomeScreen> {
   String _mesAbrev(DateTime mes) {
     final s = DateFormat('MMM', 'es').format(mes);
     return s[0].toUpperCase() + s.substring(1).replaceAll('.', '');
+  }
+
+  /// Sanea el valor máximo del eje Y. Si es 0, negativo, NaN o infinito
+  /// devuelve 1, evitando intervalos de cuadrícula nulos o infinitos que
+  /// bloquean el renderizado de fl_chart.
+  double _maxYValido(double valor) {
+    if (valor.isNaN || valor.isInfinite || valor <= 0) return 1;
+    return valor;
+  }
+
+  /// Intervalo seguro para la cuadrícula y los títulos del eje Y:
+  /// maxY / 4, nunca menor que 1; si el resultado fuera 0 o NaN devuelve 1.
+  double _intervaloSeguro(double maxY) {
+    final intervalo = maxY / 4;
+    if (intervalo.isNaN || intervalo.isInfinite || intervalo < 1) return 1;
+    return intervalo;
   }
 }
 
