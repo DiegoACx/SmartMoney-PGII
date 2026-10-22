@@ -15,14 +15,25 @@ export type TipoHallazgo =
   | "logro"
   | "riesgo_fin_de_mes";
 
-/** Tipos de hallazgo que participan en la selección "normal" (todos menos riesgo). */
-export const TIPOS_SELECCIONABLES: TipoHallazgo[] = [
+/** Tipos que compiten dentro del bandido Thompson Sampling. */
+export type TipoBandido =
+  | "sobregasto_categoria"
+  | "gasto_anomalo"
+  | "aporte_meta"
+  | "leccion_sugerida"
+  | "logro";
+
+/** Tipos que participan en el bandido (riesgo_fin_de_mes queda fuera). */
+export const TIPOS_BANDIDO: TipoBandido[] = [
   "sobregasto_categoria",
   "gasto_anomalo",
   "aporte_meta",
   "leccion_sugerida",
   "logro",
 ];
+
+/** Tipos de hallazgo que participan en la selección "normal" (todos menos riesgo). */
+export const TIPOS_SELECCIONABLES: TipoHallazgo[] = [...TIPOS_BANDIDO];
 
 // --- Parámetros estadísticos -------------------------------------------------
 
@@ -151,30 +162,40 @@ export const LLM_MAX_CARACTERES = 280;
 /** Interruptor del LLM: en false, todo sale de las plantillas. */
 export const LLM_ACTIVO = true;
 
-// --- Pesos por tipo ----------------------------------------------------------
+// --- Bandido Thompson Sampling ----------------------------------------------
 
 /**
- * Peso base de cada tipo de recomendación.
- * Fase actual: valor fijo. Fase posterior: lo reemplaza un bandido Thompson
- * Sampling que leerá preferencias_recomendacion y devolverá alfa / (alfa + beta).
+ * Media de utilidad de DISEÑO por tipo (0..1): el punto de partida antes de
+ * tener datos reales. Es un supuesto de diseño, no una tasa observada.
  */
-export const PESO_TIPO: Record<TipoHallazgo, number> = {
-  sobregasto_categoria: 1.0,
-  aporte_meta: 0.9,
-  gasto_anomalo: 0.7,
-  logro: 0.5,
-  leccion_sugerida: 0.4,
-  riesgo_fin_de_mes: 1.0,
+export const MU_DISENO: Record<TipoBandido, number> = {
+  sobregasto_categoria: 0.80,
+  aporte_meta: 0.75,
+  gasto_anomalo: 0.65,
+  logro: 0.55,
+  leccion_sugerida: 0.50,
 };
 
 /**
- * Peso del tipo de recomendación para un usuario.
- * Por ahora devuelve el valor fijo de PESO_TIPO; el usuario aún no influye.
- * Cuando entre el bandido, esta función pasará a leer preferencias_recomendacion.
+ * Pesos del grupo de control: los mismos valores de diseño, para que control y
+ * bandido partan del mismo nivel y PUNTAJE_MINIMO siga calibrado.
  */
-export function obtenerPesoTipo(_usuarioId: string, tipo: TipoHallazgo): number {
-  return PESO_TIPO[tipo];
-}
+export const PESO_TIPO_CONTROL: Record<TipoBandido, number> = { ...MU_DISENO };
+
+/** Peso fijo del riesgo de fin de mes: queda fuera del bandido. */
+export const PESO_RIESGO_FIN_DE_MES = 1;
+
+/** Fuerza del prior poblacional: respuestas virtuales que aporta el diseño. */
+export const C_DISENO = 4;
+
+/** Fuerza del prior del usuario: respuestas virtuales que aporta la población. */
+export const M_PRIOR = 4;
+
+/** Interruptor del bandido: en false, todos usan los pesos de control. */
+export const BANDIDO_ACTIVO = true;
+
+/** Interruptor del A/B: en false, todos los usuarios van al grupo 'bandido'. */
+export const AB_ACTIVO = true;
 
 // --- Mapa grupo → lecciones --------------------------------------------------
 

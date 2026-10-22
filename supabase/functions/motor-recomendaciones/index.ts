@@ -13,7 +13,7 @@
 //   2. leer datos      → index.ts
 //   3. línea base      → estadistica.ts
 //   4. hallazgos       → detectores.ts
-//   5. puntaje/elección→ puntaje.ts
+//   5. puntaje/elección→ puntaje.ts  (pesos por usuario: bandido.ts)
 //   6. textos          → llm.ts (Gemini) con plantillas.ts como respaldo
 // ============================================================================
 
@@ -60,6 +60,12 @@ import {
 } from "./puntaje.ts";
 import { textoRecomendacion } from "./plantillas.ts";
 import { redactarConGemini } from "./llm.ts";
+import {
+  type Conteos,
+  type PesosUsuario,
+  grupoExperimento,
+  pesosParaUsuario,
+} from "./bandido.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL") ?? "";
 const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -306,6 +312,72 @@ async function leerRecomendacionesRecientes(
   }));
 }
 
+// --- Conteos del bandido -----------------------------------------------------
+
+/** Agrupa filas {tipo, util} en conteos de útil / no útil (util null = sin dato). */
+function agruparConteos(filas: Record<string, unknown>[]): Conteos {
+  const conteos: Conteos = {};
+  for (const fila of filas) {
+    const tipo = String(fila["tipo"]);
+    const acumulado = conteos[tipo] ?? { utiles: 0, no_utiles: 0 };
+    if (fila["util"] === true) acumulado.utiles += 1;
+    else if (fila["util"] === false) acumulado.no_utiles += 1;
+    conteos[tipo] = acumulado;
+  }
+  return conteos;
+}
+
+/** Conteos del usuario: solo recomendaciones con util no nulo. */
+async function leerConteosUsuario(
+  admin: SupabaseClient,
+  usuarioId: string,
+): Promise<Conteos> {
+  const { data, error } = await admin
+    .from("recomendaciones")
+    .select("tipo, util")
+    .eq("usuario_id", usuarioId)
+    .not("util", "is", null);
+  if (error) throw new Error(`No se pudieron leer las preferencias: ${error.message}`);
+
+  return agruparConteos((data ?? []) as Record<string, unknown>[]);
+}
+
+/** Conteos globales (todos los usuarios) en una sola consulta agregada. */
+async function leerConteosGlobales(admin: SupabaseClient): Promise<Conteos> {
+  const { data, error } = await admin.rpc("estadisticas_bandido");
+  if (error) throw new Error(`No se pudieron leer las estadísticas globales: ${error.message}`);
+
+  const conteos: Conteos = {};
+  for (const fila of (data ?? []) as Record<string, unknown>[]) {
+    conteos[String(fila["tipo"])] = {
+      utiles: Number(fila["utiles"] ?? 0),
+      no_utiles: Number(fila["no_utiles"] ?? 0),
+    };
+  }
+  return conteos;
+}
+
+/** α y β del usuario por tipo, para trazabilidad (los lee la app / el análisis). */
+async function guardarPreferencias(
+  admin: SupabaseClient,
+  usuarioId: string,
+  bandido: PesosUsuario,
+): Promise<void> {
+  const filas = Object.entries(bandido.alfa).map(([tipo, alfa]) => ({
+    usuario_id: usuarioId,
+    tipo,
+    alfa,
+    beta: bandido.beta[tipo as CFG.TipoBandido],
+    actualizado_en: new Date().toISOString(),
+  }));
+  if (filas.length === 0) return;
+
+  const { error } = await admin
+    .from("preferencias_recomendacion")
+    .upsert(filas, { onConflict: "usuario_id,tipo" });
+  if (error) throw new Error(`No se pudieron guardar las preferencias: ${error.message}`);
+}
+
 /** Recomendaciones vigentes: sin responder y de los últimos 7 días. */
 async function leerRecomendacionesVigentes(
   admin: SupabaseClient,
@@ -368,7 +440,34 @@ async function guardarLineaBase(
   if (error) throw new Error(`No se pudo guardar la línea base: ${error.message}`);
 }
 
-function filaHallazgo(usuarioId: string, hallazgo: HallazgoPuntuado) {
+/** Trazabilidad del bandido que acompaña a cada hallazgo. */
+interface TrazaBandido {
+  grupo_experimento: string;
+  alfa: number | null;
+  beta: number | null;
+}
+
+/** Grupo y α/β del tipo. riesgo_fin_de_mes guarda grupo pero no α/β. */
+function trazaBandido(
+  tipo: CFG.TipoHallazgo,
+  bandido: PesosUsuario,
+): TrazaBandido {
+  if (tipo === "riesgo_fin_de_mes") {
+    return { grupo_experimento: bandido.grupo, alfa: null, beta: null };
+  }
+  return {
+    grupo_experimento: bandido.grupo,
+    alfa: bandido.alfa[tipo],
+    beta: bandido.beta[tipo],
+  };
+}
+
+function filaHallazgo(
+  usuarioId: string,
+  hallazgo: HallazgoPuntuado,
+  bandido: PesosUsuario,
+) {
+  const traza = trazaBandido(hallazgo.tipo, bandido);
   return {
     usuario_id: usuarioId,
     tipo: hallazgo.tipo,
@@ -379,6 +478,9 @@ function filaHallazgo(usuarioId: string, hallazgo: HallazgoPuntuado) {
     repeticion: hallazgo.repeticion,
     peso_tipo_usado: hallazgo.peso_tipo_usado,
     puntaje: hallazgo.puntaje,
+    grupo_experimento: traza.grupo_experimento,
+    alfa: traza.alfa,
+    beta: traza.beta,
   };
 }
 
@@ -386,11 +488,12 @@ async function insertarHallazgosSinRecomendar(
   admin: SupabaseClient,
   usuarioId: string,
   hallazgos: HallazgoPuntuado[],
+  bandido: PesosUsuario,
 ): Promise<void> {
   if (hallazgos.length === 0) return;
   const { error } = await admin
     .from("hallazgos")
-    .insert(hallazgos.map((hallazgo) => filaHallazgo(usuarioId, hallazgo)));
+    .insert(hallazgos.map((hallazgo) => filaHallazgo(usuarioId, hallazgo, bandido)));
   if (error) throw new Error(`No se pudieron guardar los hallazgos: ${error.message}`);
 }
 
@@ -399,10 +502,11 @@ async function insertarHallazgo(
   admin: SupabaseClient,
   usuarioId: string,
   hallazgo: HallazgoPuntuado,
+  bandido: PesosUsuario,
 ): Promise<string> {
   const { data, error } = await admin
     .from("hallazgos")
-    .insert(filaHallazgo(usuarioId, hallazgo))
+    .insert(filaHallazgo(usuarioId, hallazgo, bandido))
     .select("id")
     .single();
   if (error) throw new Error(`No se pudo guardar el hallazgo: ${error.message}`);
@@ -497,6 +601,12 @@ async function recalcular(
     usuarioId,
   );
   const previas = await leerRecomendacionesRecientes(admin, usuarioId);
+
+  // 1b) Bandido: grupo A/B del usuario, conteos y pesos por tipo
+  const grupo = CFG.BANDIDO_ACTIVO ? grupoExperimento(usuarioId) : "control";
+  const conteosUsuario = await leerConteosUsuario(admin, usuarioId);
+  const conteosGlobales = await leerConteosGlobales(admin);
+  const bandido = pesosParaUsuario(grupo, conteosUsuario, conteosGlobales);
 
   // 2) Ingreso mensual y línea base (sin gastos de trabajo)
   const ingresoMensual = medianaIngresoMensual(
@@ -623,7 +733,10 @@ async function recalcular(
     hallazgos,
     previas,
     hoy,
-    obtenerPeso: (tipo) => CFG.obtenerPesoTipo(usuarioId, tipo),
+    // riesgo_fin_de_mes queda fuera del bandido: peso fijo.
+    obtenerPeso: (tipo) => tipo === "riesgo_fin_de_mes"
+      ? CFG.PESO_RIESGO_FIN_DE_MES
+      : bandido.pesos[tipo],
   });
   const seleccionados = seleccionar(puntuados);
   const clavesSeleccionadas = new Set(
@@ -632,13 +745,15 @@ async function recalcular(
 
   // 5) Escritura
   await guardarLineaBase(admin, usuarioId, lineasCategorias);
+  await guardarPreferencias(admin, usuarioId, bandido);
   await insertarHallazgosSinRecomendar(
     admin,
     usuarioId,
     puntuados.filter((h) => !clavesSeleccionadas.has(`${h.tipo}:${h.objetivo}`)),
+    bandido,
   );
   for (const hallazgo of seleccionados) {
-    const hallazgoId = await insertarHallazgo(admin, usuarioId, hallazgo);
+    const hallazgoId = await insertarHallazgo(admin, usuarioId, hallazgo, bandido);
     // El hallazgo siempre se guarda; la recomendación no se duplica si ya hubo
     // una del mismo tipo y objetivo en los últimos 7 días, respondida o no.
     if (yaRecomendado(hallazgo, previas, hoy)) continue;
