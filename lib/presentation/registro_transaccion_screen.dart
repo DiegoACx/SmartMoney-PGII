@@ -63,8 +63,10 @@ class _RegistroTransaccionScreenState
   String? _tipoSeleccionado; // 'ingreso' o 'egreso'
   String? _categoriaSeleccionadaId;
   String? _metodoPagoSeleccionado; // 'efectivo' o 'transferencia'
+  bool _esGastoTrabajo = false;
 
   List<Map<String, dynamic>> _categorias = [];
+  List<Map<String, dynamic>> _gruposReferencia = [];
   bool _cargandoCategorias = true;
   bool _errorCategorias = false;
   bool _isLoading = false;
@@ -89,28 +91,52 @@ class _RegistroTransaccionScreenState
     super.dispose();
   }
 
-  // ===== Carga de categorías =====
+  /// Categorías que corresponden al tipo seleccionado. Si todavía no se
+  /// eligió un tipo, se muestran todas (el tipo se elige antes que la
+  /// categoría en el formulario).
+  List<Map<String, dynamic>> get _categoriasVisibles {
+    final tipo = _tipoSeleccionado;
+    if (tipo == null) return _categorias;
+    return _categorias.where((c) => c['tipo'] == tipo).toList();
+  }
+
+  // ===== Carga de categorías y grupos de referencia =====
   Future<void> _cargarCategorias() async {
     setState(() {
       _cargandoCategorias = true;
       _errorCategorias = false;
     });
+
+    // 1) Categorías: carga crítica del formulario. Su fallo sí bloquea el
+    //    registro (sin categorías no se puede guardar un movimiento).
+    List<Map<String, dynamic>> lista = [];
+    var errorCategorias = false;
     try {
-      final lista = await _categoriasLogic.obtenerCategoriasDisponibles();
-      if (!mounted) return;
-      setState(() {
-        _categorias = lista;
-        _cargandoCategorias = false;
-      });
-      if (_esModoEdicion) {
-        _prellenarDesdeTransaccionExistente(lista);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorCategorias = true;
-        _cargandoCategorias = false;
-      });
+      lista = await _categoriasLogic.obtenerCategoriasDisponibles();
+    } catch (e) {
+      debugPrint('DEBUG ERROR categorias: $e');
+      errorCategorias = true;
+    }
+
+    // 2) Grupos de referencia: carga auxiliar (solo para el desplegable
+    //    "Grupo" al crear una categoría propia). Su fallo NO debe impedir
+    //    cargar las categorías ni registrar movimientos.
+    List<Map<String, dynamic>> grupos = [];
+    try {
+      grupos = await _categoriasLogic.obtenerGruposReferencia();
+    } catch (e) {
+      debugPrint('DEBUG ERROR grupos_referencia: $e');
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _categorias = lista;
+      _gruposReferencia = grupos;
+      _errorCategorias = errorCategorias;
+      _cargandoCategorias = false;
+    });
+    if (_esModoEdicion) {
+      _prellenarDesdeTransaccionExistente(lista);
     }
   }
 
@@ -125,6 +151,7 @@ class _RegistroTransaccionScreenState
       _fechaSeleccionada = DateTime.parse(t['fecha'] as String);
       _fechaController.text = _dateFormat.format(_fechaSeleccionada);
       _metodoPagoSeleccionado = t['metodo_pago'] as String?;
+      _esGastoTrabajo = t['es_gasto_trabajo'] == true;
       final desc = t['descripcion'];
       if (desc != null && desc.toString().trim().isNotEmpty) {
         _notaController.text = desc.toString().trim();
@@ -179,6 +206,7 @@ class _RegistroTransaccionScreenState
         ? null
         : _notaController.text.trim();
     final metodoPago = _metodoPagoSeleccionado!;
+    final esGastoTrabajo = tipo == 'egreso' ? _esGastoTrabajo : false;
 
     String? error;
     if (_esModoEdicion) {
@@ -192,6 +220,7 @@ class _RegistroTransaccionScreenState
         nota: nota,
         categoriasValidas: categoriasIds,
         metodoPago: metodoPago,
+        esGastoTrabajo: esGastoTrabajo,
       );
     } else {
       error = await _transaccionesLogic.registrarTransaccion(
@@ -202,6 +231,7 @@ class _RegistroTransaccionScreenState
         nota: nota,
         categoriasValidas: categoriasIds,
         metodoPago: metodoPago,
+        esGastoTrabajo: esGastoTrabajo,
       );
     }
 
@@ -235,6 +265,7 @@ class _RegistroTransaccionScreenState
           _tipoSeleccionado = null;
           _categoriaSeleccionadaId = null;
           _metodoPagoSeleccionado = null;
+          _esGastoTrabajo = false;
           _fechaSeleccionada = DateTime.now();
           _fechaController.text = _dateFormat.format(_fechaSeleccionada);
           _isLoading = false;
@@ -293,6 +324,7 @@ class _RegistroTransaccionScreenState
     final nombreCtrl = TextEditingController();
     String? errorMsg;
     bool creando = false;
+    int? grupoSeleccionadoId;
     final formKey = GlobalKey<FormState>();
 
     final result = await showDialog<Map<String, dynamic>?>(
@@ -362,6 +394,69 @@ class _RegistroTransaccionScreenState
                           ),
                         ),
                       ),
+
+                      // Desplegable Grupo (solo para categorías de egreso)
+                      if (_tipoSeleccionado == 'egreso') ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          'Grupo',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF2B2B2B),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Material(
+                          elevation: 1,
+                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.transparent,
+                          child: DropdownButtonFormField<int>(
+                            // ignore: deprecated_member_use
+                            value: grupoSeleccionadoId,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => v == null
+                                ? 'Selecciona un grupo para la categoría de egreso'
+                                : null,
+                            decoration: InputDecoration(
+                              labelText: 'Grupo',
+                              prefixIcon: const Icon(
+                                Icons.category_outlined,
+                                color: Color(0xFFC9C2B0),
+                              ),
+                              errorStyle: GoogleFonts.poppins(
+                                color: const Color(0xFFC0392B),
+                                fontSize: 12,
+                              ),
+                            ),
+                            items: _gruposReferencia.map((g) {
+                              return DropdownMenuItem<int>(
+                                value: g['id'] as int,
+                                child: Text(
+                                  g['nombre'].toString(),
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFF2B2B2B),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (v) {
+                              setDialogState(() => grupoSeleccionadoId = v);
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF2B2B2B),
+                              fontSize: 14,
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Color(0xFFC9C2B0),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Mensaje de error inline
@@ -450,6 +545,10 @@ class _RegistroTransaccionScreenState
                                                 .crearCategoria(
                                           nombre: nombreCtrl.text,
                                           tipo: _tipoSeleccionado!,
+                                          grupoId:
+                                              _tipoSeleccionado == 'egreso'
+                                                  ? grupoSeleccionadoId
+                                                  : null,
                                         );
                                           if (!ctx.mounted) return;
                                           if (resultado.exito) {
@@ -524,6 +623,53 @@ class _RegistroTransaccionScreenState
         ),
       );
     }
+  }
+
+  // ===== Switch "Gasto de trabajo" (solo egreso) =====
+  Widget _buildSwitchGastoTrabajo() {
+    return Material(
+      elevation: 1,
+      borderRadius: BorderRadius.circular(14),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Gasto de trabajo',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2B2B2B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Actívalo si este gasto fue para tu trabajo (gasolina para domicilios, materiales, software)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF8C8474),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: _esGastoTrabajo,
+              activeThumbColor: Colors.white,
+              activeTrackColor: const Color(0xFF58774B),
+              onChanged: (v) => setState(() => _esGastoTrabajo = v),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -668,6 +814,19 @@ class _RegistroTransaccionScreenState
                             setState(() {
                               _tipoSeleccionado = s.first;
                               _errorTipo = null;
+                              if (_tipoSeleccionado != 'egreso') {
+                                _esGastoTrabajo = false;
+                              }
+                              // Si la categoría elegida no pertenece al nuevo
+                              // tipo, se limpia la selección.
+                              if (_categoriaSeleccionadaId != null &&
+                                  !_categorias.any((c) =>
+                                      c['id'].toString() ==
+                                          _categoriaSeleccionadaId &&
+                                      c['tipo'] == _tipoSeleccionado)) {
+                                _categoriaSeleccionadaId = null;
+                                _errorCategoria = null;
+                              }
                             });
                           },
                           style: ButtonStyle(
@@ -876,10 +1035,11 @@ class _RegistroTransaccionScreenState
                                     color: Colors.transparent,
                                     child: DropdownButtonFormField<String>(
                                       // ignore: deprecated_member_use
-                                      value: _categoriaSeleccionadaId,
-                                      autovalidateMode: AutovalidateMode
-                                          .onUserInteraction,
-                                      validator: (_) => _errorCategoria,
+                                      value: _categoriasVisibles.any((c) =>
+                                              c['id'].toString() ==
+                                              _categoriaSeleccionadaId)
+                                          ? _categoriaSeleccionadaId
+                                          : null,
                                       decoration: InputDecoration(
                                         labelText: 'Categoría',
                                         prefixIcon: const Icon(
@@ -892,7 +1052,7 @@ class _RegistroTransaccionScreenState
                                         ),
                                       ),
                                       items: [
-                                        ..._categorias.map((c) {
+                                        ..._categoriasVisibles.map((c) {
                                           return DropdownMenuItem<String>(
                                             value: c['id'].toString(),
                                             child: Text(
@@ -973,6 +1133,12 @@ class _RegistroTransaccionScreenState
                               ),
                             ),
                           ),
+
+                        // ===== Switch Gasto de trabajo (solo egreso) =====
+                        if (_tipoSeleccionado == 'egreso') ...[
+                          const SizedBox(height: 12),
+                          _buildSwitchGastoTrabajo(),
+                        ],
                         const SizedBox(height: 20),
 
                         // ===== Campo Fecha =====
@@ -1008,9 +1174,11 @@ class _RegistroTransaccionScreenState
                         ),
                         const SizedBox(height: 20),
 
-                        // ===== Campo Nota =====
+                        // ===== Campo Descripción (egreso) / Nota (ingreso) =====
                         Text(
-                          'Nota (opcional)',
+                          _tipoSeleccionado == 'egreso'
+                              ? 'Descripción'
+                              : 'Nota (opcional)',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -1026,8 +1194,25 @@ class _RegistroTransaccionScreenState
                             controller: _notaController,
                             maxLines: 3,
                             minLines: 2,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) {
+                              if (_tipoSeleccionado == 'egreso') {
+                                final sinEspacios =
+                                    (v ?? '').replaceAll(RegExp(r'\s+'), '');
+                                if (sinEspacios.length < 2) {
+                                  return 'Ingresa una descripción de al menos 2 caracteres';
+                                }
+                              }
+                              return null;
+                            },
                             decoration: InputDecoration(
-                              labelText: 'Nota',
+                              labelText: _tipoSeleccionado == 'egreso'
+                                  ? 'Descripción'
+                                  : 'Nota',
+                              hintText: _tipoSeleccionado == 'egreso'
+                                  ? 'Ej: almuerzo, pasaje, recarga'
+                                  : null,
                               prefixIcon: const Padding(
                                 padding: EdgeInsets.only(bottom: 40),
                                 child: Icon(

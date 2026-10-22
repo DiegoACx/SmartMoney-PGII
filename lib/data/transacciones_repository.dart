@@ -11,6 +11,7 @@ class TransaccionesRepository {
     String? descripcion,
     required DateTime fecha,
     required String metodoPago,
+    required bool esGastoTrabajo,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -25,6 +26,7 @@ class TransaccionesRepository {
       'descripcion': descripcion,
       'fecha': fecha.toIso8601String().split('T')[0],
       'metodo_pago': metodoPago,
+      'es_gasto_trabajo': esGastoTrabajo,
     });
   }
 
@@ -64,6 +66,7 @@ class TransaccionesRepository {
     String? descripcion,
     DateTime? fecha,
     String? metodoPago,
+    bool? esGastoTrabajo,
   }) async {
     final updates = <String, dynamic>{};
     if (tipo != null) updates['tipo'] = tipo;
@@ -72,6 +75,7 @@ class TransaccionesRepository {
     if (descripcion != null) updates['descripcion'] = descripcion;
     if (fecha != null) updates['fecha'] = fecha.toIso8601String().split('T')[0];
     if (metodoPago != null) updates['metodo_pago'] = metodoPago;
+    if (esGastoTrabajo != null) updates['es_gasto_trabajo'] = esGastoTrabajo;
 
     if (updates.isEmpty) return;
 

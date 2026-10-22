@@ -23,12 +23,20 @@ class CategoriasLogic {
     return await _repository.obtenerCategorias();
   }
 
+  /// Trae los grupos de referencia (catálogo fijo) para el desplegable "Grupo".
+  Future<List<Map<String, dynamic>>> obtenerGruposReferencia() async {
+    return await _repository.obtenerGruposReferencia();
+  }
+
   /// Valida y crea una nueva categoría.
+  /// [grupoId] es obligatorio cuando [tipo] es 'egreso' y se ignora (null)
+  /// para 'ingreso'.
   /// Retorna [ResultadoCrearCategoria.exito] con la categoría creada,
   /// o [ResultadoCrearCategoria.error] con un mensaje legible.
   Future<ResultadoCrearCategoria> crearCategoria({
     required String nombre,
     required String tipo,
+    int? grupoId,
   }) async {
     // Validación local, sin tocar el repositorio
     final nombreLimpio = nombre.trim();
@@ -42,11 +50,17 @@ class CategoriasLogic {
         'Tipo de categoría inválido',
       );
     }
+    if (tipo == 'egreso' && grupoId == null) {
+      return const ResultadoCrearCategoria.error(
+        'Selecciona un grupo para la categoría de egreso',
+      );
+    }
 
     try {
       final creada = await _repository.crearCategoria(
         nombre: nombreLimpio,
         tipo: tipo,
+        grupoId: tipo == 'egreso' ? grupoId : null,
       );
       return ResultadoCrearCategoria.exito(creada);
     } catch (e) {
@@ -56,7 +70,7 @@ class CategoriasLogic {
         );
       }
       return const ResultadoCrearCategoria.error(
-        'Ocurrió un error al crear la categoría. Intenta de nuevo.',
+        'No se pudo guardar la categoría. Verifica el grupo seleccionado e intenta de nuevo.',
       );
     }
   }

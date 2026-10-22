@@ -181,6 +181,7 @@ class TransaccionesLogic {
     String? nota,
     required List<String> categoriasValidas,
     required String metodoPago,
+    required bool esGastoTrabajo,
   }) async {
     // Primero validamos sin tocar el repositorio
     final validacion = validarTransaccion(
@@ -194,6 +195,12 @@ class TransaccionesLogic {
     if (metodoPago != 'efectivo' && metodoPago != 'transferencia') {
       return 'Selecciona un método de pago válido';
     }
+    if (tipo == 'egreso') {
+      final descripcion = (nota ?? '').replaceAll(RegExp(r'\s+'), '');
+      if (descripcion.length < 2) {
+        return 'Ingresa una descripción de al menos 2 caracteres';
+      }
+    }
 
     try {
       await _repository.crearTransaccion(
@@ -203,6 +210,7 @@ class TransaccionesLogic {
         descripcion: nota,
         fecha: fecha,
         metodoPago: metodoPago,
+        esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
       );
       return null;
     } catch (e) {
@@ -224,6 +232,7 @@ class TransaccionesLogic {
     String? nota,
     required List<String> categoriasValidas,
     required String metodoPago,
+    required bool esGastoTrabajo,
   }) async {
     final validacion = validarTransaccion(
       monto: monto,
@@ -236,6 +245,12 @@ class TransaccionesLogic {
     if (metodoPago != 'efectivo' && metodoPago != 'transferencia') {
       return 'Selecciona un método de pago válido';
     }
+    if (tipo == 'egreso') {
+      final descripcion = (nota ?? '').replaceAll(RegExp(r'\s+'), '');
+      if (descripcion.length < 2) {
+        return 'Ingresa una descripción de al menos 2 caracteres';
+      }
+    }
 
     try {
       await _repository.editarTransaccion(
@@ -246,6 +261,7 @@ class TransaccionesLogic {
         descripcion: nota,
         fecha: fecha,
         metodoPago: metodoPago,
+        esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
       );
       return null;
     } catch (e) {
