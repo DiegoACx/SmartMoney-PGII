@@ -20,6 +20,7 @@ class _MainShellState extends State<MainShell> {
   int _index = 0;
   final _homeScreenKey = GlobalKey<HomeScreenState>();
   final _educacionScreenKey = GlobalKey<EducacionFinancieraScreenState>();
+  final _perfilScreenKey = GlobalKey<PerfilScreenState>();
 
   late final List<Widget> _paginas = [
     HomeScreen(key: _homeScreenKey, onCambiarPestana: _irAPestana),
@@ -27,7 +28,7 @@ class _MainShellState extends State<MainShell> {
     EducacionFinancieraScreen(key: _educacionScreenKey),
     const IngresoMontosScreen(),
     const MetasScreen(),
-    const PerfilScreen(),
+    PerfilScreen(key: _perfilScreenKey),
   ];
 
   /// Cambia de pestaña desde el `NavigationBar` o desde el propio contenido
@@ -41,6 +42,8 @@ class _MainShellState extends State<MainShell> {
       _homeScreenKey.currentState?.cargarTransacciones();
     } else if (i == 2) {
       _educacionScreenKey.currentState?.recargarYCentrar();
+    } else if (i == 5) {
+      _perfilScreenKey.currentState?.recargar();
     }
   }
 
