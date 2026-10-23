@@ -250,14 +250,6 @@ class HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ===== Cerrar sesión =====
-  void _cerrarSesion() async {
-    await _authLogic.cerrarSesion();
-    // No hace falta navegar manualmente: AuthGate escucha el cambio de
-    // sesión (StreamBuilder) y muestra LoginScreen automáticamente al
-    // detectar el logout.
-  }
-
   @override
   Widget build(BuildContext context) {
     final totales =
@@ -271,21 +263,6 @@ class HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAF6EA),
         elevation: 0,
-        actions: [
-          TextButton.icon(
-            onPressed: _cerrarSesion,
-            icon: const Icon(Icons.logout, size: 18, color: Color(0xFFC0392B)),
-            label: Text(
-              'Cerrar sesión',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFFC0392B),
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
