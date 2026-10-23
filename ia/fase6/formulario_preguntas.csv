@@ -1,0 +1,221 @@
+﻿id,respondente,pregunta_num,texto,descartar
+P001,R001,1,Cuanto estoy gastando a la semana ?,false
+P002,R001,2,Cuanto tengo que ingresar en la meta para completarla a final de año ?,false
+P003,R001,3,Explicame sobre el interes compuesto,false
+P004,R001,4,Como puedo evitar gastar mas?,false
+P005,R001,5,Deberia invertir una parte de mi dinero en un cdt ?,false
+P006,R002,1,En que he invertido dinero últimamente?,false
+P007,R002,2,La semana pasada cuanto dinero registré?,false
+P008,R002,3,Como funciona exactamente una cuenta de ahorros?,false
+P009,R002,4,Como hacer un ahorro mejor basado en mi vida cotidiana,false
+P010,R002,5,Que es lo mas duro de la playstore,false
+P011,R003,1,Cuánto dinero he gastado en salidas y comida fuera durante el último mes y cuál fue el día de mayor gasto?,false
+P012,R003,2,Qué porcentaje de mi meta de ahorro mensual llevo completado hasta la fecha y cuánto me falta para alcanzarla?,false
+P013,R003,3,Cómo funciona el interés compuesto en inversiones a mediano plazo y qué opciones sencillas existen para empezar a aplicarlo?,false
+P014,R003,4,Qué estrategia me recomiendas para organizar mis gastos fijos vs. variables de manera eficiente sin descuidar mi fondo de ahorro?,false
+P015,R003,5,Me puedes dar un resumen rápido de mi estado financiero actual y generar una alerta cuando esté cerca de superar mi límite de presupuesto diario?,false
+P016,R004,1,"Con mis ingresos y egresos, ¿es factible sacar un CDT?",false
+P017,R004,2,"Si ahorro un 5% de mis ingresos, ¿podría cumplir la meta de comprar un carro?",false
+P018,R004,3,¿Qué rentabilidad puedo obtener si abro una cuenta de ahorros con un banco?,false
+P019,R004,4,¿Me puede indicar si con el ingreso que recibo de mi actividad económica puedo sacar un crédito con una entidad financiera?,false
+P020,R004,5,"hola, buenas",false
+P021,R005,1,Cuanto gasto en servicios mensualmente,false
+P022,R005,2,Cuanto gasto en mercado,false
+P023,R005,3,Que es inversion,false
+P024,R005,4,Como hscer alcanzar la plata,false
+P025,R005,5,Como puedo conseguir un ingreso estra,false
+P026,R006,1,con lo que me sobra cada mes cuanto podria meter en un cdt,false
+P027,R006,2,ahorrando lo que ahorro ahora llego a comprar un portatil en diciembre?,false
+P028,R006,3,que es un cdt y como funciona,false
+P029,R006,4,¿Me conviene más un CDT o dejar la plata en la cuenta de ahorros?,false
+P030,R006,5,que puedes hacer por mi?,false
+P031,R007,1,¿Puedo pagar una cuota de 300 mil al mes con lo que gano?,false
+P032,R007,2,si dejo lo de la meta en una cuenta que pague intereses llego mas rapido?,false
+P033,R007,3,no entiendo que es la tasa efectiva anual,false
+P034,R007,4,"tengo una prima de 1 millon, la meto a un cdt o abono a la deuda?",false
+P035,R007,5,"gracias parce, me sirvio",false
+P036,R008,1,Quisiera saber como puedo distribuir mis gastos sin llegar al final de mes desfasada,false
+P037,R008,2,Como puedo ahorrar cada quincena de mi salario,false
+P038,R008,3,Quiero saber cuanto le pago a un banco si saco un credito por 20.000.0000 millones,false
+P039,R008,4,Como puedo ahorrar,false
+P040,R008,5,La edad interfiere si quiero ahorrar,false
+P041,R009,1,Variación en mis gastos mensuales,false
+P042,R009,2,Cumplimiento de meta de ahorro,false
+P043,R009,3,Intereses,false
+P044,R009,4,Planificación,false
+P045,R009,5,Plan de ahorro,false
+P046,R010,1,Si,true
+P047,R010,2,Si,true
+P048,R010,3,Inversiones en linea,false
+P049,R010,4,Como invertir,false
+P050,R010,5,Que me recuerde los pagos,false
+P051,R011,1,"Con lo que gano, ¿me aprobarían una tarjeta de crédito?",false
+P052,R011,2,si recorto lo que gasto en domicilios cuanto mas rapido cumplo mi meta,false
+P053,R011,3,¿Qué me pasa si solo pago el mínimo de la tarjeta?,false
+P054,R011,4,"¿Qué me conviene más con mi plata: pagar la tarjeta, ahorrar o invertir?",false
+P055,R011,5,¿Qué banco me recomiendas para abrir una cuenta?,false
+P056,R012,1,cuanto seria lo maximo que podria pedir prestado sin ahogarme,false
+P057,R012,2,¿Me alcanza para pagar un crédito y seguir ahorrando para el viaje?,false
+P058,R012,3,que diferencia hay entre un credito de libre inversion y uno de consumo,false
+P059,R012,4,vale la pena sacar una tarjeta de credito si ya me cuesta llegar a fin de mes,false
+P060,R012,5,me ayudas a declarar renta?,false
+P061,R013,1,¿Estoy gastando demasiado en relación con lo que gano?,false
+P062,R013,2,"Si ahorro el 10% de lo que gano, ¿en cuánto tiempo junto la cuota inicial de un apartamento?",false
+P063,R013,3,¿Mi plata en Nequi o Daviplata genera algún rendimiento?,false
+P064,R013,4,¿Me conviene un crédito de libre inversión para pagar mis deudas?,false
+P065,R013,5,jajaja estoy en la quiebra,false
+P066,R014,1,En q se me esta yendo mas dinero y cuanto he gastado en total?,false
+P067,R014,2,Cuanta Plata deberia ahorrar cada semana para cumplir mi meta de ahorro,false
+P068,R014,3,Como puedo organizar mi Plata para q me alcancr durante todo el mes,false
+P069,R014,4,Q me aconsejarías para dejar de comprar cosas inecesarias y empezar a ahorrar más,false
+P070,R014,5,"Ayudame a organizar mis gastos, controlar mis compras y ahorrar dinero sin dejar de darme mis gustos personales",false
+P071,R015,1,con mis gastos fijos puedo independizarme y pagar arriendo?,false
+P072,R015,2,con mis gastos de este mes me conviene pagar la tarjeta a una cuota o diferir,false
+P073,R015,3,como funcionan los intereses cuando difiero una compra a cuotas,false
+P074,R015,4,con mis ingresos es realista pensar en comprar carro en 3 años?,false
+P075,R015,5,¿Mis datos están seguros en la app?,false
+P076,R016,1,si saco un credito para una moto cuanto me quedaria libre al mes,false
+P077,R016,2,cuanto me falta para la meta si le meto la prima de diciembre,false
+P078,R016,3,que es el reporte en datacredito y como me afecta,false
+P079,R016,4,si me suben el sueldo cuanto deberia mover al ahorro,false
+P080,R016,5,como cambio mi contraseña,false
+P081,R017,1,con lo que gano me alcanza para pagar un leasing de carro?,false
+P082,R017,2,si meto lo de mi meta en un cdt a 6 meses llego antes?,false
+P083,R017,3,que es la cuota de manejo y por que me la cobran,false
+P084,R017,4,¿Me conviene sacar un crédito para comprar moto o mejor ahorro?,false
+P085,R017,5,buenos dias,false
+P086,R018,1,¿Cuánto me queda libre al mes después de pagar la cuota de la tarjeta?,false
+P087,R018,2,¿Cuánto tendría ahorrado en un año si guardo 200 mil cada quincena?,false
+P088,R018,3,¿Qué diferencia hay entre tasa nominal y tasa efectiva?,false
+P089,R018,4,"tengo dos tarjetas, cual pago primero",false
+P090,R018,5,¿Me puedes recordar cuando tengo que pagar la tarjeta?,false
+P091,R019,1,Cuanto me gasto al mes y en qué me lo gasto,false
+P092,R019,2,Metas de ahorro mensuales,false
+P093,R019,3,Inversiones en fondos,false
+P094,R019,4,Donde puedo poner mi dinero para generar rentabilidad,false
+P095,R019,5,Nada,true
+P096,R020,1,con mis ingresos de freelance me daria un banco un credito de vivienda?,false
+P097,R020,2,a este ritmo cuando termino de pagar la tarjeta,false
+P098,R020,3,como funciona un leasing,false
+P099,R020,4,me conviene unificar mis deudas en un solo credito?,false
+P100,R020,5,eres una persona o un bot?,false
+P101,R021,1,cuanto gasto en intereses de la tarjeta cada mes,false
+P102,R021,2,cuanto me ganaria si la plata de la meta la dejo en una cuenta de alto rendimiento,false
+P103,R021,3,que es el puntaje de credito y como lo subo,false
+P104,R021,4,¿Debería cancelar la tarjeta de crédito si casi no la uso?,false
+P105,R021,5,explicame como si tuviera 5 años,false
+P106,R022,1,¿Mis ingresos me alcanzan para pagar un crédito educativo con el Icetex?,false
+P107,R022,2,¿Puedo cumplir la meta del viaje y abonar al crédito el mismo mes?,false
+P108,R022,3,¿Qué es un fondo de inversión colectiva?,false
+P109,R022,4,"estoy reportado en datacredito, que hago para salir",false
+P110,R022,5,¿Puedes ver mi cuenta del banco?,false
+P111,R023,1,si saco un cdt con mis ahorros me queda plata para emergencias?,false
+P112,R023,2,si dejo de diferir compras cuanto ahorro al mes,false
+P113,R023,3,que pasa si cancelo un cdt antes de tiempo,false
+P114,R023,4,¿Vale la pena invertir si todavía tengo deudas?,false
+P115,R023,5,"no entendi, me lo explicas otra vez?",false
+P116,R024,1,cuanto deberia ganar para que me aprueben un credito de 10 millones,false
+P117,R024,2,en que categoria gasto mas con la tarjeta de credito,false
+P118,R024,3,como funcionan las acciones y si se puede invertir con poquita plata,false
+P119,R024,4,me conviene un cdt o un fondo de inversion con lo que tengo,false
+P120,R024,5,¿Cuánto está el dólar hoy?,false
+P121,R025,1,¿Qué porcentaje de lo que gano se me va en deudas?,false
+P122,R025,2,¿Cuánto gasté en cuotas de crédito el mes pasado?,false
+P123,R025,3,¿Qué es el 4x1000 y cuándo me lo cobran?,false
+P124,R025,4,como hago para que me aprueben un credito si soy independiente,false
+P125,R025,5,me puedes ayudar con una tarea de la u,false
+P126,R026,1,"Si establezco una meta, poder saber de acuerdo a mis gastos e ingresos constantes, como puedo lograrla",false
+P127,R026,2,Cómo puedo optimizar mi cashflow(recomendaciones basadas en datos),false
+P128,R026,3,N/A,true
+P129,R026,4,Cómo solventar deudas,false
+P130,R026,5,Cómo organizarme de acuerdo a mis metas,false
+P131,R027,1,con lo que me entra al mes puedo pagar dos tarjetas al tiempo?,false
+P132,R027,2,si saco un credito para la meta del portatil cuanto pago en total,false
+P133,R027,3,que es la retencion en la fuente,false
+P134,R027,4,¿Es mejor ahorrar para el carro o sacarlo financiado?,false
+P135,R027,5,"chao, gracias",false
+P136,R028,1,cuanto pague de intereses este año por el credito,false
+P137,R028,2,cuanto me falta ahorrar para tener 3 meses de gastos guardados,false
+P138,R028,3,¿Qué es un avance en efectivo de la tarjeta y por qué es caro?,false
+P139,R028,4,"me ofrecieron un credito por la app del banco, lo saco?",false
+P140,R028,5,¿Puedo exportar mis gastos a Excel?,false
+P141,R029,1,con lo que gano puedo pagar un credito de libre inversion de 3 millones?,false
+P142,R029,2,si abro un cdt con lo de la meta del carro cuanto tendria en un año,false
+P143,R029,3,que es la tasa de usura,false
+P144,R029,4,¿Me conviene más pagar arriendo o sacar un crédito de vivienda?,false
+P145,R029,5,holaaa,false
+P146,R030,1,¿Cuánto me sobra al mes para invertir después de mis gastos fijos?,false
+P147,R030,2,¿Cuánto llevo pagado del crédito y cuánto me falta?,false
+P148,R030,3,¿Cómo funciona el interés compuesto?,false
+P149,R030,4,"tengo un credito con mucho interes, lo pago rapido o sigo normal?",false
+P150,R030,5,¿Qué opinas de las criptomonedas?,false
+P151,R031,1,con mis ingresos me alcanza para sacar una tarjeta y no quedarme corto?,false
+P152,R031,2,si ahorro el 15% en vez del 5% cuanto antes llego a la meta,false
+P153,R031,3,que es un credito rotativo,false
+P154,R031,4,me conviene meter la plata en un cdt o en una billetera digital que rinde,false
+P155,R031,5,me puedes hablar mas informal?,false
+P156,R032,1,cuanto me descuentan de intereses si pago la tarjeta antes,false
+P157,R032,2,cuanto gaste con la tarjeta de credito esta semana,false
+P158,R032,3,¿Qué es la GMF y cómo marco mi cuenta exenta?,false
+P159,R032,4,¿Qué hago si no me alcanza para la cuota del crédito este mes?,false
+P160,R032,5,¿Puedo cambiar mi meta de ahorro?,false
+P161,R033,1,¿Mis ingresos de este año me obligan a declarar renta?,false
+P162,R033,2,¿Me conviene pausar la meta de ahorro para pagar la tarjeta?,false
+P163,R033,3,que diferencia hay entre una tarjeta debito y una de credito,false
+P164,R033,4,vale la pena tener tarjeta de credito solo para hacer historial,false
+P165,R033,5,"jajaja gracias, eres un crack",false
+P166,R034,1,con lo que gasto al mes cuanto deberia tener en un fondo de emergencia,false
+P167,R034,2,cuanto me rentaria lo que tengo en la meta si lo invierto,false
+P168,R034,3,¿Qué es diversificar una inversión?,false
+P169,R034,4,como empiezo a invertir si nunca lo he hecho,false
+P170,R034,5,¿La app funciona sin internet?,false
+P171,R035,1,Cuánto gasto,false
+P172,R035,2,Ahorro,false
+P173,R035,3,Administrar en porcentajes,false
+P174,R035,4,Cómo aprender a ahorrar,false
+P175,R035,5,Cómo proteger plata para no gastarla,false
+P176,R036,1,Cuánto he gastado en total esta semana?,false
+P177,R036,2,Cuánto dinero me falta ahorrar para cumplir mi meta este año?,false
+P178,R036,3,Qué es el interés compuesto y cómo funciona cuando invierto dinero?,false
+P179,R036,4,Cómo puedo hacer para que mis ingresos me alcancen todo el mes?,false
+P180,R036,5,"Cómo debería distribuir mis ingresos entre gastos necesarios, ahorro y entretenimiento?",false
+P181,R037,1,Cuánto recibí de ingresos este mes en comparación con el mes pasado?,false
+P182,R037,2,cuanto llevo ahorrado?,false
+P183,R037,3,No entiendo muy bien cómo funciona la inflación y por qué dicen que hace que la plata pierda valor,false
+P184,R037,4,Qué porcentaje de mis ingresos sería recomendable destinar al ahorro si también tengo gastos fijos todos los meses?,false
+P185,R037,5,Puedes ayudarme a saber si me alcanza para hacer un viaje el otro mes? tengo algunos ahorros pero también tengo que pagar varias cosas y no quiero quedarme sin plata después.,false
+P186,R038,1,Cuánto gasté hoy?,false
+P187,R038,2,Cómo voy con mi meta de ahorro?,false
+P188,R038,3,Qué es la rentabilidad de una inversión?,false
+P189,R038,4,Cómo ahorro si gano poquito?,false
+P190,R038,5,Qué gastos puedo reducir este mes?,false
+P191,R039,1,Cuánto gasté?,false
+P192,R039,2,Cuánto me falta ahorrar?,false
+P193,R039,3,Qué es la inflación?,false
+P194,R039,4,Cómo gasto menos?,false
+P195,R039,5,Puedo invertir con poco dinero?,false
+P196,R040,1,Qué pasa si pago tarde una deuda?,false
+P197,R040,2,Cuánto gasté en comida?,false
+P198,R040,3,Cómo ahorro para viajar?,false
+P199,R040,4,Qué es la liquidez?,false
+P200,R040,5,Cómo evito comprar por impulso?,false
+P201,R041,1,Cuánto gasté en transporte?,false
+P202,R041,2,Cuánto debería guardar al mes?,false
+P203,R041,3,Qué significa tener deudas buenas?,false
+P204,R041,4,Cómo organizo mi plata si tengo ingresos variables?,false
+P205,R041,5,Cómo funciona una tarjeta de crédito?,false
+P206,R042,1,Cuánto gasté en domicilios?,false
+P207,R042,2,Cómo ahorro para una moto?,false
+P208,R042,3,Qué es un fondo de emergencia?,false
+P209,R042,4,Cómo pago mis deudas más rápido?,false
+P210,R042,5,Qué es una cuota de manejo?,false
+P211,R043,1,Cuánto gasté en ropa este mes?,false
+P212,R043,2,Cuánto me falta para comprar un computador?,false
+P213,R043,3,Qué significa diversificar inversiones?,false
+P214,R043,4,Cómo puedo controlar mis gastos hormiga?,false
+P215,R043,5,Qué pasa si solo pago el mínimo de la tarjeta?,false
+P216,R044,1,Cuánto pagué en servicios?,false
+P217,R044,2,Cómo ahorro para emergencias?,false
+P218,R044,3,Qué es un CDT?,false
+P219,R044,4,Cómo evito endeudarme?,false
+P220,R044,5,Cómo puedo mejorar mi historial crediticio?,false
