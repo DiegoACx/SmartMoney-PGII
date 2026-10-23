@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Acceso puro a Supabase para la pestaña PERFIL.
@@ -71,5 +73,46 @@ class PerfilRepository {
       password: contrasenaActual,
     );
     await _client.auth.updateUser(UserAttributes(password: contrasenaNueva));
+  }
+
+  /// Elimina la cuenta del usuario autenticado invocando la Edge Function
+  /// `eliminar-cuenta`. El JWT del usuario se adjunta solo con
+  /// `functions.invoke`, así que el id nunca se envía en el cuerpo.
+  /// Lanza una excepción si la respuesta no confirma el borrado.
+  Future<void> eliminarCuenta() async {
+    if (_client.auth.currentUser == null) {
+      throw Exception('No hay usuario autenticado');
+    }
+
+    final respuesta = await _client.functions.invoke('eliminar-cuenta');
+
+    final cuerpo = _comoMapa(respuesta.data);
+    if (respuesta.status != 200 || cuerpo['ok'] != true) {
+      throw Exception('No se pudo eliminar la cuenta');
+    }
+  }
+
+  /// Cierra la sesión solo en este dispositivo (`SignOutScope.local`).
+  ///
+  /// Después de borrar la cuenta, el cierre global contra el servidor puede
+  /// fallar porque el usuario ya no existe; el cierre local limpia igual la
+  /// sesión guardada y deja que el `AuthGate` muestre el login.
+  Future<void> cerrarSesionLocal() async {
+    await _client.auth.signOut(scope: SignOutScope.local);
+  }
+
+  /// Normaliza la respuesta de una función a un mapa, venga ya decodificada
+  /// o como texto JSON.
+  Map<String, dynamic> _comoMapa(dynamic dato) {
+    if (dato is Map) return Map<String, dynamic>.from(dato);
+    if (dato is String && dato.isNotEmpty) {
+      try {
+        final decodificado = jsonDecode(dato);
+        if (decodificado is Map) return Map<String, dynamic>.from(decodificado);
+      } catch (_) {
+        return <String, dynamic>{};
+      }
+    }
+    return <String, dynamic>{};
   }
 }

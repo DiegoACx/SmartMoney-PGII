@@ -198,20 +198,27 @@ class PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  void _mostrarProximamente() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Próximamente',
-          style: GoogleFonts.poppins(color: Colors.white),
-        ),
-        backgroundColor: _secundario,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+  /// Abre la confirmación de borrado de cuenta. Si la eliminación sale bien,
+  /// el sheet se cierra con su propio `pop` y aquí solo se cierra la sesión
+  /// local: el `AuthGate` se encarga de mostrar el login (no se navega).
+  Future<void> _abrirEliminarCuenta() async {
+    if (_procesando) return;
+
+    final eliminada = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (_) => const _EliminarCuentaSheet(),
     );
+
+    if (eliminada != true) return;
+
+    await _perfilLogic.cerrarSesionTrasEliminar();
   }
 
   /// Muestra un SnackBar informativo con la paleta del perfil.
@@ -360,7 +367,7 @@ class PerfilScreenState extends State<PerfilScreen> {
                   const SizedBox(height: 8),
                   Center(
                     child: TextButton(
-                      onPressed: _mostrarProximamente,
+                      onPressed: _abrirEliminarCuenta,
                       child: Text(
                         'Eliminar cuenta',
                         style: GoogleFonts.poppins(
@@ -385,7 +392,7 @@ class PerfilScreenState extends State<PerfilScreen> {
   Widget _buildCabecera() {
     final topPadding = MediaQuery.of(context).padding.top;
     return SizedBox(
-      height: 320,
+      height: topPadding + 292,
       width: double.infinity,
       child: ClipPath(
         clipper: CurvedHeaderClipper(),
@@ -1087,6 +1094,226 @@ class _EditarNombreSheetState extends State<_EditarNombreSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Hoja modal de confirmación para eliminar la cuenta y todos sus datos.
+///
+/// El borrado lo hace `PerfilLogic`; la hoja solo muestra el error (sin
+/// cerrarse) o, si sale bien, se cierra con un único `pop(context, true)`.
+class _EliminarCuentaSheet extends StatefulWidget {
+  const _EliminarCuentaSheet();
+
+  @override
+  State<_EliminarCuentaSheet> createState() => _EliminarCuentaSheetState();
+}
+
+class _EliminarCuentaSheetState extends State<_EliminarCuentaSheet> {
+  /// Texto exacto que el usuario debe escribir para habilitar el borrado.
+  static const String _palabraConfirmacion = 'ELIMINAR';
+
+  static const List<String> _consecuencias = [
+    'tus movimientos y categorías',
+    'tus metas y aportes',
+    'tu progreso en Educación financiera',
+    'tus recomendaciones y mensajes del asistente de IA',
+    'tu cuenta y tu acceso',
+  ];
+
+  final _perfilLogic = PerfilLogic();
+  final _controller = TextEditingController();
+
+  bool _eliminando = false;
+  String? _mensajeError;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// El botón se habilita solo si el texto recortado es exactamente ELIMINAR.
+  bool get _puedeEliminar =>
+      !_eliminando &&
+      _controller.text.trim() == _palabraConfirmacion;
+
+  Future<void> _eliminar() async {
+    if (!_puedeEliminar) return;
+
+    setState(() {
+      _eliminando = true;
+      _mensajeError = null;
+    });
+
+    final resultado = await _perfilLogic.eliminarCuenta();
+
+    if (!mounted) return;
+
+    if (resultado.exito) {
+      // Único pop del sheet: la sesión la cierra la pantalla de perfil.
+      Navigator.pop(context, true);
+      return;
+    }
+
+    setState(() {
+      _eliminando = false;
+      _mensajeError = resultado.error;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_eliminando,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: _error.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 36,
+                    color: _error,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'Eliminar cuenta',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _texto,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Esta acción es permanente y no se puede deshacer. Se borrarán:',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: _texto,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final consecuencia in _consecuencias)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '•',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: _secundario,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          consecuencia,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: _texto,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Material(
+                elevation: 1,
+                borderRadius: BorderRadius.circular(14),
+                color: Colors.transparent,
+                child: TextField(
+                  controller: _controller,
+                  enabled: !_eliminando,
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Escribe ELIMINAR para confirmar',
+                    prefixIcon: Icon(
+                      Icons.warning_amber_rounded,
+                      color: _borde,
+                    ),
+                  ),
+                ),
+              ),
+              if (_mensajeError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _mensajeError!,
+                  style: GoogleFonts.poppins(fontSize: 13, color: _error),
+                ),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _puedeEliminar ? _eliminar : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _error,
+                    disabledBackgroundColor: _error.withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _eliminando
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(
+                          'Eliminar definitivamente',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: _eliminando ? null : () => Navigator.pop(context),
+                child: Text(
+                  'Cancelar',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _secundario,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

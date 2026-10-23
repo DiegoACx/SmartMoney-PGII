@@ -166,7 +166,7 @@ class AyudaScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Versión $versionApp',
+            'Versión ${versionApp.split('+').first}',
             style: GoogleFonts.poppins(fontSize: 12, color: _secundario),
           ),
           const SizedBox(height: 16),

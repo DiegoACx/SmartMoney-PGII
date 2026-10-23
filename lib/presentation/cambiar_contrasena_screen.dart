@@ -146,7 +146,10 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
                   campo: _CampoContrasena.actual,
                   visible: _verActual,
                   onToggle: () => setState(() => _verActual = !_verActual),
-                  onChanged: () => setState(() => _tocoActual = true),
+                  onChanged: () => setState(() {
+                    _tocoActual = true;
+                    _errorServidor = null;
+                  }),
                 ),
                 const SizedBox(height: 16),
                 _campo(
@@ -155,7 +158,10 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
                   campo: _CampoContrasena.nueva,
                   visible: _verNueva,
                   onToggle: () => setState(() => _verNueva = !_verNueva),
-                  onChanged: () => setState(() => _tocoNueva = true),
+                  onChanged: () => setState(() {
+                    _tocoNueva = true;
+                    _errorServidor = null;
+                  }),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -170,7 +176,10 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
                   visible: _verConfirmar,
                   onToggle: () =>
                       setState(() => _verConfirmar = !_verConfirmar),
-                  onChanged: () => setState(() => _tocoConfirmar = true),
+                  onChanged: () => setState(() {
+                    _tocoConfirmar = true;
+                    _errorServidor = null;
+                  }),
                 ),
                 if (_errorServidor != null) ...[
                   const SizedBox(height: 16),

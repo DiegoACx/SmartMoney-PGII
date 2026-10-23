@@ -378,6 +378,47 @@ class PerfilLogic {
     }
   }
 
+  /// Elimina la cuenta del usuario autenticado.
+  ///
+  /// Borra sus datos y su cuenta en el servidor y, si sale bien, cancela todos
+  /// los recordatorios locales. No cierra sesión ni navega: eso lo decide la
+  /// pantalla con [cerrarSesionTrasEliminar].
+  Future<ResultadoPerfil> eliminarCuenta() async {
+    if (_authLogic.obtenerUsuarioId() == null) {
+      return const ResultadoPerfil.error(
+        'No hay una sesión activa. Inicia sesión de nuevo.',
+      );
+    }
+
+    try {
+      await _repository.eliminarCuenta();
+    } catch (e) {
+      debugPrint('ERROR AL ELIMINAR CUENTA: $e');
+      return ResultadoPerfil.error(_mensajeAmigableEliminarCuenta(e));
+    }
+
+    try {
+      await _notificacionesService
+          .cancelarTodos()
+          .timeout(_timeoutNotificaciones);
+    } catch (e) {
+      debugPrint('ERROR AL CANCELAR NOTIFICACIONES: $e');
+    }
+
+    return const ResultadoPerfil.exito();
+  }
+
+  /// Cierra la sesión de este dispositivo después de eliminar la cuenta.
+  /// Nunca propaga errores: si falla, el `AuthGate` igualmente acaba en el
+  /// login la próxima vez que se evalúe la sesión.
+  Future<void> cerrarSesionTrasEliminar() async {
+    try {
+      await _repository.cerrarSesionLocal();
+    } catch (e) {
+      debugPrint('ERROR AL CERRAR SESIÓN LOCAL: $e');
+    }
+  }
+
   /// Traduce las excepciones de Supabase a mensajes amigables sin exponer
   /// detalles técnicos al usuario.
   String _mensajeAmigableContrasena(Object e) {
@@ -395,5 +436,20 @@ class PerfilLogic {
       return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
     }
     return 'No se pudo cambiar la contraseña. Inténtalo de nuevo.';
+  }
+
+  /// Mensaje amigable para el borrado de la cuenta: distingue los fallos de
+  /// red del resto.
+  String _mensajeAmigableEliminarCuenta(Object e) {
+    final texto = e.toString().toLowerCase();
+    if (texto.contains('network') ||
+        texto.contains('socket') ||
+        texto.contains('connection') ||
+        texto.contains('failed host lookup') ||
+        texto.contains('failed to fetch') ||
+        texto.contains('clientexception')) {
+      return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
+    }
+    return 'No se pudo eliminar tu cuenta. Inténtalo de nuevo.';
   }
 }
