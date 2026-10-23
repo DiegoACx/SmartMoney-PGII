@@ -1,9 +1,10 @@
 // ============================================================================
 // SmartMoney · Motor de recomendaciones · Configuración
 // ----------------------------------------------------------------------------
-// Todas las constantes de negocio del motor viven aquí. Este módulo no importa
-// nada más del proyecto (es la hoja del grafo de dependencias), así que puede
-// usarse desde cualquier otro módulo y desde las pruebas sin efectos de borde.
+// Todas las constantes de negocio del motor viven aquí. Salvo los parámetros de
+// Gemini (que se reexportan desde `_shared/gemini.ts`), este módulo no importa
+// nada más del proyecto, así que puede usarse desde cualquier otro módulo y
+// desde las pruebas sin efectos de borde.
 // ============================================================================
 
 /** Tipos de hallazgo admitidos por el esquema (hallazgos.tipo / recomendaciones.tipo). */
@@ -147,17 +148,16 @@ export const ZONA_HORARIA = "America/Bogota";
 
 // --- LLM (Gemini) ------------------------------------------------------------
 
-/** Modelo de Gemini usado para redactar las recomendaciones. */
-export const GEMINI_MODELO = "gemini-3.5-flash";
-
-/** Modelo al que se cae una sola vez si el principal da 404 o 503. */
-export const GEMINI_MODELO_RESPALDO = "gemini-3.5-flash-lite";
-
-/** Tiempo máximo (ms) que se espera la respuesta de Gemini. */
-export const GEMINI_TIMEOUT_MS = 8000;
-
-/** Longitud máxima del texto que puede devolver el LLM. */
-export const LLM_MAX_CARACTERES = 280;
+/**
+ * Los parámetros de Gemini viven en `_shared/gemini.ts` (los comparten el motor
+ * y el chat): se reexportan aquí para no romper los puntos de importación.
+ */
+export {
+  GEMINI_MODELO,
+  GEMINI_MODELO_RESPALDO,
+  GEMINI_TIMEOUT_MS,
+  LLM_MAX_CARACTERES,
+} from "../_shared/gemini.ts";
 
 /** Interruptor del LLM: en false, todo sale de las plantillas. */
 export const LLM_ACTIVO = true;

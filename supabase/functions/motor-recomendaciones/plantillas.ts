@@ -6,8 +6,12 @@
 // puntuado con sus datos y devuelven el texto.
 // ============================================================================
 
+import { formatearCOP } from "../_shared/gemini.ts";
 import type { TipoHallazgo } from "./config.ts";
 import type { HallazgoPuntuado } from "./puntaje.ts";
+
+/** Se mantiene el mismo punto de importación: formatearCOP vive en _shared. */
+export { formatearCOP };
 
 const MESES = [
   "enero",
@@ -23,13 +27,6 @@ const MESES = [
   "noviembre",
   "diciembre",
 ];
-
-/** '$1.234.567' (redondeado al peso, separador de miles con punto). */
-export function formatearCOP(valor: number): string {
-  const redondeado = Math.round(Math.abs(valor));
-  const conPuntos = String(redondeado).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${valor < 0 ? "-" : ""}$${conPuntos}`;
-}
 
 /** '2026-10-12' → '12 de octubre'. */
 export function formatearFecha(fecha: string): string {
