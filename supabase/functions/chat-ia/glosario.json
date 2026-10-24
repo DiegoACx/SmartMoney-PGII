@@ -8,10 +8,10 @@
         "certificado de depósito a término",
         "cdts"
       ],
-      "definicion": "Un CDT es un ahorro que dejas en una entidad financiera por un tiempo fijo, por ejemplo seis meses o un año. Durante ese tiempo no puedes retirar la plata, y a cambio la entidad te paga un interés. Si la sacas antes de la fecha acordada, casi siempre te cobran una penalidad. Cada entidad ofrece su propia tasa, así que vale la pena comparar antes de decidir.",
+      "definicion": "Un CDT es un ahorro que dejas en una entidad financiera por un tiempo fijo, por ejemplo seis meses o un año. Durante ese tiempo, en general, el banco no te devuelve la plata antes de la fecha. Si la necesitas, algunas entidades lo aceptan caso por caso, normalmente perdiendo parte de los intereses, o puedes venderlo a través de una comisionista de bolsa, y podrías recibir menos de lo que pusiste. Cada entidad ofrece su propia tasa, así que vale la pena comparar antes de decidir.",
       "ejemplo": "Dejar $1.000.000 en un CDT a doce meses significa que no los puedes tocar hasta esa fecha.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "cuenta-ahorros",
@@ -23,7 +23,7 @@
       "definicion": "Una cuenta de ahorros es un lugar seguro donde guardas tu plata y puedes meterla o sacarla cuando quieras. Normalmente te pagan un interés pequeño por el saldo que tengas. Suele venir con una tarjeta débito para pagar o retirar en cajeros. Es distinta de un CDT, porque en un CDT la plata queda quieta por un tiempo pactado.",
       "ejemplo": "Puedes dejar tu fondo de emergencia en una cuenta de ahorros y usarlo el día que lo necesites.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "interes-simple",
@@ -32,10 +32,10 @@
         "interes simple",
         "intereses simples"
       ],
-      "definicion": "El interés simple se calcula siempre sobre la plata que pusiste al principio, no sobre los intereses que ya ganaste. Por eso crece de forma pareja, mes a mes. Es fácil de entender y se usa en muchos créditos y en algunas cuentas de ahorro.",
+      "definicion": "El interés simple se calcula siempre sobre la plata que pusiste al principio, no sobre los intereses que ya ganaste. Por eso crece de forma pareja, mes a mes. Es fácil de entender y sirve para cálculos rápidos, pero la mayoría de productos financieros funcionan con interés compuesto.",
       "ejemplo": "Si prestas $100.000 al 2 % mensual de interés simple, cada mes ganas $2.000 y ese valor no cambia.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "interes-compuesto",
@@ -47,7 +47,7 @@
       "definicion": "El interés compuesto es cuando los intereses que ganas también empiezan a generar intereses. Es decir, la plata crece sobre lo que ya creció. Por eso, entre más tiempo dejes la plata ahorrada o invertida, más rápido crece. También funciona al revés: si dejas crecer una deuda, los intereses se suman al saldo y esta crece más rápido.",
       "ejemplo": "Si dejas $100.000 al 2 % mensual y no retiras nada, el segundo mes los intereses se calculan sobre $102.000.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "tasa-efectiva-anual",
@@ -55,13 +55,12 @@
       "alias": [
         "tasa efectiva anual",
         "efectiva anual",
-        "tasa ea",
-        "ea"
+        "tasa ea"
       ],
-      "definicion": "La tasa efectiva anual es lo que de verdad ganas o pagas en un año, ya contando que los intereses se van sumando. Es la tasa que sirve para comparar productos financieros, porque todas se expresan en el mismo periodo. Cuando compares un ahorro o un crédito, mira siempre la tasa efectiva anual y no la nominal. La efectiva es igual o más alta que la nominal cuando hay capitalizaciones.",
+      "definicion": "La tasa efectiva anual es lo que de verdad ganas o pagas en un año, ya contando que los intereses se van sumando. Es la tasa que sirve para comparar productos financieros, porque todas se expresan en el mismo periodo. Cuando compares un ahorro o un crédito, mira siempre la tasa efectiva anual y no la nominal. La efectiva es igual o más alta que la nominal cuando hay capitalizaciones. En los créditos, revisa también los seguros y la cuota de manejo, porque la tasa efectiva anual no los incluye.",
       "ejemplo": "Dos productos pueden anunciar tasas distintas, pero con la tasa efectiva anual sabes cuál te conviene más.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "tasa-nominal",
@@ -72,7 +71,7 @@
       "definicion": "La tasa nominal es el porcentaje que te anuncian sin tener en cuenta cada cuánto se suman los intereses. Se suele escribir junto al periodo, por ejemplo nominal anual con capitalización mensual. Por sí sola no sirve para comparar, porque la tasa efectiva anual es la que refleja el resultado real. Cuando alguien te ofrece una tasa, pregunta si es nominal o efectiva.",
       "ejemplo": "Una tasa nominal es solo el punto de partida; la efectiva anual te dice cuánto terminas ganando o pagando.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "tasa-usura",
@@ -81,12 +80,12 @@
         "tasa de usura",
         "usura"
       ],
-      "definicion": "La tasa de usura es el límite máximo de interés que una entidad puede cobrarte por un crédito. Por encima de ese límite, el cobro es ilegal. La Superintendencia Financiera la certifica y la publica, y el valor cambia cada cierto tiempo. Si crees que te están cobrando más, puedes reclamar ante la entidad o la Superintendencia.",
+      "definicion": "La tasa de usura es el límite máximo de interés que una entidad puede cobrarte por un crédito. Por encima de ese límite, el cobro es ilegal. Es 1,5 veces el interés bancario corriente que certifica la Superintendencia Financiera, y se actualiza periódicamente. Si crees que te están cobrando más, puedes reclamar ante la entidad, su Defensor del Consumidor Financiero o la Superintendencia.",
       "ejemplo": "Si un crédito cobra por encima de la tasa de usura vigente, ese cobro no es legal.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "rentabilidad",
@@ -99,7 +98,7 @@
       "definicion": "La rentabilidad es cuánto crece tu plata en un periodo, medido como porcentaje. No es lo mismo que la tasa: la tasa es lo que te prometen y la rentabilidad es lo que en realidad ganaste. Antes de invertir, compárala con la inflación, porque si es menor tu plata pierde poder de compra. Ojo: una rentabilidad alta casi siempre viene con más riesgo.",
       "ejemplo": "Si pusiste $100.000 y al año tienes $108.000, tu rentabilidad fue del 8 %.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "inflacion",
@@ -110,19 +109,18 @@
       "definicion": "La inflación es el aumento general de los precios con el tiempo. Cuando hay inflación, la misma plata alcanza para menos cosas, por eso se dice que pierde valor. Si tu ahorro crece menos que la inflación, en la práctica estás perdiendo poder de compra. Por eso conviene que tus ahorros e inversiones crezcan al menos al ritmo de los precios.",
       "ejemplo": "Si los precios del mercado suben y tu ingreso no, con la misma plata compras menos: eso es la inflación.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "liquidez",
       "termino": "Liquidez",
       "alias": [
-        "liquidez",
-        "liquido"
+        "liquidez"
       ],
       "definicion": "La liquidez es la facilidad con la que puedes convertir algo en plata disponible. El efectivo y una cuenta de ahorros son muy líquidos; un inmueble o un CDT lo son menos. Antes de invertir, revisa si vas a necesitar esa plata pronto, porque sacarla de una inversión poco líquida puede costarte. Por eso el fondo de emergencia se deja siempre en algo líquido.",
       "ejemplo": "Si tu plata está en un CDT a un año, no tienes liquidez para usarla mañana.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "diversificar",
@@ -135,7 +133,7 @@
       "definicion": "Diversificar es repartir tu plata entre varias inversiones en vez de ponerla toda en una sola. Así, si a una le va mal, no pierdes todo. No se trata solo de tener varias, sino de que sean distintas entre sí. Es una forma sencilla de bajar el riesgo sin dejar de buscar rentabilidad.",
       "ejemplo": "En vez de invertir todo en una sola empresa, repartirlo entre varias es diversificar.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "fondo-inversion-colectiva",
@@ -146,10 +144,10 @@
         "fondos de inversion",
         "fic"
       ],
-      "definicion": "Un fondo de inversión colectiva reúne la plata de muchas personas para invertirla junta, manejada por un profesional. Tú compras unidades del fondo y su valor cambia según cómo le vaya a las inversiones. Suele permitir empezar con montos bajos y diversificar sin comprar cada inversión por separado. La rentabilidad no está garantizada y depende del mercado.",
+      "definicion": "Un fondo de inversión colectiva reúne la plata de muchas personas para invertirla junta, manejada por un profesional. Tú compras unidades del fondo y su valor cambia según cómo le vaya a las inversiones. Suele permitir empezar con montos bajos y diversificar sin comprar cada inversión por separado. La entidad que lo maneja cobra una comisión de administración, y algunos fondos te piden dejar la plata un tiempo mínimo antes de retirarla. La rentabilidad no está garantizada y depende del mercado.",
       "ejemplo": "Puedes entrar a un fondo de inversión colectiva con una cantidad pequeña cada mes.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "acciones",
@@ -163,7 +161,7 @@
       "definicion": "Una acción es una parte pequeña de una empresa: si la compras, eres dueño de un pedacito. Puedes ganar si el precio sube o si la empresa reparte utilidades, y perder si baja. Su precio cambia todos los días, así que son inversiones de más riesgo. Se compran a través de una comisionista de bolsa, que es una entidad vigilada.",
       "ejemplo": "Comprar acciones es volverte dueño de una parte mínima de una empresa.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "fondo-emergencia",
@@ -176,7 +174,7 @@
       "definicion": "El fondo de emergencia es una plata guardada solo para imprevistos: una enfermedad, una reparación o quedarte sin ingresos. Se recomienda tener el equivalente a varios meses de tus gastos básicos. Debe estar en algo fácil de sacar, como una cuenta de ahorros, y no en una inversión que no puedas tocar. Se arma poco a poco y se usa solo cuando de verdad lo necesitas.",
       "ejemplo": "Si te quedas sin trabajo un mes, el fondo de emergencia te cubre los gastos básicos.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "presupuesto",
@@ -189,7 +187,7 @@
       "definicion": "Un presupuesto es un plan de cómo vas a repartir tu plata entre gastos, ahorro y gustos. Se arma con lo que esperas recibir y lo que sabes que tienes que pagar. Sirve para decidir antes de gastar, y no después. Revisarlo cada mes te deja ajustar lo que se te está saliendo de las manos.",
       "ejemplo": "Antes de que llegue el sueldo decides cuánto va a ahorro y cuánto a gastos: eso es un presupuesto.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "gastos-fijos-variables",
@@ -207,7 +205,7 @@
         10,
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "gastos-hormiga",
@@ -223,7 +221,7 @@
         11,
         12
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "tarjeta-credito",
@@ -232,12 +230,12 @@
         "tarjeta de credito",
         "tarjeta credito"
       ],
-      "definicion": "La tarjeta de crédito te deja pagar hoy con plata que la entidad te presta y que debes devolver después. Cada mes te llega un extracto con la fecha de pago y el valor mínimo. Si pagas el total antes de esa fecha no pagas intereses; si pagas solo una parte, el resto te genera intereses. También sirve para construir historial crediticio, pero hay que usarla con cuidado.",
-      "ejemplo": "Si pagas el total de tu tarjeta antes de la fecha límite, no te cobran intereses.",
+      "definicion": "La tarjeta de crédito te deja pagar hoy con plata que la entidad te presta y que debes devolver después. Cada mes te llega un extracto con la fecha de pago y el valor mínimo. Si pagas el total antes de esa fecha, no pagas intereses por las compras a una cuota. Las compras diferidas a varias cuotas y los avances sí generan intereses. También sirve para construir historial crediticio, pero hay que usarla con cuidado.",
+      "ejemplo": "Si pagas el total de tus compras a una cuota antes de la fecha límite, no te cobran intereses por ellas.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "tarjeta-debito",
@@ -245,24 +243,23 @@
       "alias": [
         "tarjeta debito"
       ],
-      "definicion": "La tarjeta débito sirve para pagar o retirar plata directamente de tu cuenta. No es un crédito: solo puedes usar lo que tienes disponible. Por eso no genera intereses ni deudas, siempre que no uses dinero que no tienes. Es la compañera natural de una cuenta de ahorros.",
+      "definicion": "La tarjeta débito sirve para pagar o retirar plata directamente de tu cuenta. No es un crédito: solo puedes usar lo que tienes disponible. Por eso no genera intereses ni deudas. Va asociada a una cuenta de ahorros o corriente.",
       "ejemplo": "Con la tarjeta débito pagas con la plata que ya tienes en tu cuenta.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "cuota-manejo",
       "termino": "Cuota de manejo",
       "alias": [
-        "cuota de manejo",
-        "cuota de administracion"
+        "cuota de manejo"
       ],
       "definicion": "La cuota de manejo es el cobro periódico que algunas entidades hacen por tener una tarjeta o un producto. Puede ser mensual y se descuenta de tu cuenta o de tu cupo. Si usas poco el producto, esa cuota puede costarte más de lo que te aporta. Vale la pena revisar si tu producto la cobra y si hay forma de evitarla cumpliendo ciertas condiciones.",
       "ejemplo": "Si te cobran cuota de manejo, revisa si de verdad aprovechas ese producto o si te sale mejor cancelarlo.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "pago-minimo",
@@ -276,7 +273,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "diferir-cuotas",
@@ -295,7 +292,7 @@
         5,
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "avance-efectivo",
@@ -310,7 +307,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "credito-libre-inversion",
@@ -324,7 +321,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "credito-consumo",
@@ -333,12 +330,12 @@
         "credito de consumo",
         "credito para consumo"
       ],
-      "definicion": "El crédito de consumo es un préstamo para comprar bienes o servicios que vas a usar, como un computador, una moto o un viaje. También entra aquí el crédito de libre inversión, porque los dos son para personas y no para una empresa. Se paga en cuotas y tiene la tasa propia de ese producto. Es distinto de un crédito de vivienda, que se usa solo para comprar casa.",
+      "definicion": "El crédito de consumo es la categoría de préstamos que se dan a personas para comprar bienes o servicios, como un computador, una moto o un viaje. Ahí entran el crédito de libre inversión, la tarjeta de crédito y el crédito de vehículo. Se paga en cuotas y es distinto del crédito de vivienda, que se usa solo para comprar casa.",
       "ejemplo": "Financiar una moto con un crédito de consumo es un caso típico.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "credito-rotativo",
@@ -352,7 +349,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "leasing",
@@ -362,13 +359,13 @@
         "leasing habitacional",
         "leasing de vehiculo"
       ],
-      "definicion": "Un leasing es un contrato en el que usas un bien, como un carro o una vivienda, pagando una cuota mensual por un tiempo. Al final tienes la opción de comprarlo pagando un valor adicional. Es parecido a un arriendo con opción de compra. Conviene leer bien las condiciones, porque tiene gastos y cláusulas propias de este tipo de contrato.",
+      "definicion": "Un leasing es un contrato en el que usas un bien, como un carro o una vivienda, pagando una cuota mensual por un tiempo. Mientras dura el contrato, el bien es de la entidad y no tuyo. Al final tienes la opción de comprarlo pagando un valor adicional. Es parecido a un arriendo con opción de compra. Conviene leer bien las condiciones, porque tiene gastos y cláusulas propias de este tipo de contrato.",
       "ejemplo": "Con un leasing pagas la cuota del carro y al final decides si lo compras.",
       "grupos_relacionados": [
         7,
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "historial-crediticio",
@@ -381,12 +378,12 @@
         "reporte en centrales",
         "estar reportado"
       ],
-      "definicion": "Tu historial crediticio es el registro de cómo has pagado tus deudas. Las centrales de riesgo, como Datacrédito, guardan ese comportamiento y lo resumen para las entidades. Pagar puntual te ayuda y una mora te perjudica. Si estás reportado, lo primero es ponerte al día y pedir tu propio reporte para revisar que la información esté correcta.",
+      "definicion": "Tu historial crediticio es el registro de cómo has pagado tus deudas. Las centrales de riesgo, como Datacrédito o TransUnion, guardan ese comportamiento y lo resumen para las entidades. Pagar puntual te ayuda y una mora te perjudica. Si estás reportado, lo primero es ponerte al día y pedir tu propio reporte para revisar que la información esté correcta. Antes de reportarte, la entidad debe avisarte, y tienes derecho a consultar tu reporte gratis y a pedir que corrijan errores.",
       "ejemplo": "Pagar a tiempo tus cuotas mantiene tu historial crediticio en buen estado.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "puntaje-credito",
@@ -401,7 +398,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "gmf-cuenta-exenta",
@@ -414,12 +411,12 @@
         "cuenta exenta",
         "exencion del 4x1000"
       ],
-      "definicion": "El GMF, conocido como 4x1000, es un impuesto del 0,4 % sobre los retiros y las transferencias de plata dentro del sistema financiero. Se cobra en cada retiro o transacción que lo cause, y la entidad te lo descuenta automáticamente: no tienes que pagarlo aparte. Puedes marcar una cuenta como exenta hasta cierto monto que fija la ley cada año, y solo puedes tener una cuenta marcada así. Ese trámite no es automático: hay que pedirlo a la entidad.",
+      "definicion": "El GMF, conocido como 4x1000, es un impuesto del 0,4 % sobre los retiros y las transferencias de plata dentro del sistema financiero. Se cobra en cada retiro o transacción que lo cause, y la entidad te lo descuenta automáticamente: no tienes que pagarlo aparte. Puedes marcar una sola cuenta como exenta, y no pagas el 4x1000 sobre los retiros de esa cuenta hasta un tope mensual fijado en UVT, cuyo valor en pesos cambia cada año. Ese trámite no es automático: hay que pedirlo a la entidad.",
       "ejemplo": "Cada vez que transfieres desde una cuenta sin marcar, te descuentan el 4x1000.",
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "retencion-fuente",
@@ -428,10 +425,10 @@
         "retencion en la fuente",
         "retencion"
       ],
-      "definicion": "La retención en la fuente es un adelanto de impuestos que te descuentan cuando recibes un pago por un servicio o un trabajo. No es un impuesto aparte: es plata que se abona a lo que tendrías que pagar después. Si te retienen de más, esa diferencia se te devuelve al presentar tu declaración. El porcentaje depende del tipo de ingreso y de la tabla vigente, así que esas condiciones las define la DIAN.",
+      "definicion": "La retención en la fuente es un adelanto de impuestos que te descuentan cuando recibes un pago por un servicio o un trabajo. No es un impuesto aparte: es plata que se abona a lo que tendrías que pagar después. Si te retuvieron más de lo que te corresponde, al declarar renta te queda un saldo a favor, y puedes pedir que te lo devuelvan o usarlo para otros impuestos. Ese trámite se solicita, no es automático. El porcentaje depende del tipo de ingreso y lo fijan las normas tributarias; ante dudas, consulta con la DIAN o con un contador.",
       "ejemplo": "Si te pagan una asesoría y te descuentan un porcentaje para impuestos, eso es la retención en la fuente.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "declaracion-renta",
@@ -441,10 +438,10 @@
         "declarar renta",
         "declaracion de impuestos"
       ],
-      "definicion": "Declarar renta es reportarle a la DIAN cuánto ganaste y cuánto pagaste durante el año, para saber cuánto impuesto te corresponde. No todos están obligados: depende de tus ingresos, tu patrimonio y otros topes. Esas condiciones cambian cada año y las define la DIAN. Si tienes dudas sobre tu caso, lo mejor es confirmarlo con la DIAN o con un contador.",
-      "ejemplo": "Si tus ingresos del año superan los topes que fija la DIAN, te toca declarar renta.",
+      "definicion": "Declarar renta es reportarle a la DIAN cuánto ganaste y cuánto pagaste durante el año, para saber cuánto impuesto te corresponde. No todos están obligados, porque depende de varios topes: ingresos, patrimonio, consumos con tarjeta, compras y consignaciones. Basta con superar uno de ellos. Los topes están en UVT, y el valor de la UVT en pesos cambia cada año. Si tienes dudas sobre tu caso, lo mejor es confirmarlo con la DIAN o con un contador.",
+      "ejemplo": "Aunque tus ingresos sean bajos, si tus consumos con tarjeta superan el tope del año, te toca declarar.",
       "grupos_relacionados": [],
-      "revisado": false
+      "revisado": true
     },
     {
       "id": "deuda-buena-mala",
@@ -460,7 +457,7 @@
       "grupos_relacionados": [
         13
       ],
-      "revisado": false
+      "revisado": true
     }
   ]
 }
