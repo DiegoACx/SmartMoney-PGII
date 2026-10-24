@@ -132,6 +132,38 @@ function dependenciasReales(): DependenciasChat {
   };
 }
 
+/** Fábrica del respaldo. Las pruebas pueden sustituirla (ver más abajo). */
+let fabricarDependenciasDeRespaldo: () => DependenciasChat = dependenciasReales;
+
+/**
+ * Solo para pruebas: sustituye la fábrica del respaldo para comprobar que el
+ * manejador la usa cuando el segundo argumento no es un DependenciasChat.
+ * Devuelve la fábrica anterior para poder restaurarla.
+ */
+export function fijarDependenciasDeRespaldo(
+  fabrica: () => DependenciasChat,
+): () => DependenciasChat {
+  const anterior = fabricarDependenciasDeRespaldo;
+  fabricarDependenciasDeRespaldo = fabrica;
+  return anterior;
+}
+
+/**
+ * Deno.serve invoca el manejador con (req, info): si el manejador se pasa
+ * directamente, el ServeHandlerInfo ocupa el parámetro "deps" y el respaldo no
+ * se aplicaría. Por eso no basta comprobar que venga algo: tiene que ser un
+ * DependenciasChat de verdad.
+ */
+function esDependencias(valor: unknown): valor is DependenciasChat {
+  if (typeof valor !== "object" || valor === null) return false;
+  const posible = valor as Partial<DependenciasChat>;
+  return typeof posible.resolverUsuario === "function" &&
+    typeof posible.clasificarIntencion === "function" &&
+    typeof posible.ahora === "function" &&
+    typeof posible.fetchFn === "function" &&
+    typeof posible.repositorio === "object" && posible.repositorio !== null;
+}
+
 // --- Enrutamiento por intención ---------------------------------------------
 
 async function resolverRespuesta(
@@ -192,7 +224,9 @@ export async function manejarPeticion(
       );
     }
 
-    const dependencias = deps ?? dependenciasReales();
+    const dependencias = esDependencias(deps)
+      ? deps
+      : fabricarDependenciasDeRespaldo();
     const usuarioId = await dependencias.resolverUsuario(jwt);
     if (usuarioId === null) {
       return responder({ error: "Token inválido o vencido." }, 401);

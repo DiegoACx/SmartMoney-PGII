@@ -7,6 +7,7 @@ import '../logic/auth_logic.dart';
 import '../logic/educacion_logic.dart';
 import '../logic/formato_utils.dart';
 import 'escalon_detalle_screen.dart';
+import 'widgets/boton_asistente.dart';
 import 'widgets/indicador_progreso_escalones.dart';
 
 const double _altoEscalonWidget = 110;
@@ -87,7 +88,11 @@ class _CaminoNivel extends CustomPainter {
 }
 
 class EducacionFinancieraScreen extends StatefulWidget {
-  const EducacionFinancieraScreen({super.key});
+  const EducacionFinancieraScreen({super.key, this.onCambiarPestana});
+
+  /// Cambia de pestaña en el `MainShell` (1 = IA). Null cuando la pantalla se
+  /// abre como ruta independiente desde el Dashboard.
+  final ValueChanged<int>? onCambiarPestana;
 
   @override
   State<EducacionFinancieraScreen> createState() =>
@@ -379,6 +384,10 @@ class EducacionFinancieraScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
+      floatingActionButton: fabAsistente(
+        heroTag: 'fab_asistente_educacion',
+        onCambiarPestana: widget.onCambiarPestana,
+      ),
       body: Stack(
         children: [
           ValueListenableBuilder<double>(

@@ -2,9 +2,11 @@
 // SmartMoney · Chat IA · Preguntas frecuentes (ayuda_app)
 // ----------------------------------------------------------------------------
 // Empareja el mensaje con la pregunta frecuente más parecida usando similitud
-// de Jaccard sobre trigramas de caracteres (sin LLM, sin red). Si nada se
-// parece lo suficiente, responde con la lista de lo que puede hacer el
-// asistente.
+// de Jaccard sobre trigramas de caracteres (sin LLM, sin red). El mensaje y
+// cada candidato pasan por la MISMA normalización (`normalizar` de _shared), y
+// cada entrada se compara con su pregunta, sus ejemplos y sus variantes: se
+// conserva la similitud máxima. Si nada se parece lo suficiente, responde con
+// la lista de lo que puede hacer el asistente.
 //
 // Este módulo no toca Supabase ni la red: se prueba con `deno test`.
 // ============================================================================
@@ -21,6 +23,7 @@ interface EntradaFaq {
   id: string;
   pregunta: string;
   ejemplos: string[];
+  variantes: string[];
   respuesta: string;
   accion?: Accion;
 }
@@ -28,9 +31,11 @@ interface EntradaFaq {
 const PREGUNTAS = faqJson.preguntas as EntradaFaq[];
 const LISTA_CAPACIDADES = faqJson.lista_capacidades as string;
 
-/** Trigramas de caracteres de un texto ya normalizado y acolchado. */
-function trigramas(texto: string): Set<string> {
-  const normalizado = normalizar(texto);
+/**
+ * Trigramas de caracteres de un texto YA normalizado (con `normalizar`) y
+ * acolchado.
+ */
+function trigramas(normalizado: string): Set<string> {
   const acolchado = ` ${normalizado} `;
   const conjunto = new Set<string>();
   if (acolchado.length < 3) {
@@ -53,19 +58,32 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return interseccion / (a.size + b.size - interseccion);
 }
 
+/**
+ * Candidatos de todas las FAQ (pregunta, ejemplos y variantes) ya normalizados
+ * UNA sola vez con `normalizar`: minúsculas, sin tildes (ñ → n), sin signos de
+ * puntuación (¿?¡!.,) y sin espacios repetidos. Así «¿Cómo cambio mi
+ * contraseña?» y «como cambio mi contrasena» se comparan como el mismo texto,
+ * igual que hace el mensaje del usuario.
+ */
+const CANDIDATOS: { entrada: EntradaFaq; trigramas: Set<string> }[] = PREGUNTAS
+  .flatMap((entrada) =>
+    [entrada.pregunta, ...entrada.ejemplos, ...entrada.variantes].map((texto) => ({
+      entrada,
+      trigramas: trigramas(normalizar(texto)),
+    }))
+  );
+
 /** La pregunta frecuente más parecida al mensaje, o null si ninguna supera el umbral. */
 function buscarPregunta(mensaje: string): EntradaFaq | null {
-  const entrada = trigramas(mensaje);
+  const delMensaje = trigramas(normalizar(mensaje));
   let mejor: EntradaFaq | null = null;
   let mejorSimilitud = 0;
 
-  for (const item of PREGUNTAS) {
-    for (const candidato of [item.pregunta, ...item.ejemplos]) {
-      const similitud = jaccard(entrada, trigramas(candidato));
-      if (similitud > mejorSimilitud) {
-        mejorSimilitud = similitud;
-        mejor = item;
-      }
+  for (const candidato of CANDIDATOS) {
+    const similitud = jaccard(delMensaje, candidato.trigramas);
+    if (similitud > mejorSimilitud) {
+      mejorSimilitud = similitud;
+      mejor = candidato.entrada;
     }
   }
 

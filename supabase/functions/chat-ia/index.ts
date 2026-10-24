@@ -10,4 +10,6 @@
 
 import { manejarPeticion } from "./manejador.ts";
 
-Deno.serve(manejarPeticion);
+// Se envuelve en una flecha para que Deno.serve NO pase su segundo argumento
+// (ServeHandlerInfo) como "dependencias" del manejador.
+Deno.serve((req) => manejarPeticion(req));

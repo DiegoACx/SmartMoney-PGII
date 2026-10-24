@@ -24,11 +24,14 @@ class _MainShellState extends State<MainShell> {
 
   late final List<Widget> _paginas = [
     HomeScreen(key: _homeScreenKey, onCambiarPestana: _irAPestana),
-    const IaScreen(),
-    EducacionFinancieraScreen(key: _educacionScreenKey),
-    const IngresoMontosScreen(),
-    const MetasScreen(),
-    PerfilScreen(key: _perfilScreenKey),
+    IaScreen(onCambiarPestana: _irAPestana),
+    EducacionFinancieraScreen(
+      key: _educacionScreenKey,
+      onCambiarPestana: _irAPestana,
+    ),
+    IngresoMontosScreen(onCambiarPestana: _irAPestana),
+    MetasScreen(onCambiarPestana: _irAPestana),
+    PerfilScreen(key: _perfilScreenKey, onCambiarPestana: _irAPestana),
   ];
 
   /// Cambia de pestaña desde el `NavigationBar` o desde el propio contenido

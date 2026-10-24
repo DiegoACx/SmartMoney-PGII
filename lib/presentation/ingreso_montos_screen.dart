@@ -9,6 +9,7 @@ import '../logic/transacciones_logic.dart';
 import 'detalle_movimientos_screen.dart';
 import 'registro_transaccion_screen.dart';
 import 'utils/transaccion_options.dart';
+import 'widgets/boton_asistente.dart';
 import 'widgets/tarjeta_transaccion.dart';
 
 // ===== Clipper curvo idéntico al de home_screen =====
@@ -49,7 +50,10 @@ const Map<_FiltroMovimientos, String> _labelsFiltro = {
 
 // ===== Pantalla principal =====
 class IngresoMontosScreen extends StatefulWidget {
-  const IngresoMontosScreen({super.key});
+  const IngresoMontosScreen({super.key, this.onCambiarPestana});
+
+  /// Cambia de pestaña en el `MainShell` (1 = IA).
+  final ValueChanged<int>? onCambiarPestana;
 
   @override
   State<IngresoMontosScreen> createState() => _IngresoMontosScreenState();
@@ -206,12 +210,24 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fab_ingresos',
-        onPressed: _irARegistro,
-        backgroundColor: const Color(0xFF58774B),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+      // El asistente va encima del botón de registro para no taparlo.
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FabAsistente(
+            heroTag: 'fab_asistente_ingresos',
+            onPressed: () => widget.onCambiarPestana?.call(1),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'fab_ingresos',
+            onPressed: _irARegistro,
+            backgroundColor: const Color(0xFF58774B),
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(

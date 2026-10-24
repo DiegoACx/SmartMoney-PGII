@@ -5,10 +5,11 @@
 // y reloj) para verificar el flujo HTTP completo.
 // ============================================================================
 
-import { assert, assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertNotEquals } from "jsr:@std/assert@1";
 
 import { UMBRAL_INTENCION } from "./clasificadores.ts";
 import {
+  fijarDependenciasDeRespaldo,
   LARGO_MAXIMO_MENSAJE,
   manejarPeticion,
   MAX_MENSAJES_POR_DIA,
@@ -214,6 +215,40 @@ Deno.test("el usuario sale del JWT y no del body", async () => {
   assertEquals(res.status, 200);
   assertEquals(mensajes[0].usuario_id, "usuario-real");
   assertEquals(mensajes[1].usuario_id, "usuario-real");
+});
+
+Deno.test("un segundo argumento (ServeHandlerInfo) cae a las dependencias por defecto", async () => {
+  // Deno.serve invoca el handler con (req, info). Si el manejador se pasa
+  // directamente, ese ServeHandlerInfo ocupa el lugar de "dependencias" y, sin
+  // el respaldo, se llamaría a resolverUsuario sobre él (500 en producción).
+  // Se sustituye la fábrica del respaldo para no tocar la red y poder verificar
+  // que la resolución por defecto sí se usó.
+  const JWT = "jwt-de-prueba";
+  const { repositorio, mensajes } = repoCaptura();
+  const jwtRecibido: (string | null)[] = [];
+  const anterior = fijarDependenciasDeRespaldo(() => ({
+    ...deps(),
+    repositorio,
+    resolverUsuario: async (jwt) => {
+      jwtRecibido.push(jwt);
+      return jwt === JWT ? "usuario-1" : null;
+    },
+  }));
+
+  try {
+    const res = await manejarPeticion(
+      peticionPost({ mensaje: "hola" }, JWT),
+      // Simula el ServeHandlerInfo que Deno.serve pasa como segundo argumento.
+      { remoteAddr: { transport: "tcp", hostname: "127.0.0.1", port: 1234 } } as unknown as never,
+    );
+
+    assertNotEquals(res.status, 500);
+    assertEquals(res.status, 200);
+    assertEquals(jwtRecibido, [JWT]);
+    assertEquals(mensajes[0].usuario_id, "usuario-1");
+  } finally {
+    fijarDependenciasDeRespaldo(anterior);
+  }
 });
 
 Deno.test("el umbral de intención usado por el manejador es 0.45", () => {

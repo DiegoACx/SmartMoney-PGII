@@ -13,6 +13,8 @@ import faqJson from "./faq.json" with { type: "json" };
 interface EntradaFaq {
   id: string;
   pregunta: string;
+  ejemplos: string[];
+  variantes: string[];
   respuesta: string;
   accion?: { tipo: string; destino?: string };
 }
@@ -25,6 +27,48 @@ function porId(id: string): EntradaFaq {
   if (encontrada === undefined) throw new Error(`No existe la FAQ ${id}`);
   return encontrada;
 }
+
+Deno.test("«Como cambio mi contraseña?» (con ñ y signos) responde la FAQ de contraseña", () => {
+  const esperada = porId("perfil-contrasena");
+  for (
+    const texto of [
+      "Como cambio mi contraseña?",
+      "¿Cómo cambio la contraseña?",
+      "olvide mi clave",
+    ]
+  ) {
+    const resultado = responderFaq(texto);
+    assertEquals(
+      resultado.motivo,
+      "faq:perfil-contrasena",
+      `«${texto}» no llegó a la FAQ de contraseña`,
+    );
+    assertEquals(resultado.respuesta, esperada.respuesta);
+    assertEquals(resultado.accion, { tipo: "ir_a", destino: "perfil" });
+  }
+});
+
+Deno.test("«quiero cambiar mi nombre» responde la FAQ de perfil (editar perfil)", () => {
+  const esperada = porId("editar-perfil");
+  const resultado = responderFaq("quiero cambiar mi nombre");
+  assertEquals(resultado.motivo, "faq:editar-perfil");
+  assertEquals(resultado.respuesta, esperada.respuesta);
+  assertEquals(resultado.accion, { tipo: "ir_a", destino: "perfil" });
+});
+
+Deno.test("cada variante de cada FAQ se empareja con su propia entrada", () => {
+  for (const entrada of PREGUNTAS) {
+    for (const variante of entrada.variantes) {
+      const resultado = responderFaq(variante);
+      assertEquals(
+        resultado.motivo,
+        `faq:${entrada.id}`,
+        `la variante «${variante}» no se emparejó con su entrada`,
+      );
+      assertEquals(resultado.respuesta, entrada.respuesta);
+    }
+  }
+});
 
 Deno.test("el umbral de FAQ es 0.35", () => {
   assertEquals(UMBRAL_FAQ, 0.35);

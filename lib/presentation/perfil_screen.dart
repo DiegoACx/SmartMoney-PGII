@@ -7,6 +7,7 @@ import '../logic/perfil_logic.dart';
 import 'ayuda_screen.dart';
 import 'cambiar_contrasena_screen.dart';
 import 'privacidad_screen.dart';
+import 'widgets/boton_asistente.dart';
 import 'widgets/curved_header_clipper.dart';
 
 // ===== Paleta del sistema de diseño =====
@@ -36,7 +37,10 @@ BoxDecoration _decoracionTarjeta() => BoxDecoration(
 /// Solo usa la capa `logic` (`PerfilLogic` para datos/acciones y
 /// `AuthLogic` para cerrar sesión); nunca toca `data/` ni Supabase.
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+  const PerfilScreen({super.key, this.onCambiarPestana});
+
+  /// Cambia de pestaña en el `MainShell` (1 = IA).
+  final ValueChanged<int>? onCambiarPestana;
 
   @override
   State<PerfilScreen> createState() => PerfilScreenState();
@@ -300,6 +304,10 @@ class PerfilScreenState extends State<PerfilScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
+      floatingActionButton: fabAsistente(
+        heroTag: 'fab_asistente_perfil',
+        onCambiarPestana: widget.onCambiarPestana,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 32),
         child: Column(

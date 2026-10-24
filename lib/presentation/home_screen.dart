@@ -11,8 +11,9 @@ import '../logic/formato_utils.dart';
 import '../logic/metas_logic.dart';
 import '../logic/transacciones_logic.dart';
 import 'educacion_financiera_screen.dart';
-import 'escalon_detalle_screen.dart';
 import 'registro_meta_screen.dart';
+import 'utils/abrir_leccion.dart';
+import 'widgets/boton_asistente.dart';
 import 'widgets/indicador_progreso_escalones.dart';
 import 'widgets/tarjeta_recomendaciones.dart';
 
@@ -157,34 +158,12 @@ class HomeScreenState extends State<HomeScreen> {
   /// Abre la lección sugerida por el motor; si no se puede abrir directamente
   /// (no está desbloqueada o no está disponible), va a la pestaña de Educación.
   void _verLeccionDesdeRecomendacion(String escalonId) {
-    EscalonConEstado? escalonEncontrado;
-    NivelConEstado? nivelEncontrado;
-    for (final nivel in _nivelesEducacion) {
-      for (final escalon in nivel.escalones) {
-        if (escalon.id == escalonId) {
-          escalonEncontrado = escalon;
-          nivelEncontrado = nivel;
-          break;
-        }
-      }
-      if (escalonEncontrado != null) break;
-    }
-
-    final escalon = escalonEncontrado;
-    final nivel = nivelEncontrado;
-    if (escalon != null &&
-        nivel != null &&
-        escalon.desbloqueado &&
-        escalon.disponible) {
-      Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => EscalonDetalleScreen(escalon: escalon, nivel: nivel),
-        ),
-      );
-      return;
-    }
-    widget.onCambiarPestana?.call(2);
+    abrirLeccion(
+      context: context,
+      escalonId: escalonId,
+      niveles: _nivelesEducacion,
+      onCambiarPestana: widget.onCambiarPestana,
+    );
   }
 
   Future<void> _cargarMetas() async {
@@ -263,6 +242,10 @@ class HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAF6EA),
         elevation: 0,
+      ),
+      floatingActionButton: fabAsistente(
+        heroTag: 'fab_asistente_inicio',
+        onCambiarPestana: widget.onCambiarPestana,
       ),
       body: SafeArea(
         child: RefreshIndicator(
