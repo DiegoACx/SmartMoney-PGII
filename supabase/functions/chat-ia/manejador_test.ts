@@ -17,6 +17,7 @@ import {
   type DependenciasChat,
 } from "./manejador.ts";
 import type { MensajeNuevo, RepositorioChat } from "./repositorio.ts";
+import { AVISO_SIMULACION } from "./simular_escenario.ts";
 
 const URL_CHAT = "https://proyecto.supabase.co/functions/v1/chat-ia";
 
@@ -31,6 +32,7 @@ function repoCaptura(parcial: Partial<RepositorioChat> = {}) {
     leerTransacciones: async () => [],
     leerCategorias: async () => [],
     leerMetasActivas: async () => [],
+    leerAportes: async () => [],
     ...parcial,
   };
   return { repositorio, mensajes };
@@ -249,6 +251,98 @@ Deno.test("un segundo argumento (ServeHandlerInfo) cae a las dependencias por de
   } finally {
     fijarDependenciasDeRespaldo(anterior);
   }
+});
+
+Deno.test("routing simular_escenario: cálculo, aviso y acción a metas", async () => {
+  const { repositorio, mensajes } = repoCaptura({
+    leerTransacciones: async (_u, _d, _h, tipo) =>
+      tipo === "ingreso"
+        ? [
+          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-07-10" },
+          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-08-10" },
+          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-09-10" },
+        ]
+        : [
+          { categoria_id: null, tipo: "egreso", monto: 1_200_000, fecha: "2026-09-15" },
+        ],
+    leerMetasActivas: async () => [
+      {
+        id: "m1",
+        nombre: "Viaje",
+        monto_objetivo: 3_000_000,
+        monto_actual: 1_000_000,
+        fecha_limite: "2027-04-30",
+        cumplida: false,
+      },
+    ],
+  });
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "¿llego a 3 millones para diciembre?" }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => ({ intencion: "simular_escenario", confianza: 0.9 }),
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "simular_escenario");
+  assertEquals(salida["origen"], "calculo");
+  assertEquals(salida["aviso"], AVISO_SIMULACION);
+  assertEquals(salida["accion"], { tipo: "ir_a", destino: "metas" });
+  assert(String(salida["respuesta"]).includes("$3.000.000"));
+  assertEquals(mensajes[1].origen, "calculo");
+});
+
+Deno.test("regla híbrida: 'si recorto…' va a simular_escenario antes del modelo", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({
+      mensaje: "si recorto lo que gasto en domicilios cuanto mas rapido cumplo mi meta",
+    }),
+    deps({
+      repositorio,
+      // El modelo diría otra cosa; la regla debe ganar.
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "consultar_datos", confianza: 0.92 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "simular_escenario");
+  assertEquals(salida["confianza"], 1);
+  assertEquals(modeloConsultado, false);
+  assertEquals(mensajes[0].motivo, "regla:si recorto");
+  assertEquals(mensajes[1].motivo, "regla:si recorto");
+});
+
+Deno.test("sin regla, la intención la decide el modelo", async () => {
+  const { repositorio, mensajes } = repoCaptura({
+    leerTransacciones: async () => [
+      { categoria_id: "c1", tipo: "egreso", monto: 85000, fecha: "2026-10-20" },
+    ],
+    leerCategorias: async () => [
+      { id: "c1", nombre: "Comidas fuera y domicilios", grupo_id: 11 },
+    ],
+  });
+  const consultas: string[] = [];
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "cuanto gaste en domicilios" }),
+    deps({
+      repositorio,
+      clasificarIntencion: (texto) => {
+        consultas.push(texto);
+        return { intencion: "consultar_datos", confianza: 0.9 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(consultas.length, 1);
+  assertEquals(salida["intencion"], "consultar_datos");
+  assertEquals(mensajes[0].motivo?.startsWith("regla:"), false);
 });
 
 Deno.test("el umbral de intención usado por el manejador es 0.45", () => {

@@ -30,6 +30,8 @@ export interface RespuestaChat {
   confianza: number;
   origen: Origen;
   accion?: Accion;
+  /** Nota legal/orientativa que la app muestra aparte (ej. simular_escenario). */
+  aviso?: string;
 }
 
 /**
@@ -40,6 +42,8 @@ export interface RespuestaIntencion {
   respuesta: string;
   origen: Origen;
   accion?: Accion;
+  /** Nota legal/orientativa que la app muestra aparte (ej. simular_escenario). */
+  aviso?: string;
   /** Motivo corto para el log de auditoría (nunca contiene el mensaje). */
   motivo: string;
 }

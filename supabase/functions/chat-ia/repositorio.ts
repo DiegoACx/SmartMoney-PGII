@@ -16,6 +16,15 @@ export interface FilaTransaccion {
   tipo: string;
   monto: number;
   fecha: string;
+  /** true si el egreso se marcó como gasto de trabajo. */
+  es_gasto_trabajo?: boolean;
+}
+
+export interface FilaAporte {
+  meta_id: string;
+  /** Neto: los retiros se registran con monto negativo. */
+  monto: number;
+  fecha: string;
 }
 
 export interface FilaCategoria {
@@ -41,6 +50,8 @@ export interface MensajeNuevo {
   confianza: number | null;
   origen: string | null;
   accion: unknown | null;
+  /** Cómo se decidió/respondió: 'regla:<patrón>' cuando lo decidió una regla. */
+  motivo?: string | null;
 }
 
 export interface RepositorioChat {
@@ -65,6 +76,12 @@ export interface RepositorioChat {
   leerCategorias(usuarioId: string): Promise<FilaCategoria[]>;
   /** Metas de ahorro no cumplidas del usuario. */
   leerMetasActivas(usuarioId: string): Promise<FilaMeta[]>;
+  /** Aportes (netos) a metas entre dos fechas 'YYYY-MM-DD' (ambas inclusive). */
+  leerAportes(
+    usuarioId: string,
+    desde: string,
+    hasta: string,
+  ): Promise<FilaAporte[]>;
 }
 
 function texto(valor: unknown): string {
@@ -117,7 +134,7 @@ export function crearRepositorioSupabase(
     async leerTransacciones(usuarioId, desde, hasta, tipo) {
       const { data, error } = await admin
         .from("transacciones")
-        .select("categoria_id, tipo, monto, fecha")
+        .select("categoria_id, tipo, monto, fecha, es_gasto_trabajo")
         .eq("usuario_id", usuarioId)
         .eq("tipo", tipo)
         .gte("fecha", desde)
@@ -132,6 +149,7 @@ export function crearRepositorioSupabase(
         tipo: texto(fila["tipo"]),
         monto: Number(fila["monto"] ?? 0),
         fecha: texto(fila["fecha"]).slice(0, 10),
+        es_gasto_trabajo: fila["es_gasto_trabajo"] === true,
       }));
     },
 
@@ -176,6 +194,23 @@ export function crearRepositorioSupabase(
         });
       }
       return metas;
+    },
+
+    async leerAportes(usuarioId, desde, hasta) {
+      const { data, error } = await admin
+        .from("aportes_meta")
+        .select("meta_id, monto, fecha")
+        .eq("usuario_id", usuarioId)
+        .gte("fecha", desde)
+        .lt("fecha", sumarDias(hasta, 1));
+      if (error) {
+        throw new Error(`No se pudieron leer los aportes: ${error.message}`);
+      }
+      return ((data ?? []) as Record<string, unknown>[]).map((fila) => ({
+        meta_id: texto(fila["meta_id"]),
+        monto: Number(fila["monto"] ?? 0),
+        fecha: texto(fila["fecha"]).slice(0, 10),
+      }));
     },
   };
 }

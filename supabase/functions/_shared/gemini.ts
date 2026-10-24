@@ -37,6 +37,8 @@ export const LLM_MAX_CARACTERES = 280;
  *   error_http:<código>:<estado>    → respuesta HTTP con error (404:NOT_FOUND, 429:RESOURCE_EXHAUSTED…)
  *   error_red                       → no hubo respuesta HTTP (fallo de red o JSON ilegible)
  *   validacion:<motivo>             → llegó texto pero no pasó el validador
+ *                                    (validacion:truncado también cuando el
+ *                                    modelo no terminó: finishReason ≠ STOP)
  */
 export type MotivoLLM =
   | "ok"
@@ -94,6 +96,13 @@ function recortarComillas(texto: string): string {
   return recortado.replace(/^["'“”«»]+/, "").replace(/["'“”«»]+$/, "").trim();
 }
 
+/**
+ * Cómo debe cerrar un texto completo: punto, cierre de interrogación o de
+ * exclamación, comilla o paréntesis. Si termina en cualquier otra cosa es que
+ * el modelo se cortó a mitad de la frase (o lo cortó MAX_TOKENS).
+ */
+const RE_CIERRE_TEXTO = /[.!?»"')]\s*$/;
+
 /** Números presentes en un texto, sin $, % ni separador de miles. */
 function extraerNumeros(texto: string): number[] {
   const limpio = texto.replace(/[$\s%]/g, " ");
@@ -111,19 +120,29 @@ function numeroDeCifra(cifra: string): number {
 }
 
 /**
- * Rechaza el texto del LLM si está vacío, pasa de LLM_MAX_CARACTERES, trae una
- * URL o menciona algún número que no esté entre las cifras permitidas.
+ * Rechaza el texto del LLM si está vacío, pasa del límite de caracteres, trae
+ * una URL, quedó cortado a mitad de frase (no cierra con . ! ? » " ) o menciona
+ * algún número que no esté entre las cifras permitidas.
+ *
+ * `maxCaracteres` permite que una intención con más contexto (por ejemplo
+ * simular_escenario) use un tope mayor sin cambiar el comportamiento por
+ * defecto del resto.
  */
 export function validarTextoLLM(
   texto: string,
   cifrasPermitidas: string[],
+  maxCaracteres: number = LLM_MAX_CARACTERES,
 ): { valido: boolean; motivo: string } {
+  // El cierre se mira sobre el texto tal cual: recortarComillas le quitaría la
+  // comilla final, que sí es un cierre válido.
+  const bruto = (texto ?? "").trim();
   const limpio = recortarComillas(texto ?? "");
   if (limpio.length === 0) return { valido: false, motivo: "vacio" };
-  if (limpio.length > LLM_MAX_CARACTERES) {
+  if (limpio.length > maxCaracteres) {
     return { valido: false, motivo: "largo" };
   }
   if (/https?:\/\/|www\./i.test(limpio)) return { valido: false, motivo: "url" };
+  if (!RE_CIERRE_TEXTO.test(bruto)) return { valido: false, motivo: "truncado" };
 
   const permitidos = new Set(
     cifrasPermitidas.map(numeroDeCifra).filter((valor) => Number.isFinite(valor)),
@@ -155,6 +174,18 @@ function extraerTexto(cuerpo: unknown): string | null {
   if (!Array.isArray(partes) || partes.length === 0) return null;
   const texto = (partes[0] as { text?: unknown } | null)?.text;
   return typeof texto === "string" ? texto : null;
+}
+
+/**
+ * `finishReason` del primer candidato ("STOP", "MAX_TOKENS", "SAFETY"…), o null
+ * si el cuerpo no lo trae. Cualquier valor distinto de "STOP" significa que el
+ * modelo no llegó a terminar el texto.
+ */
+function extraerFinDeRespuesta(cuerpo: unknown): string | null {
+  const candidatos = (cuerpo as { candidates?: unknown } | null)?.candidates;
+  if (!Array.isArray(candidatos) || candidatos.length === 0) return null;
+  const fin = (candidatos[0] as { finishReason?: unknown } | null)?.finishReason;
+  return typeof fin === "string" && fin.length > 0 ? fin : null;
 }
 
 /** `x-goog-api-key` va en el header: nunca en la URL ni en los logs. */
@@ -240,6 +271,16 @@ async function enviar(
     }
 
     const cuerpo = await respuesta.json();
+    // Un finishReason distinto de "STOP" (MAX_TOKENS, SAFETY…) es un texto
+    // cortado: se descarta aquí mismo y el llamador cae a su plantilla.
+    const finDeRespuesta = extraerFinDeRespuesta(cuerpo);
+    if (finDeRespuesta !== null && finDeRespuesta !== "STOP") {
+      return {
+        texto: null,
+        http: respuesta.status,
+        motivo: "validacion:truncado",
+      };
+    }
     return {
       texto: extraerTexto(cuerpo) ?? "",
       http: respuesta.status,

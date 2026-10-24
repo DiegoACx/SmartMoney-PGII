@@ -83,6 +83,14 @@ Deno.test("validarTextoLLM rechaza un texto vacío", () => {
   assertEquals(validarTextoLLM('""', []), { valido: false, motivo: "vacio" });
 });
 
+Deno.test("validarTextoLLM rechaza un texto que no cierra la frase", () => {
+  const texto = "En Mercado llevas $206.000 y vas bien, pero";
+  assertEquals(validarTextoLLM(texto, ["$206.000"]), {
+    valido: false,
+    motivo: "truncado",
+  });
+});
+
 // --- Cifras que se le envían al modelo ---------------------------------------
 
 Deno.test("cifrasPermitidas arma las cifras por tipo de hallazgo", () => {
@@ -305,7 +313,7 @@ Deno.test("redactarConGemini devuelve null y motivo timeout si tarda de más", a
   assertEquals(llamadas.length, 1);
 });
 
-Deno.test("redactarConGemini clasifica como validacion:vacio una respuesta sin texto", async () => {
+Deno.test("redactarConGemini clasifica como truncado un finishReason MAX_TOKENS", async () => {
   const llamadas: Llamada[] = [];
   const fetchFalso = fetchGuion({
     [GEMINI_MODELO]: [{
@@ -313,6 +321,49 @@ Deno.test("redactarConGemini clasifica como validacion:vacio una respuesta sin t
       cuerpo: {
         candidates: [{ content: { parts: [] }, finishReason: "MAX_TOKENS" }],
       },
+    }],
+  }, llamadas);
+
+  const resultado = await redactarConGemini(
+    HALLAZGO,
+    PLANTILLA,
+    fetchFalso,
+    { clave: CLAVE },
+  );
+
+  assertEquals(resultado.texto, null);
+  assertEquals(resultado.modelo, GEMINI_MODELO);
+  assertEquals(resultado.motivo, "validacion:truncado");
+});
+
+Deno.test("redactarConGemini clasifica como truncado un texto cortado", async () => {
+  const llamadas: Llamada[] = [];
+  const fetchFalso = fetchGuion({
+    [GEMINI_MODELO]: [{
+      status: 200,
+      // Respuesta cortada a mitad de frase (sin cierre).
+      cuerpo: conTexto("En Mercado llevas $206.000 este mes y todavía te queda"),
+    }],
+  }, llamadas);
+
+  const resultado = await redactarConGemini(
+    HALLAZGO,
+    PLANTILLA,
+    fetchFalso,
+    { clave: CLAVE },
+  );
+
+  assertEquals(resultado.texto, null);
+  assertEquals(resultado.modelo, GEMINI_MODELO);
+  assertEquals(resultado.motivo, "validacion:truncado");
+});
+
+Deno.test("redactarConGemini clasifica como vacio una respuesta sin texto", async () => {
+  const llamadas: Llamada[] = [];
+  const fetchFalso = fetchGuion({
+    [GEMINI_MODELO]: [{
+      status: 200,
+      cuerpo: { candidates: [{ content: { parts: [] }, finishReason: "STOP" }] },
     }],
   }, llamadas);
 

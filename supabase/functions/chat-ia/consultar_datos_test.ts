@@ -31,6 +31,7 @@ function repoFalso(datos: Datos = {}): RepositorioChat {
     leerTransacciones: async () => datos.transacciones ?? [],
     leerCategorias: async () => datos.categorias ?? [],
     leerMetasActivas: async () => datos.metas ?? [],
+    leerAportes: async () => [],
   };
 }
 

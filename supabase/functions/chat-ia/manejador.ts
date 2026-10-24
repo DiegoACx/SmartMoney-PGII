@@ -27,11 +27,13 @@ import { responderConsultaDatos } from "./consultar_datos.ts";
 import { responderConversacion } from "./conversacion.ts";
 import { responderFaq } from "./faq.ts";
 import { hoyEnBogota, inicioDelDiaBogota, sumarDias } from "./fechas.ts";
+import { minusculasSinTildes } from "./montos.ts";
 import { ocultarDatosPersonales } from "./privacidad.ts";
 import {
   crearRepositorioSupabase,
   type RepositorioChat,
 } from "./repositorio.ts";
+import { responderSimulacion } from "./simular_escenario.ts";
 import type {
   Intencion,
   RespuestaChat,
@@ -164,6 +166,47 @@ function esDependencias(valor: unknown): valor is DependenciasChat {
     typeof posible.repositorio === "object" && posible.repositorio !== null;
 }
 
+// --- Reglas híbridas de intención --------------------------------------------
+
+/**
+ * Condicionales explícitos que SIEMPRE son una simulación ("si recorto…",
+ * "me alcanza para…") y que el modelo de n-gramas confunde con consultas o
+ * consejos. Se evalúan ANTES del modelo; el motivo queda como regla:<patrón>
+ * para poder separar en la evaluación lo que decide la regla de lo que decide
+ * el modelo.
+ */
+const REGLAS_INTENCION: { patron: string; regex: RegExp }[] = [
+  { patron: "si recorto", regex: /\bsi recorto\b/ },
+  { patron: "si reduzco", regex: /\bsi reduzco\b/ },
+  { patron: "si dejo de gastar", regex: /\bsi dejo de gastar\b/ },
+  { patron: "si dejo de pedir", regex: /\bsi dejo de pedir\b/ },
+  { patron: "si ahorro", regex: /\bsi ahorro\b/ },
+  { patron: "si guardo", regex: /\bsi guardo\b/ },
+  { patron: "me alcanza", regex: /\bme alcanza\b/ },
+  { patron: "puedo pagar", regex: /\bpuedo pagar\b/ },
+  // "alcanzo a" / "llego a" solo cuentan si el objetivo es comprar, pagar o una meta.
+  {
+    patron: "alcanzo a",
+    regex: /\balcanzo a\b[^.!?,]{0,20}?\b(?:comprar|pagar|la meta)\b/,
+  },
+  {
+    patron: "llego a",
+    regex: /\bllego a\b[^.!?,]{0,20}?\b(?:comprar|pagar|la meta)\b/,
+  },
+];
+
+/**
+ * Patrón de la regla que fuerza `simular_escenario`, o null si ninguna aplica.
+ * El texto se normaliza aquí (minúsculas y sin tildes).
+ */
+export function detectarReglaIntencion(mensaje: string): string | null {
+  const texto = minusculasSinTildes(mensaje);
+  for (const regla of REGLAS_INTENCION) {
+    if (regla.regex.test(texto)) return regla.patron;
+  }
+  return null;
+}
+
 // --- Enrutamiento por intención ---------------------------------------------
 
 async function resolverRespuesta(
@@ -182,6 +225,13 @@ async function resolverRespuesta(
       );
     case "ayuda_app":
       return responderFaq(mensaje);
+    case "simular_escenario":
+      return await responderSimulacion(mensaje, usuarioId, {
+        repositorio: deps.repositorio,
+        grupos: gruposReales,
+        fetchFn: deps.fetchFn,
+        claveLLM: deps.claveLLM,
+      }, deps.ahora());
     case "conversacion":
       return await responderConversacion({
         mensaje,
@@ -271,11 +321,25 @@ export async function manejarPeticion(
     // A partir de aquí el mensaje ya está libre de datos personales.
     const limpio = ocultarDatosPersonales(mensaje);
 
-    const datos = { baja_confianza: false };
-    let { intencion, confianza } = dependencias.clasificarIntencion(limpio);
-    if (intencion === null || confianza < UMBRAL_INTENCION) {
-      datos.baja_confianza = true;
-      intencion = "pedir_consejo";
+    // Las reglas híbridas van ANTES del modelo: si una aplica, la intención y
+    // la confianza no salen del clasificador.
+    const regla = detectarReglaIntencion(limpio);
+
+    const datos = { baja_confianza: false, motivoRegla: regla };
+    let intencion: Intencion;
+    let confianza: number;
+    if (regla !== null) {
+      intencion = "simular_escenario";
+      // La regla es determinista: no hay duda del modelo que registrar.
+      confianza = 1;
+    } else {
+      const clasificacion = dependencias.clasificarIntencion(limpio);
+      intencion = clasificacion.intencion ?? "pedir_consejo";
+      confianza = clasificacion.confianza;
+      if (clasificacion.intencion === null || confianza < UMBRAL_INTENCION) {
+        datos.baja_confianza = true;
+        intencion = "pedir_consejo";
+      }
     }
 
     const resultado = await resolverRespuesta(
@@ -285,7 +349,11 @@ export async function manejarPeticion(
       dependencias,
     );
     const confianzaFinal = redondear(confianza);
-    const motivo = datos.baja_confianza ? "baja_confianza" : resultado.motivo;
+    const motivo = datos.motivoRegla !== null
+      ? `regla:${datos.motivoRegla}`
+      : datos.baja_confianza
+      ? "baja_confianza"
+      : resultado.motivo;
 
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,
@@ -295,6 +363,7 @@ export async function manejarPeticion(
       confianza: confianzaFinal,
       origen: null,
       accion: null,
+      motivo,
     });
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,
@@ -304,6 +373,7 @@ export async function manejarPeticion(
       confianza: confianzaFinal,
       origen: resultado.origen,
       accion: resultado.accion ?? null,
+      motivo,
     });
 
     // Log de una línea, sin el contenido del mensaje.
@@ -318,6 +388,7 @@ export async function manejarPeticion(
       origen: resultado.origen,
     };
     if (resultado.accion !== undefined) respuesta.accion = resultado.accion;
+    if (resultado.aviso !== undefined) respuesta.aviso = resultado.aviso;
     return responder(respuesta);
   } catch (error) {
     // Mensaje genérico al cliente; el detalle queda solo en el log del servidor
