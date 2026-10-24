@@ -13,19 +13,20 @@ const ANTERIOR = "Esta semana llevas $85.000 en gastos, el 40 % en Comidas.";
 
 /** fetch que devuelve siempre el mismo texto de Gemini. */
 function fetchTexto(texto: string): typeof fetch {
-  return (async () =>
-    new Response(
-      JSON.stringify({
-        candidates: [{ content: { parts: [{ text: texto }] } }],
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+  return (() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: texto }] } }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
     )) as unknown as typeof fetch;
 }
 
 /** fetch que simula un fallo de red (nunca debería usarse en las reglas). */
-const fetchQueFalla = (async () => {
-  throw new Error("no debe llamarse");
-}) as unknown as typeof fetch;
+const fetchQueFalla = (() =>
+  Promise.reject(new Error("no debe llamarse"))) as unknown as typeof fetch;
 
 Deno.test("saludo: respuesta corta con ejemplos", async () => {
   const resultado = await responderConversacion({

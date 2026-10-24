@@ -25,13 +25,15 @@ interface Datos {
 
 function repoFalso(datos: Datos = {}): RepositorioChat {
   return {
-    contarMensajesUsuario: async () => 0,
-    ultimoMensajeAsistente: async () => null,
-    insertarMensaje: async () => {},
-    leerTransacciones: async () => datos.transacciones ?? [],
-    leerCategorias: async () => datos.categorias ?? [],
-    leerMetasActivas: async () => datos.metas ?? [],
-    leerAportes: async () => [],
+    contarMensajesUsuario: () => Promise.resolve(0),
+    ultimoMensajeAsistente: () => Promise.resolve(null),
+    insertarMensaje: () => Promise.resolve(),
+    leerTransacciones: () => Promise.resolve(datos.transacciones ?? []),
+    leerCategorias: () => Promise.resolve(datos.categorias ?? []),
+    leerMetasActivas: () => Promise.resolve(datos.metas ?? []),
+    leerAportes: () => Promise.resolve([]),
+    leerLeccionesValidas: () => Promise.resolve([]),
+    leerHallazgosRecientes: () => Promise.resolve([]),
   };
 }
 

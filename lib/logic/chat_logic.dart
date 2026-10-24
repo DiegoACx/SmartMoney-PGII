@@ -26,6 +26,15 @@ class ResultadoChat {
     if (valor is Map) return Map<String, dynamic>.from(valor);
     return null;
   }
+
+  /// Nota legal/orientativa que la Edge Function envía aparte de la respuesta
+  /// (simulaciones y consejos), o null si esta respuesta no trae ninguna.
+  String? get aviso {
+    final valor = datos?['aviso'];
+    if (valor is! String) return null;
+    final limpio = valor.trim();
+    return limpio.isEmpty ? null : limpio;
+  }
 }
 
 /// Lógica del chat del asistente.

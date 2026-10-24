@@ -104,6 +104,14 @@ Deno.test("un texto sin relación devuelve la lista de capacidades", () => {
   assert(resultado.accion === undefined);
 });
 
+Deno.test("«como funciona la app» responde la FAQ general, no la de metas", () => {
+  const esperada = porId("como-funciona-smartmoney");
+  const resultado = responderFaq("como funciona la app");
+  assertEquals(resultado.motivo, "faq:como-funciona-smartmoney");
+  assertEquals(resultado.respuesta, esperada.respuesta);
+  assertEquals(resultado.respuesta.includes("seis pestañas"), true);
+});
+
 Deno.test("los ejemplos de cada FAQ se emparejan con su propia entrada", () => {
   for (const entrada of PREGUNTAS) {
     const resultado = responderFaq(entrada.pregunta);

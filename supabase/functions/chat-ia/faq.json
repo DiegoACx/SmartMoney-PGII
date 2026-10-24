@@ -2,6 +2,25 @@
   "lista_capacidades": "Puedo darte los totales de lo que llevas gastado o recibido (hoy, esta semana, este mes y más), mostrarte cómo van tus metas de ahorro y resolver dudas sobre el uso de la app. Escríbeme, por ejemplo: «¿cuánto llevo gastado esta semana?» o «¿cómo van mis metas?».",
   "preguntas": [
     {
+      "id": "como-funciona-smartmoney",
+      "pregunta": "¿Cómo funciona SmartMoney?",
+      "ejemplos": [
+        "como funciona smartmoney",
+        "para que sirve smartmoney",
+        "que hace smartmoney",
+        "que es smartmoney",
+        "para que me sirve la app"
+      ],
+      "variantes": [
+        "como funciona la app",
+        "para que sirve la app",
+        "que hace esta app",
+        "que puedo hacer en la app",
+        "como se usa smartmoney"
+      ],
+      "respuesta": "SmartMoney te ayuda a organizar tus finanzas en seis pestañas: Inicio, con tu resumen de ingresos y egresos y tus recomendaciones; Ingresos, donde registras tus movimientos; Metas, para ahorrar con un objetivo y una fecha; Educación financiera, con lecciones y evaluaciones; el Asistente de IA, donde me puedes preguntar por tus datos o por conceptos; y Perfil, con tus datos y tu cuenta."
+    },
+    {
       "id": "registrar-movimiento",
       "pregunta": "¿Cómo registro un ingreso o un egreso?",
       "ejemplos": [

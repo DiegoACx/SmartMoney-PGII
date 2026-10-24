@@ -209,7 +209,54 @@ Deno.test("caso d) recorte: grupo con el clasificador y adelanto de metas", () =
   assertEquals(hecho(resultado, "Recorte mensual potencial"), "$500.000");
   assertEquals(hecho(resultado, "Grupo de gasto"), "Comidas fuera y domicilios");
   assertEquals(hecho(resultado, 'Meses para "Viaje"'), "2 meses");
-  assertEquals(hecho(resultado, 'Meses que adelantas en "Viaje"'), "7 meses");
+  assertEquals(hecho(resultado, 'Meses que adelantas en "Viaje"'), "3 meses");
+});
+
+Deno.test("caso d) recorte: los hechos obligatorios son los meses antes y después", () => {
+  const resultado = simular(
+    "si dejo de gastar en comida fuera",
+    PERFIL,
+    gruposFalsos(0.8),
+    HOY,
+  );
+
+  assertEquals(resultado.caso, "recorte");
+  // Los meses de hoy salen del MISMO ritmo que el recorte (ahorro_mensual =
+  // $400.000): 1.800.000 / 400.000 = 5, no los 9 del ritmo de 30 días.
+  assertEquals(hecho(resultado, 'Meses hoy para "Viaje"'), "5 meses");
+  assertEquals(hecho(resultado, 'Meses para "Viaje"'), "2 meses");
+  assert(
+    resultado.texto_plantilla.includes(
+      'Hoy, a tu ritmo de $400.000 al mes, llegarías a "Viaje" en 5 meses; si recortas $500.000 en Comidas fuera y domicilios, pasarías a 2 meses (adelantas 3).',
+    ),
+  );
+
+  const obligatorios = resultado.hechos
+    .filter((item) => item.obligatorio === true)
+    .map((item) => item.etiqueta);
+  // La comparación antes/después es la cifra que Gemini tiene que repetir; el
+  // monto del recorte ya no es un hecho obligatorio.
+  assert(obligatorios.includes('Meses hoy para "Viaje"'));
+  assert(obligatorios.includes('Meses para "Viaje"'));
+  assertEquals(obligatorios.includes("Recorte mensual potencial"), false);
+});
+
+Deno.test("caso d) recorte con excedente negativo: manda equilibrar primero", () => {
+  const resultado = simular(
+    "si dejo de gastar en comida fuera",
+    PERFIL_NEGATIVO,
+    gruposFalsos(0.8),
+    HOY,
+  );
+
+  assertEquals(resultado.caso, "recorte");
+  assertEquals(hecho(resultado, "Gastos por encima de los ingresos"), "$500.000");
+  assert(
+    resultado.texto_plantilla.includes(
+      "primero hay que equilibrar tus gastos con tus ingresos",
+    ),
+  );
+  assertEquals(resultado.texto_plantilla.includes("-$"), false);
 });
 
 Deno.test("caso d) recorte: clasifica el fragmento que sigue a la preposición", () => {
@@ -298,6 +345,63 @@ Deno.test("caso d) recorte: grupo identificado sin gastos sugiere dónde sí hay
   );
   // Nunca se vuelve a preguntar en qué quiere recortar si ya lo dijo.
   assertEquals(resultado.texto_plantilla.includes("¿En qué gasto"), false);
+});
+
+Deno.test("caso d) recorte: caso real (ritmo 30 días 130.000 vs ahorro 43.333) da 25 → 21 meses", () => {
+  const perfil: PerfilFinanciero = {
+    ...PERFIL,
+    ahorro_mensual: 43_333,
+    gasto_mensual_por_grupo: new Map([[11, 7_667]]),
+    metas: [{
+      nombre: "Moto",
+      monto_actual: 0,
+      falta: 1_070_000,
+      fecha_limite: null,
+      meses_restantes: null,
+      aporte_necesario_mes: null,
+      // El ritmo de 30 días del perfil (130.000) NO se usa para el recorte:
+      // 1.070.000 / 130.000 = 9 meses sería el resultado del bug.
+      ritmo_mes: 130_000,
+      meses_al_ritmo_actual: 9,
+    }],
+  };
+
+  const resultado = simular(
+    "si dejo de gastar en domicilios",
+    perfil,
+    gruposFalsos(0.8),
+    HOY,
+  );
+
+  assertEquals(resultado.caso, "recorte");
+  assertEquals(hecho(resultado, 'Meses hoy para "Moto"'), "25 meses");
+  assertEquals(hecho(resultado, 'Meses para "Moto"'), "21 meses");
+  assertEquals(hecho(resultado, 'Meses que adelantas en "Moto"'), "4 meses");
+  assert(
+    resultado.texto_plantilla.includes(
+      'Hoy, a tu ritmo de $43.333 al mes, llegarías a "Moto" en 25 meses; si recortas $7.667 en Comidas fuera y domicilios, pasarías a 21 meses (adelantas 4).',
+    ),
+  );
+});
+
+Deno.test("caso d) recorte sin ritmo de ahorro: lo dice y no promete meses hoy", () => {
+  const perfil: PerfilFinanciero = {
+    ...PERFIL,
+    ahorro_mensual: 0,
+    metas: [{ ...PERFIL.metas[0], meses_al_ritmo_actual: null }],
+  };
+
+  const resultado = simular(
+    "si dejo de gastar en comida fuera",
+    perfil,
+    gruposFalsos(0.8),
+    HOY,
+  );
+
+  assertEquals(resultado.caso, "recorte");
+  assert(resultado.texto_plantilla.includes("Hoy no tienes un ritmo de ahorro"));
+  assertEquals(hecho(resultado, 'Meses hoy para "Viaje"'), null);
+  assertEquals(hecho(resultado, 'Meses para "Viaje"'), "4 meses");
 });
 
 Deno.test("caso e) objetivo y plazo: ahorro necesario vs excedente", () => {
@@ -710,28 +814,36 @@ function repoFalso(datos: {
   const aportes = datos.aportes ?? [];
 
   return {
-    contarMensajesUsuario: async () => 0,
-    ultimoMensajeAsistente: async () => null,
-    insertarMensaje: async () => {},
-    leerTransacciones: async (_usuarioId, desde, hasta, tipo) =>
-      transacciones.filter((fila) =>
-        fila.tipo === tipo && fila.fecha >= desde && fila.fecha <= hasta
+    contarMensajesUsuario: () => Promise.resolve(0),
+    ultimoMensajeAsistente: () => Promise.resolve(null),
+    insertarMensaje: () => Promise.resolve(),
+    leerTransacciones: (_usuarioId, desde, hasta, tipo) =>
+      Promise.resolve(
+        transacciones.filter((fila) =>
+          fila.tipo === tipo && fila.fecha >= desde && fila.fecha <= hasta
+        ),
       ),
-    leerCategorias: async () => datos.categorias ?? [],
-    leerMetasActivas: async () => datos.metas ?? [],
-    leerAportes: async (_usuarioId, desde, hasta) =>
-      aportes.filter((fila) =>
-        fila.fecha >= desde && fila.fecha <= hasta
+    leerCategorias: () => Promise.resolve(datos.categorias ?? []),
+    leerMetasActivas: () => Promise.resolve(datos.metas ?? []),
+    leerAportes: (_usuarioId, desde, hasta) =>
+      Promise.resolve(
+        aportes.filter((fila) =>
+          fila.fecha >= desde && fila.fecha <= hasta
+        ),
       ),
+    leerLeccionesValidas: () => Promise.resolve([]),
+    leerHallazgosRecientes: () => Promise.resolve([]),
   };
 }
 
 /** `fetch` falso que responde 200 con el texto dado. */
 function fetchQueResponde(texto: string): typeof fetch {
-  return (async () =>
-    new Response(
-      JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+  return (() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
     )) as unknown as typeof fetch;
 }
 
@@ -844,9 +956,9 @@ Deno.test("respuesta: P027 sin precio responde con la plantilla y sin llamar a G
   // La meta tiene plazo pero no precio: no hay cifra que redactar, solo
   // preguntar el precio, así que se responde con la plantilla y no se usa red.
   let llamado = false;
-  const fetchQueFalla = (async () => {
+  const fetchQueFalla = (() => {
     llamado = true;
-    throw new Error("no debe llamarse");
+    return Promise.reject(new Error("no debe llamarse"));
   }) as unknown as typeof fetch;
 
   const resultado = await responderSimulacion(
@@ -925,6 +1037,7 @@ Deno.test("respuesta: el recorte usa un gasto de domicilios solo del mes actual"
     transacciones: [
       { categoria_id: "c1", tipo: "egreso", monto: 300_000, fecha: "2026-10-10" },
     ],
+    metas: METAS,
     categorias: CATEGORIAS,
   });
 

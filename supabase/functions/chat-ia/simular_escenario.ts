@@ -33,6 +33,7 @@ import { hoyEnBogota } from "./fechas.ts";
 import {
   aMensual,
   analizarMontos,
+  extraerMontos,
   mesMencionado,
   minusculasSinTildes,
   objetoDeCompra,
@@ -183,15 +184,15 @@ function hechoExcedente(
     };
 }
 
-/** Frase del margen mensual, siempre en positivo. */
-function fraseMargen(excedente: number): string {
+/** Frase del margen mensual, siempre en positivo. (La reutiliza pedir_consejo.) */
+export function fraseMargen(excedente: number): string {
   if (excedente > 0) return `te quedan ${formatearCOP(excedente)} al mes`;
   if (excedente === 0) return "tus ingresos y tus gastos están igualados";
   return `tus gastos superan tus ingresos en ${formatearCOP(-excedente)} al mes`;
 }
 
 /** Los grupos donde más gasta al mes, para sugerir por dónde recortar. */
-function gruposMayorGasto(
+export function gruposMayorGasto(
   perfil: PerfilFinanciero,
   grupos: ClasificadorGrupos,
   cuantos = 2,
@@ -744,40 +745,61 @@ function casoRecorte(
   const hechos: Hecho[] = [{
     etiqueta: "Recorte mensual potencial",
     valor_formateado: formatearCOP(ahorroPotencial),
-    obligatorio: true,
   }];
   if (grupoNombre !== null) {
     hechos.push({ etiqueta: "Grupo de gasto", valor_formateado: grupoNombre });
   }
 
-  const partes = [
-    `Si dejas de gastar ${formatearCOP(ahorroPotencial)} al mes en ${dondeRecorta}, cada mes te quedaría ese dinero libre.`,
-  ];
+  const partes: string[] = [];
+  // UN solo ritmo para comparar los dos plazos: el ahorro mensual (ventana de
+  // 90 días). Así "hoy" y "con recorte" salen de la misma base y el adelanto
+  // nunca queda en 0 por mezclar el ritmo de 30 días con el de 90.
   const nuevoRitmo = perfil.ahorro_mensual + ahorroPotencial;
+  // Con ahorro 0 hoy no hay "meses sin recorte": hay que decirlo tal cual.
+  const hayRitmo = perfil.ahorro_mensual > 0;
+  const recorte = formatearCOP(ahorroPotencial);
 
   for (const meta of perfil.metas) {
     const mesesCon = nuevoRitmo > 0 ? Math.ceil(meta.falta / nuevoRitmo) : null;
     if (mesesCon === null) continue;
+    // Los hechos obligatorios son los meses SIN recorte y CON recorte: son la
+    // comparación que el texto de Gemini tiene que repetir.
     hechos.push({
       etiqueta: `Meses para "${meta.nombre}"`,
       valor_formateado: `${mesesCon} meses`,
+      obligatorio: true,
     });
-    const antes = meta.meses_al_ritmo_actual !== null
-      ? meta.meses_al_ritmo_actual - mesesCon
-      : null;
-    if (antes !== null && antes > 0) {
+    if (hayRitmo) {
+      // Los meses de hoy también usan el ritmo de 90 días (nunca el de 30): así
+      // el plazo con recorte siempre es menor o igual que el de hoy.
+      const mesesSin = Math.ceil(meta.falta / perfil.ahorro_mensual);
+      hechos.push({
+        etiqueta: `Meses hoy para "${meta.nombre}"`,
+        valor_formateado: `${mesesSin} meses`,
+        obligatorio: true,
+      });
+      const antes = Math.max(mesesSin - mesesCon, 0);
       hechos.push({
         etiqueta: `Meses que adelantas en "${meta.nombre}"`,
         valor_formateado: `${antes} meses`,
       });
       partes.push(
-        `Con eso "${meta.nombre}" pasaría de ${meta.meses_al_ritmo_actual} a ${mesesCon} meses: la adelantas ${antes} meses.`,
+        `Hoy, a tu ritmo de ${formatearCOP(perfil.ahorro_mensual)} al mes, llegarías a "${meta.nombre}" en ${mesesSin} meses; si recortas ${recorte} en ${dondeRecorta}, pasarías a ${mesesCon} meses (adelantas ${antes}).`,
       );
     } else {
       partes.push(
-        `A ese nuevo ritmo llegarías a "${meta.nombre}" en ${mesesCon} meses.`,
+        `Hoy no tienes un ritmo de ahorro, así que no puedo decirte en cuántos meses llegarías a "${meta.nombre}"; si recortas ${recorte} en ${dondeRecorta}, pasarías a ${mesesCon} meses.`,
       );
     }
+  }
+
+  // Sin margen mensual, primero hay que cuadrar el mes.
+  const excedente = perfil.excedente_mensual;
+  if (excedente !== null && excedente <= 0) {
+    hechos.push(hechoExcedente(excedente));
+    partes.push(
+      `Ojo: hoy ${fraseMargen(excedente)}, así que primero hay que equilibrar tus gastos con tus ingresos.`,
+    );
   }
 
   return { caso: "recorte", hechos, texto_plantilla: partes.join(" ") };
@@ -1072,10 +1094,13 @@ export async function responderSimulacion(
     return respuesta;
   }
 
-  // Cifras permitidas: las de los hechos + las que el usuario escribió.
+  // Cifras permitidas: las de los hechos + las que el usuario escribió, tanto
+  // tal cual ("1") como ya interpretadas ("1 millon" → 1000000), para que el
+  // texto pueda repetir "$1.000.000", "1.000.000" o "1 millón".
   const cifrasPermitidas = [
     ...simulacion.hechos.flatMap((hecho) => cifrasEnTexto(hecho.valor_formateado)),
     ...cifrasEnTexto(mensaje),
+    ...extraerMontos(mensaje).map((monto) => String(monto.valor)),
   ];
 
   const lineasHechos = simulacion.hechos

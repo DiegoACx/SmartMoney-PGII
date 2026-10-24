@@ -13,9 +13,9 @@ import {
   LARGO_MAXIMO_MENSAJE,
   manejarPeticion,
   MAX_MENSAJES_POR_DIA,
-  RESPUESTA_PROVISIONAL,
   type DependenciasChat,
 } from "./manejador.ts";
+import { AVISO_CONSEJO } from "./pedir_consejo.ts";
 import type { MensajeNuevo, RepositorioChat } from "./repositorio.ts";
 import { AVISO_SIMULACION } from "./simular_escenario.ts";
 
@@ -24,15 +24,18 @@ const URL_CHAT = "https://proyecto.supabase.co/functions/v1/chat-ia";
 function repoCaptura(parcial: Partial<RepositorioChat> = {}) {
   const mensajes: MensajeNuevo[] = [];
   const repositorio: RepositorioChat = {
-    contarMensajesUsuario: async () => 0,
-    ultimoMensajeAsistente: async () => null,
-    insertarMensaje: async (mensaje) => {
+    contarMensajesUsuario: () => Promise.resolve(0),
+    ultimoMensajeAsistente: () => Promise.resolve(null),
+    insertarMensaje: (mensaje) => {
       mensajes.push(mensaje);
+      return Promise.resolve();
     },
-    leerTransacciones: async () => [],
-    leerCategorias: async () => [],
-    leerMetasActivas: async () => [],
-    leerAportes: async () => [],
+    leerTransacciones: () => Promise.resolve([]),
+    leerCategorias: () => Promise.resolve([]),
+    leerMetasActivas: () => Promise.resolve([]),
+    leerAportes: () => Promise.resolve([]),
+    leerLeccionesValidas: () => Promise.resolve([]),
+    leerHallazgosRecientes: () => Promise.resolve([]),
     ...parcial,
   };
   return { repositorio, mensajes };
@@ -40,11 +43,12 @@ function repoCaptura(parcial: Partial<RepositorioChat> = {}) {
 
 function deps(cambios: Partial<DependenciasChat> = {}): DependenciasChat {
   return {
-    resolverUsuario: async () => "usuario-1",
+    resolverUsuario: () => Promise.resolve("usuario-1"),
     repositorio: repoCaptura().repositorio,
-    fetchFn: (async () => {
-      throw new Error("no hay red en las pruebas");
-    }) as unknown as typeof fetch,
+    fetchFn: (() =>
+      Promise.reject(
+        new Error("no hay red en las pruebas"),
+      )) as unknown as typeof fetch,
     ahora: () => new Date("2026-10-21T15:00:00Z"),
     claveLLM: null,
     clasificarIntencion: () => ({ intencion: "conversacion", confianza: 0.9 }),
@@ -88,7 +92,7 @@ Deno.test("sin JWT responde 401", async () => {
 Deno.test("con JWT inválido responde 401", async () => {
   const res = await manejarPeticion(
     peticionPost({ mensaje: "hola" }, "jwt-malo"),
-    deps({ resolverUsuario: async () => null }),
+    deps({ resolverUsuario: () => Promise.resolve(null) }),
   );
   assertEquals(res.status, 401);
 });
@@ -113,7 +117,7 @@ Deno.test("mensaje demasiado largo responde 400", async () => {
 
 Deno.test("límite diario alcanzado responde 429", async () => {
   const { repositorio } = repoCaptura({
-    contarMensajesUsuario: async () => MAX_MENSAJES_POR_DIA,
+    contarMensajesUsuario: () => Promise.resolve(MAX_MENSAJES_POR_DIA),
   });
   const res = await manejarPeticion(
     peticionPost({ mensaje: "hola" }),
@@ -125,7 +129,7 @@ Deno.test("límite diario alcanzado responde 429", async () => {
 
 Deno.test("justo antes del límite diario se procesa el mensaje", async () => {
   const { repositorio } = repoCaptura({
-    contarMensajesUsuario: async () => MAX_MENSAJES_POR_DIA - 1,
+    contarMensajesUsuario: () => Promise.resolve(MAX_MENSAJES_POR_DIA - 1),
   });
   const res = await manejarPeticion(
     peticionPost({ mensaje: "hola" }),
@@ -134,7 +138,7 @@ Deno.test("justo antes del límite diario se procesa el mensaje", async () => {
   assertEquals(res.status, 200);
 });
 
-Deno.test("baja confianza cae a pedir_consejo (provisional)", async () => {
+Deno.test("baja confianza cae a pedir_consejo (con plantilla y aviso)", async () => {
   const { repositorio, mensajes } = repoCaptura();
   const res = await manejarPeticion(
     peticionPost({ mensaje: "algo muy raro que no se clasifica" }),
@@ -146,25 +150,30 @@ Deno.test("baja confianza cae a pedir_consejo (provisional)", async () => {
   assertEquals(res.status, 200);
   const salida = await cuerpo(res);
   assertEquals(salida["intencion"], "pedir_consejo");
-  assertEquals(salida["respuesta"], RESPUESTA_PROVISIONAL);
   assertEquals(salida["origen"], "plantilla");
   assertEquals(salida["confianza"], 0.2);
+  assertEquals(salida["aviso"], AVISO_CONSEJO);
 
   assertEquals(mensajes.length, 2);
   assertEquals(mensajes[0].rol, "usuario");
   assertEquals(mensajes[0].origen, null);
+  assertEquals(mensajes[0].motivo, "baja_confianza|consejo:sin_clave");
   assertEquals(mensajes[1].rol, "asistente");
   assertEquals(mensajes[1].origen, "plantilla");
+  // El aviso viaja con la respuesta del asistente para poder mostrarlo aparte.
+  assertEquals(mensajes[1].aviso, AVISO_CONSEJO);
 });
 
 Deno.test("routing consultar_datos: origen calculo", async () => {
   const { repositorio, mensajes } = repoCaptura({
-    leerTransacciones: async () => [
-      { categoria_id: "c1", tipo: "egreso", monto: 85000, fecha: "2026-10-20" },
-    ],
-    leerCategorias: async () => [
-      { id: "c1", nombre: "Comidas fuera y domicilios", grupo_id: 11 },
-    ],
+    leerTransacciones: () =>
+      Promise.resolve([
+        { categoria_id: "c1", tipo: "egreso", monto: 85000, fecha: "2026-10-20" },
+      ]),
+    leerCategorias: () =>
+      Promise.resolve([
+        { id: "c1", nombre: "Comidas fuera y domicilios", grupo_id: 11 },
+      ]),
   });
   const res = await manejarPeticion(
     peticionPost({ mensaje: "cuanto llevo gastado esta semana" }),
@@ -212,7 +221,7 @@ Deno.test("el usuario sale del JWT y no del body", async () => {
   const { repositorio, mensajes } = repoCaptura();
   const res = await manejarPeticion(
     peticionPost({ mensaje: "hola", usuario_id: "usuario-falso" }),
-    deps({ repositorio, resolverUsuario: async () => "usuario-real" }),
+    deps({ repositorio, resolverUsuario: () => Promise.resolve("usuario-real") }),
   );
   assertEquals(res.status, 200);
   assertEquals(mensajes[0].usuario_id, "usuario-real");
@@ -231,9 +240,9 @@ Deno.test("un segundo argumento (ServeHandlerInfo) cae a las dependencias por de
   const anterior = fijarDependenciasDeRespaldo(() => ({
     ...deps(),
     repositorio,
-    resolverUsuario: async (jwt) => {
+    resolverUsuario: (jwt) => {
       jwtRecibido.push(jwt);
-      return jwt === JWT ? "usuario-1" : null;
+      return Promise.resolve(jwt === JWT ? "usuario-1" : null);
     },
   }));
 
@@ -255,26 +264,29 @@ Deno.test("un segundo argumento (ServeHandlerInfo) cae a las dependencias por de
 
 Deno.test("routing simular_escenario: cálculo, aviso y acción a metas", async () => {
   const { repositorio, mensajes } = repoCaptura({
-    leerTransacciones: async (_u, _d, _h, tipo) =>
-      tipo === "ingreso"
-        ? [
-          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-07-10" },
-          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-08-10" },
-          { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-09-10" },
-        ]
-        : [
-          { categoria_id: null, tipo: "egreso", monto: 1_200_000, fecha: "2026-09-15" },
-        ],
-    leerMetasActivas: async () => [
-      {
-        id: "m1",
-        nombre: "Viaje",
-        monto_objetivo: 3_000_000,
-        monto_actual: 1_000_000,
-        fecha_limite: "2027-04-30",
-        cumplida: false,
-      },
-    ],
+    leerTransacciones: (_u, _d, _h, tipo) =>
+      Promise.resolve(
+        tipo === "ingreso"
+          ? [
+            { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-07-10" },
+            { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-08-10" },
+            { categoria_id: null, tipo: "ingreso", monto: 2_000_000, fecha: "2026-09-10" },
+          ]
+          : [
+            { categoria_id: null, tipo: "egreso", monto: 1_200_000, fecha: "2026-09-15" },
+          ],
+      ),
+    leerMetasActivas: () =>
+      Promise.resolve([
+        {
+          id: "m1",
+          nombre: "Viaje",
+          monto_objetivo: 3_000_000,
+          monto_actual: 1_000_000,
+          fecha_limite: "2027-04-30",
+          cumplida: false,
+        },
+      ]),
   });
   const res = await manejarPeticion(
     peticionPost({ mensaje: "¿llego a 3 millones para diciembre?" }),
@@ -314,18 +326,20 @@ Deno.test("regla híbrida: 'si recorto…' va a simular_escenario antes del mode
   assertEquals(salida["intencion"], "simular_escenario");
   assertEquals(salida["confianza"], 1);
   assertEquals(modeloConsultado, false);
-  assertEquals(mensajes[0].motivo, "regla:si recorto");
-  assertEquals(mensajes[1].motivo, "regla:si recorto");
+  assertEquals(mensajes[0].motivo, "regla:si recorto|simulacion:recorte:sin_clave");
+  assertEquals(mensajes[1].motivo, "regla:si recorto|simulacion:recorte:sin_clave");
 });
 
 Deno.test("sin regla, la intención la decide el modelo", async () => {
   const { repositorio, mensajes } = repoCaptura({
-    leerTransacciones: async () => [
-      { categoria_id: "c1", tipo: "egreso", monto: 85000, fecha: "2026-10-20" },
-    ],
-    leerCategorias: async () => [
-      { id: "c1", nombre: "Comidas fuera y domicilios", grupo_id: 11 },
-    ],
+    leerTransacciones: () =>
+      Promise.resolve([
+        { categoria_id: "c1", tipo: "egreso", monto: 85000, fecha: "2026-10-20" },
+      ]),
+    leerCategorias: () =>
+      Promise.resolve([
+        { id: "c1", nombre: "Comidas fuera y domicilios", grupo_id: 11 },
+      ]),
   });
   const consultas: string[] = [];
   const res = await manejarPeticion(
@@ -347,4 +361,115 @@ Deno.test("sin regla, la intención la decide el modelo", async () => {
 
 Deno.test("el umbral de intención usado por el manejador es 0.45", () => {
   assertEquals(UMBRAL_INTENCION, 0.45);
+});
+
+Deno.test("regla híbrida: 'q es el 4 por mil…' va a aprender_concepto antes del modelo", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "q es el 4 por mil y cuando me lo cobran" }),
+    deps({
+      repositorio,
+      // El modelo diría otra cosa; la regla debe ganar.
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "consultar_datos", confianza: 0.92 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "aprender_concepto");
+  assertEquals(salida["confianza"], 1);
+  assertEquals(modeloConsultado, false);
+  assertEquals(mensajes[0].motivo, "regla:concepto|aprender:glosario:gmf-cuenta-exenta:sin_clave");
+  assertEquals(mensajes[1].motivo, "regla:concepto|aprender:glosario:gmf-cuenta-exenta:sin_clave");
+  // Sin LLM se usa la definición del glosario del GMF.
+  assert(String(salida["respuesta"]).includes("4x1000"));
+});
+
+Deno.test("regla híbrida: 'Q es el 4x1000…' también va a aprender_concepto", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "Q es el 4x1000 y cuando me lo cobran" }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "consultar_datos", confianza: 0.92 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "aprender_concepto");
+  assertEquals(salida["confianza"], 1);
+  assertEquals(modeloConsultado, false);
+  assertEquals(mensajes[0].motivo, "regla:concepto|aprender:glosario:gmf-cuenta-exenta:sin_clave");
+  assert(String(salida["respuesta"]).includes("4x1000"));
+});
+
+Deno.test("regla híbrida: elegir entre cdt o abonar va a pedir_consejo", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({
+      mensaje:
+        "tengo una prima de 1 millon, la meto a un cdt o abono a la deuda?",
+    }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "consultar_datos", confianza: 0.92 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "pedir_consejo");
+  assertEquals(salida["confianza"], 1);
+  assertEquals(modeloConsultado, false);
+  assertEquals(mensajes[0].motivo, "regla:decision|consejo:sin_clave");
+});
+
+Deno.test("'como funciona la app' no aplica regla:concepto y la decide el modelo", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "como funciona la app" }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "ayuda_app", confianza: 0.8 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(modeloConsultado, true);
+  assertEquals(salida["intencion"], "ayuda_app");
+  assertEquals(mensajes[0].motivo?.startsWith("regla:"), false);
+});
+
+Deno.test("'cuanto me rinde un cdt de 1 millon' sigue en simular_escenario (sin regla)", async () => {
+  const { repositorio, mensajes } = repoCaptura();
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "cuanto me rinde un cdt de 1 millon" }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "simular_escenario", confianza: 0.9 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(modeloConsultado, true);
+  assertEquals(salida["intencion"], "simular_escenario");
+  assertEquals(mensajes[0].motivo?.startsWith("regla:"), false);
 });

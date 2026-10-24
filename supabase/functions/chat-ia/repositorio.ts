@@ -42,6 +42,20 @@ export interface FilaMeta {
   cumplida: boolean | null;
 }
 
+/** Lección educativa ya válida (no evaluativa, disponible y con contenido). */
+export interface FilaLeccion {
+  id: string;
+  titulo: string;
+  contenido: string | null;
+}
+
+/** Hallazgo del motor de recomendaciones (para el contexto de pedir_consejo). */
+export interface FilaHallazgo {
+  tipo: string;
+  datos: Record<string, unknown> | null;
+  creado_en: string;
+}
+
 export interface MensajeNuevo {
   usuario_id: string;
   rol: "usuario" | "asistente";
@@ -52,6 +66,8 @@ export interface MensajeNuevo {
   accion: unknown | null;
   /** Cómo se decidió/respondió: 'regla:<patrón>' cuando lo decidió una regla. */
   motivo?: string | null;
+  /** Nota legal/orientativa que acompaña la respuesta (si la hay). */
+  aviso?: string | null;
 }
 
 export interface RepositorioChat {
@@ -82,6 +98,17 @@ export interface RepositorioChat {
     desde: string,
     hasta: string,
   ): Promise<FilaAporte[]>;
+  /**
+   * Lecciones válidas del módulo de educación: no evaluativas, disponibles y con
+   * contenido real (se excluye el marcador "Próximamente"). Son las candidatas
+   * de `aprender_concepto` y de `pedir_consejo`.
+   */
+  leerLeccionesValidas(): Promise<FilaLeccion[]>;
+  /** Hallazgos del motor creados desde `desdeIso` (incl.), más recientes primero. */
+  leerHallazgosRecientes(
+    usuarioId: string,
+    desdeIso: string,
+  ): Promise<FilaHallazgo[]>;
 }
 
 function texto(valor: unknown): string {
@@ -211,6 +238,53 @@ export function crearRepositorioSupabase(
         monto: Number(fila["monto"] ?? 0),
         fecha: texto(fila["fecha"]).slice(0, 10),
       }));
+    },
+
+    async leerLeccionesValidas() {
+      const { data, error } = await admin
+        .from("educacion_escalones")
+        .select("id, titulo, contenido, tipo, disponible")
+        .neq("tipo", "evaluacion")
+        .eq("disponible", true)
+        .neq("titulo", "Próximamente");
+      if (error) {
+        throw new Error(`No se pudieron leer las lecciones: ${error.message}`);
+      }
+      const lecciones: FilaLeccion[] = [];
+      for (const fila of (data ?? []) as Record<string, unknown>[]) {
+        const contenido = fila["contenido"];
+        if (typeof contenido !== "string" || contenido.trim().length === 0) {
+          continue;
+        }
+        lecciones.push({
+          id: texto(fila["id"]),
+          titulo: texto(fila["titulo"]),
+          contenido,
+        });
+      }
+      return lecciones;
+    },
+
+    async leerHallazgosRecientes(usuarioId, desdeIso) {
+      const { data, error } = await admin
+        .from("hallazgos")
+        .select("tipo, datos, creado_en")
+        .eq("usuario_id", usuarioId)
+        .gte("creado_en", desdeIso)
+        .order("creado_en", { ascending: false });
+      if (error) {
+        throw new Error(`No se pudieron leer los hallazgos: ${error.message}`);
+      }
+      return ((data ?? []) as Record<string, unknown>[]).map((fila) => {
+        const datos = fila["datos"];
+        return {
+          tipo: texto(fila["tipo"]),
+          datos: typeof datos === "object" && datos !== null && !Array.isArray(datos)
+            ? datos as Record<string, unknown>
+            : null,
+          creado_en: texto(fila["creado_en"]),
+        };
+      });
     },
   };
 }

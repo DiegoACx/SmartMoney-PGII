@@ -291,7 +291,7 @@ Deno.test("redactarConGemini NO usa el respaldo ante un 429", async () => {
 
 Deno.test("redactarConGemini devuelve null y motivo timeout si tarda de más", async () => {
   const llamadas: Llamada[] = [];
-  const fetchLento = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchLento = ((_input: RequestInfo | URL, init?: RequestInit) => {
     llamadas.push({ modelo: "lento", cuerpo: {} });
     return new Promise<Response>((_resolver, rechazar) => {
       init?.signal?.addEventListener("abort", () =>

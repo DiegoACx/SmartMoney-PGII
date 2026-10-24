@@ -114,6 +114,7 @@ class _IaScreenState extends State<IaScreen> {
           'rol': 'asistente',
           'contenido': resultado.respuesta,
           'accion': resultado.accion,
+          'aviso': resultado.aviso,
           'util': null,
         });
       } else {
@@ -526,6 +527,7 @@ class _IaScreenState extends State<IaScreen> {
         : null;
     final etiqueta = _etiquetaAccion(accion);
     final util = mensaje['util'];
+    final aviso = mensaje['aviso']?.toString().trim() ?? '';
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -554,6 +556,19 @@ class _IaScreenState extends State<IaScreen> {
               ),
             ),
           ),
+          if (aviso.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6, right: 32, left: 2),
+              child: Text(
+                aviso,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  height: 1.3,
+                  fontStyle: FontStyle.italic,
+                  color: _gris,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(bottom: 12, left: 2),
             child: Wrap(

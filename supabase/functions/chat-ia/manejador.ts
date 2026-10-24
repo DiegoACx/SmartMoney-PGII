@@ -25,7 +25,10 @@ import {
 } from "./clasificadores.ts";
 import { responderConsultaDatos } from "./consultar_datos.ts";
 import { responderConversacion } from "./conversacion.ts";
+import { RE_DECISION } from "./decision.ts";
 import { responderFaq } from "./faq.ts";
+import { responderAprendizaje } from "./aprender_concepto.ts";
+import { responderConsejo } from "./pedir_consejo.ts";
 import { hoyEnBogota, inicioDelDiaBogota, sumarDias } from "./fechas.ts";
 import { minusculasSinTildes } from "./montos.ts";
 import { ocultarDatosPersonales } from "./privacidad.ts";
@@ -45,10 +48,6 @@ export const LARGO_MAXIMO_MENSAJE = 500;
 
 /** Mensajes del usuario permitidos por día (hora de Colombia). */
 export const MAX_MENSAJES_POR_DIA = 40;
-
-/** Respuesta provisional de las intenciones que llegan en la Fase 6B-2. */
-export const RESPUESTA_PROVISIONAL =
-  "Estoy aprendiendo a responder este tipo de preguntas. Pronto podré ayudarte con eso.";
 
 const CABECERAS_CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -168,41 +167,107 @@ function esDependencias(valor: unknown): valor is DependenciasChat {
 
 // --- Reglas híbridas de intención --------------------------------------------
 
+/** Una regla determinista: fija la intención sin consultar al modelo. */
+interface ReglaIntencion {
+  /** Nombre que queda en el motivo de auditoría (motivo = "regla:<nombre>"). */
+  nombre: string;
+  /** Intención que fija la regla. */
+  intencion: Intencion;
+  regex: RegExp;
+}
+
 /**
  * Condicionales explícitos que SIEMPRE son una simulación ("si recorto…",
  * "me alcanza para…") y que el modelo de n-gramas confunde con consultas o
- * consejos. Se evalúan ANTES del modelo; el motivo queda como regla:<patrón>
- * para poder separar en la evaluación lo que decide la regla de lo que decide
- * el modelo.
+ * consejos. Van PRIMERO: si el mensaje trae monto explícito y "cuanto" (por
+ * ejemplo "cuanto me rinde"), gana la simulación. El motivo queda como
+ * regla:<nombre> para poder separar en la evaluación lo que decide la regla de
+ * lo que decide el modelo.
  */
-const REGLAS_INTENCION: { patron: string; regex: RegExp }[] = [
-  { patron: "si recorto", regex: /\bsi recorto\b/ },
-  { patron: "si reduzco", regex: /\bsi reduzco\b/ },
-  { patron: "si dejo de gastar", regex: /\bsi dejo de gastar\b/ },
-  { patron: "si dejo de pedir", regex: /\bsi dejo de pedir\b/ },
-  { patron: "si ahorro", regex: /\bsi ahorro\b/ },
-  { patron: "si guardo", regex: /\bsi guardo\b/ },
-  { patron: "me alcanza", regex: /\bme alcanza\b/ },
-  { patron: "puedo pagar", regex: /\bpuedo pagar\b/ },
+const REGLAS_SIMULACION: ReglaIntencion[] = [
+  {
+    nombre: "si recorto",
+    intencion: "simular_escenario",
+    regex: /\bsi recorto\b/,
+  },
+  {
+    nombre: "si reduzco",
+    intencion: "simular_escenario",
+    regex: /\bsi reduzco\b/,
+  },
+  {
+    nombre: "si dejo de gastar",
+    intencion: "simular_escenario",
+    regex: /\bsi dejo de gastar\b/,
+  },
+  {
+    nombre: "si dejo de pedir",
+    intencion: "simular_escenario",
+    regex: /\bsi dejo de pedir\b/,
+  },
+  { nombre: "si ahorro", intencion: "simular_escenario", regex: /\bsi ahorro\b/ },
+  { nombre: "si guardo", intencion: "simular_escenario", regex: /\bsi guardo\b/ },
+  {
+    nombre: "me alcanza",
+    intencion: "simular_escenario",
+    regex: /\bme alcanza\b/,
+  },
+  {
+    nombre: "puedo pagar",
+    intencion: "simular_escenario",
+    regex: /\bpuedo pagar\b/,
+  },
   // "alcanzo a" / "llego a" solo cuentan si el objetivo es comprar, pagar o una meta.
   {
-    patron: "alcanzo a",
+    nombre: "alcanzo a",
+    intencion: "simular_escenario",
     regex: /\balcanzo a\b[^.!?,]{0,20}?\b(?:comprar|pagar|la meta)\b/,
   },
   {
-    patron: "llego a",
+    nombre: "llego a",
+    intencion: "simular_escenario",
     regex: /\bllego a\b[^.!?,]{0,20}?\b(?:comprar|pagar|la meta)\b/,
   },
 ];
 
 /**
- * Patrón de la regla que fuerza `simular_escenario`, o null si ninguna aplica.
- * El texto se normaliza aquí (minúsculas y sin tildes).
+ * Reglas nuevas, DESPUÉS de las de simulación y ANTES del modelo.
+ * La decisión se mira primero que el concepto porque "que es mejor" es una
+ * decisión y no una pregunta por un concepto.
  */
-export function detectarReglaIntencion(mensaje: string): string | null {
+const REGLAS_CONCEPTO_Y_DECISION: ReglaIntencion[] = [
+  {
+    nombre: "decision",
+    intencion: "pedir_consejo",
+    regex: RE_DECISION,
+  },
+  {
+    nombre: "concepto",
+    intencion: "aprender_concepto",
+    // Pregunta por un concepto y NO habla de la app: si menciona la app es una
+    // pregunta de ayuda, y esa la decide el modelo.
+    regex:
+      /^(?=[\s\S]*\b(?:que es|q es|que son|que significa|que quiere decir|no entiendo|explicame|como funciona|para que sirve|diferencia entre)\b)(?![\s\S]*\b(?:app|aplicacion|smartmoney|asistente)\b)/,
+  },
+];
+
+const REGLAS_INTENCION: ReglaIntencion[] = [
+  ...REGLAS_SIMULACION,
+  ...REGLAS_CONCEPTO_Y_DECISION,
+];
+
+/**
+ * Regla que fija la intención, o null si ninguna aplica. El texto se normaliza
+ * aquí (minúsculas y sin tildes).
+ */
+export function detectarReglaIntencion(
+  mensaje: string,
+): { nombre: string; intencion: Intencion } | null {
   const texto = minusculasSinTildes(mensaje);
   for (const regla of REGLAS_INTENCION) {
-    if (regla.regex.test(texto)) return regla.patron;
+    if (regla.regex.test(texto)) {
+      return { nombre: regla.nombre, intencion: regla.intencion };
+    }
   }
   return null;
 }
@@ -241,13 +306,23 @@ async function resolverRespuesta(
         fetchFn: deps.fetchFn,
         claveLLM: deps.claveLLM,
       });
+    case "aprender_concepto":
+      return await responderAprendizaje(mensaje, {
+        repositorio: deps.repositorio,
+        fetchFn: deps.fetchFn,
+        claveLLM: deps.claveLLM,
+      });
+    case "pedir_consejo":
+      return await responderConsejo(mensaje, usuarioId, {
+        repositorio: deps.repositorio,
+        grupos: gruposReales,
+        fetchFn: deps.fetchFn,
+        claveLLM: deps.claveLLM,
+      }, deps.ahora());
     default:
-      // simular_escenario, aprender_concepto y pedir_consejo (Fase 6B-2).
-      return {
-        respuesta: RESPUESTA_PROVISIONAL,
-        origen: "plantilla",
-        motivo: "provisional",
-      };
+      // Intención fuera del contrato: es un error de programación, no una
+      // respuesta al usuario. El catch de manejarPeticion lo registra.
+      throw new Error(`Intención desconocida: ${intencion}`);
   }
 }
 
@@ -325,11 +400,11 @@ export async function manejarPeticion(
     // la confianza no salen del clasificador.
     const regla = detectarReglaIntencion(limpio);
 
-    const datos = { baja_confianza: false, motivoRegla: regla };
+    const datos = { baja_confianza: false, motivoRegla: regla?.nombre ?? null };
     let intencion: Intencion;
     let confianza: number;
     if (regla !== null) {
-      intencion = "simular_escenario";
+      intencion = regla.intencion;
       // La regla es determinista: no hay duda del modelo que registrar.
       confianza = 1;
     } else {
@@ -349,11 +424,17 @@ export async function manejarPeticion(
       dependencias,
     );
     const confianzaFinal = redondear(confianza);
-    const motivo = datos.motivoRegla !== null
+    // El motivo guarda DOS partes separadas por "|": cómo se eligió la
+    // intención (regla, baja confianza o modelo) y qué pasó en el manejador
+    // (por ejemplo si la respuesta salió de plantilla). Ejemplos:
+    //   "regla:decision|consejo:validacion:cifra_no_permitida:1000000"
+    //   "modelo|aprender:glosario:cdt"
+    const comoSeEligio = datos.motivoRegla !== null
       ? `regla:${datos.motivoRegla}`
       : datos.baja_confianza
       ? "baja_confianza"
-      : resultado.motivo;
+      : "modelo";
+    const motivo = `${comoSeEligio}|${resultado.motivo}`;
 
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,
@@ -374,6 +455,7 @@ export async function manejarPeticion(
       origen: resultado.origen,
       accion: resultado.accion ?? null,
       motivo,
+      aviso: resultado.aviso ?? null,
     });
 
     // Log de una línea, sin el contenido del mensaje.

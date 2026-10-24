@@ -178,6 +178,59 @@ void main() {
     });
   });
 
+  group('ResultadoChat.aviso', () {
+    test('devuelve el aviso cuando la respuesta lo trae', () async {
+      final logic = ChatLogic(
+        repositorio: _RepoFalso(respuesta: {
+          'respuesta': 'Con una cuota de…',
+          'intencion': 'simular_escenario',
+          'confianza': 1.0,
+          'origen': 'calculo',
+          'aviso':
+              'Es una estimación con tus registros; no es asesoría financiera profesional.',
+        }),
+      );
+
+      final resultado = await logic.enviarMensaje('¿me alcanza para un CDT?');
+
+      expect(
+        resultado.aviso,
+        'Es una estimación con tus registros; no es asesoría financiera profesional.',
+      );
+    });
+
+    test('devuelve null cuando la respuesta no trae aviso', () async {
+      final logic = ChatLogic(
+        repositorio: _RepoFalso(respuesta: {
+          'respuesta': 'Un CDT es…',
+          'intencion': 'aprender_concepto',
+          'confianza': 0.9,
+          'origen': 'llm',
+        }),
+      );
+
+      final resultado = await logic.enviarMensaje('¿qué es un CDT?');
+
+      expect(resultado.aviso, isNull);
+    });
+
+    test('devuelve null si el aviso viene vacío', () async {
+      final logic = ChatLogic(
+        repositorio: _RepoFalso(respuesta: {
+          'respuesta': 'Un CDT es…',
+          'intencion': 'aprender_concepto',
+          'confianza': 0.9,
+          'origen': 'llm',
+          'aviso': '   ',
+        }),
+      );
+
+      final resultado = await logic.enviarMensaje('¿qué es un CDT?');
+
+      expect(resultado.aviso, isNull);
+    });
+  });
+
   group('mensajeDeErrorChat', () {
     test('lee el mensaje del cuerpo en un 429', () {
       final mensaje = mensajeDeErrorChat(

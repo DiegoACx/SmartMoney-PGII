@@ -49,23 +49,29 @@ function repoFalso(opciones: OpcionesRepo = {}): RepositorioChat {
   const aportes = opciones.aportes ?? [];
 
   return {
-    contarMensajesUsuario: async () => 0,
-    ultimoMensajeAsistente: async () => null,
-    insertarMensaje: async () => {},
-    leerTransacciones: async (_usuarioId, desde, hasta, tipo) => {
+    contarMensajesUsuario: () => Promise.resolve(0),
+    ultimoMensajeAsistente: () => Promise.resolve(null),
+    insertarMensaje: () => Promise.resolve(),
+    leerTransacciones: (_usuarioId, desde, hasta, tipo) => {
       llamadas.push({ desde, hasta, tipo });
-      return transacciones.filter((fila) =>
-        fila.tipo === tipo && fila.fecha >= desde && fila.fecha <= hasta
+      return Promise.resolve(
+        transacciones.filter((fila) =>
+          fila.tipo === tipo && fila.fecha >= desde && fila.fecha <= hasta
+        ),
       );
     },
-    leerCategorias: async () => opciones.categorias ?? [],
-    leerMetasActivas: async () => opciones.metas ?? [],
-    leerAportes: async (_usuarioId, desde, hasta) => {
+    leerCategorias: () => Promise.resolve(opciones.categorias ?? []),
+    leerMetasActivas: () => Promise.resolve(opciones.metas ?? []),
+    leerAportes: (_usuarioId, desde, hasta) => {
       llamadas.push({ desde, hasta, tipo: null });
-      return aportes.filter((fila) =>
-        fila.fecha >= desde && fila.fecha <= hasta
+      return Promise.resolve(
+        aportes.filter((fila) =>
+          fila.fecha >= desde && fila.fecha <= hasta
+        ),
       );
     },
+    leerLeccionesValidas: () => Promise.resolve([]),
+    leerHallazgosRecientes: () => Promise.resolve([]),
   };
 }
 
