@@ -272,6 +272,54 @@ export function detectarReglaIntencion(
   return null;
 }
 
+/** Cómo se eligió la intención: una regla, el modelo o el umbral. */
+export type OrigenIntencion = "modelo" | "baja_confianza" | `regla:${string}`;
+
+/** Resultado de decidir la intención de un mensaje. */
+export interface DecisionIntencion {
+  intencion: Intencion;
+  confianza: number;
+  origen: OrigenIntencion;
+}
+
+/**
+ * Decide la intención del mensaje EXACTAMENTE como lo hace el manejador, en
+ * este orden: reglas híbridas (deterministas) → modelo → umbral. Si ninguna
+ * regla aplica y el modelo no da señal o su confianza no llega a
+ * UMBRAL_INTENCION, responde con pedir_consejo. Es pura: no toca red ni
+ * Supabase, y por eso se puede usar para evaluar el sistema fuera del servidor.
+ */
+export function decidirIntencion(
+  mensaje: string,
+  clasificar: (texto: string) => ClasificacionIntencion = clasificarIntencionReal,
+): DecisionIntencion {
+  const regla = detectarReglaIntencion(mensaje);
+  if (regla !== null) {
+    return {
+      intencion: regla.intencion,
+      confianza: 1,
+      origen: `regla:${regla.nombre}`,
+    };
+  }
+
+  const clasificacion = clasificar(mensaje);
+  if (
+    clasificacion.intencion === null ||
+    clasificacion.confianza < UMBRAL_INTENCION
+  ) {
+    return {
+      intencion: "pedir_consejo",
+      confianza: clasificacion.confianza,
+      origen: "baja_confianza",
+    };
+  }
+  return {
+    intencion: clasificacion.intencion,
+    confianza: clasificacion.confianza,
+    origen: "modelo",
+  };
+}
+
 // --- Enrutamiento por intención ---------------------------------------------
 
 async function resolverRespuesta(
@@ -397,25 +445,11 @@ export async function manejarPeticion(
     const limpio = ocultarDatosPersonales(mensaje);
 
     // Las reglas híbridas van ANTES del modelo: si una aplica, la intención y
-    // la confianza no salen del clasificador.
-    const regla = detectarReglaIntencion(limpio);
-
-    const datos = { baja_confianza: false, motivoRegla: regla?.nombre ?? null };
-    let intencion: Intencion;
-    let confianza: number;
-    if (regla !== null) {
-      intencion = regla.intencion;
-      // La regla es determinista: no hay duda del modelo que registrar.
-      confianza = 1;
-    } else {
-      const clasificacion = dependencias.clasificarIntencion(limpio);
-      intencion = clasificacion.intencion ?? "pedir_consejo";
-      confianza = clasificacion.confianza;
-      if (clasificacion.intencion === null || confianza < UMBRAL_INTENCION) {
-        datos.baja_confianza = true;
-        intencion = "pedir_consejo";
-      }
-    }
+    // la confianza no salen del clasificador. Toda esa decisión vive en
+    // decidirIntencion (la misma que evalúa ia/fase6/evaluar_sistema.ts).
+    const decision = decidirIntencion(limpio, dependencias.clasificarIntencion);
+    const intencion = decision.intencion;
+    const confianza = decision.confianza;
 
     const resultado = await resolverRespuesta(
       intencion,
@@ -429,12 +463,7 @@ export async function manejarPeticion(
     // (por ejemplo si la respuesta salió de plantilla). Ejemplos:
     //   "regla:decision|consejo:validacion:cifra_no_permitida:1000000"
     //   "modelo|aprender:glosario:cdt"
-    const comoSeEligio = datos.motivoRegla !== null
-      ? `regla:${datos.motivoRegla}`
-      : datos.baja_confianza
-      ? "baja_confianza"
-      : "modelo";
-    const motivo = `${comoSeEligio}|${resultado.motivo}`;
+    const motivo = `${decision.origen}|${resultado.motivo}`;
 
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,

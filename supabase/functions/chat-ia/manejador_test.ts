@@ -7,8 +7,9 @@
 
 import { assert, assertEquals, assertNotEquals } from "jsr:@std/assert@1";
 
-import { UMBRAL_INTENCION } from "./clasificadores.ts";
+import { UMBRAL_INTENCION, type ClasificacionIntencion } from "./clasificadores.ts";
 import {
+  decidirIntencion,
   fijarDependenciasDeRespaldo,
   LARGO_MAXIMO_MENSAJE,
   manejarPeticion,
@@ -472,4 +473,70 @@ Deno.test("'cuanto me rinde un cdt de 1 millon' sigue en simular_escenario (sin 
   assertEquals(modeloConsultado, true);
   assertEquals(salida["intencion"], "simular_escenario");
   assertEquals(mensajes[0].motivo?.startsWith("regla:"), false);
+});
+
+Deno.test("decidirIntencion coincide con el manejador en los casos de reglas híbridas", async () => {
+  // La evaluación del sistema (ia/fase6/evaluar_sistema.ts) decide la intención
+  // con decidirIntencion: esta prueba fija que da exactamente lo mismo que el
+  // manejador (misma intención, misma confianza y mismo origen del motivo) en
+  // los mensajes de las pruebas de reglas híbridas de arriba.
+  const casos: {
+    mensaje: string;
+    clasificar: (texto: string) => ClasificacionIntencion;
+  }[] = [
+    {
+      mensaje:
+        "si recorto lo que gasto en domicilios cuanto mas rapido cumplo mi meta",
+      clasificar: () => ({ intencion: "consultar_datos", confianza: 0.92 }),
+    },
+    {
+      mensaje: "q es el 4 por mil y cuando me lo cobran",
+      clasificar: () => ({ intencion: "consultar_datos", confianza: 0.92 }),
+    },
+    {
+      mensaje: "tengo una prima de 1 millon, la meto a un cdt o abono a la deuda?",
+      clasificar: () => ({ intencion: "consultar_datos", confianza: 0.92 }),
+    },
+    {
+      mensaje: "cuanto gaste en domicilios",
+      clasificar: () => ({ intencion: "consultar_datos", confianza: 0.9 }),
+    },
+    {
+      mensaje: "como funciona la app",
+      clasificar: () => ({ intencion: "ayuda_app", confianza: 0.8 }),
+    },
+    {
+      mensaje: "cuanto me rinde un cdt de 1 millon",
+      clasificar: () => ({ intencion: "simular_escenario", confianza: 0.9 }),
+    },
+    {
+      // Sin señal del modelo y por debajo del umbral: respaldo a pedir_consejo.
+      mensaje: "algo muy raro que no se clasifica",
+      clasificar: () => ({ intencion: "simular_escenario", confianza: 0.3 }),
+    },
+  ];
+
+  for (const caso of casos) {
+    const { repositorio, mensajes } = repoCaptura();
+    const res = await manejarPeticion(
+      peticionPost({ mensaje: caso.mensaje }),
+      deps({ repositorio, clasificarIntencion: caso.clasificar }),
+    );
+    assertEquals(res.status, 200, caso.mensaje);
+    const salida = await cuerpo(res);
+    const esperado = decidirIntencion(caso.mensaje, caso.clasificar);
+    assertEquals(salida["intencion"], esperado.intencion, caso.mensaje);
+    assertEquals(salida["confianza"], esperado.confianza, caso.mensaje);
+    // El motivo arranca con el origen que devolvió decidirIntencion.
+    assertEquals(
+      mensajes[0].motivo?.startsWith(`${esperado.origen}|`),
+      true,
+      caso.mensaje,
+    );
+    assertEquals(
+      mensajes[1].motivo?.startsWith(`${esperado.origen}|`),
+      true,
+      caso.mensaje,
+    );
+  }
 });
