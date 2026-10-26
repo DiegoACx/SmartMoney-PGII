@@ -138,6 +138,15 @@ function fetchQueCaptura(texto: string, capturado: { cuerpo?: string }): typeof 
   }) as unknown as typeof fetch;
 }
 
+/** `fetch` falso que responde 429 (cuota agotada) en cualquier modelo. */
+const fetch429 = (() =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    ),
+  )) as unknown as typeof fetch;
+
 // --- Con Gemini ---------------------------------------------------------------
 
 Deno.test("consejo con excedente positivo: usa Gemini y agrega el aviso", async () => {
@@ -222,6 +231,29 @@ Deno.test("consejo: rechaza cifras inventadas y cae a la plantilla", async () =>
     resultado.motivo,
     "consejo:validacion:cifra_no_permitida:9999999",
   );
+  assertEquals(resultado.aviso, AVISO_CONSEJO);
+  assert(resultado.respuesta.startsWith("1. "));
+});
+
+Deno.test("consejo: 429 de Gemini cae a la plantilla y el motivo lo deja claro", async () => {
+  const resultado = await responderConsejo(
+    "dame un consejo para mis finanzas",
+    "usuario-1",
+    {
+      repositorio: repoConsejo({
+        transacciones: [...INGRESOS_POSITIVOS, ...EGRESOS],
+        aportes: APORTES,
+        metas: METAS,
+      }),
+      grupos: gruposFalsos(),
+      fetchFn: fetch429,
+      claveLLM: "clave-de-prueba",
+    },
+    AHORA,
+  );
+
+  assertEquals(resultado.origen, "plantilla");
+  assertEquals(resultado.motivo, "consejo:gemini_429_ambos_plantilla");
   assertEquals(resultado.aviso, AVISO_CONSEJO);
   assert(resultado.respuesta.startsWith("1. "));
 });

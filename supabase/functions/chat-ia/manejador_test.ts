@@ -7,6 +7,7 @@
 
 import { assert, assertEquals, assertNotEquals } from "jsr:@std/assert@1";
 
+import { GEMINI_MODELO } from "../_shared/gemini.ts";
 import { UMBRAL_INTENCION, type ClasificacionIntencion } from "./clasificadores.ts";
 import {
   decidirIntencion,
@@ -69,6 +70,39 @@ function peticionPost(cuerpo: unknown, jwt: string | null = "jwt-bueno"): Reques
 
 async function cuerpo(res: Response): Promise<Record<string, unknown>> {
   return await res.json() as Record<string, unknown>;
+}
+
+const ANTERIOR_SEGUIMIENTO =
+  "Esta semana llevas $85.000 en gastos, el 40 % en Comidas.";
+
+/** fetch que responde 429 (cuota agotada) en cualquier modelo. */
+const fetch429 = (() =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    ),
+  )) as unknown as typeof fetch;
+
+/** fetch que da 429 en el modelo principal y 200 con `texto` en el respaldo. */
+function fetch429YRespaldoOk(texto: string): typeof fetch {
+  return ((input: RequestInfo | URL) => {
+    const esPrincipal = String(input).includes(`${GEMINI_MODELO}:`);
+    if (esPrincipal) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+          { status: 429, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    }
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  }) as unknown as typeof fetch;
 }
 
 Deno.test("OPTIONS responde ok (CORS)", async () => {
@@ -362,6 +396,57 @@ Deno.test("sin regla, la intención la decide el modelo", async () => {
 
 Deno.test("el umbral de intención usado por el manejador es 0.45", () => {
   assertEquals(UMBRAL_INTENCION, 0.45);
+});
+
+Deno.test("429 en el principal y en el respaldo: plantilla, motivo y 200", async () => {
+  // Punto 3a: Gemini responde 429 (cuota agotada) en ambos modelos. La petición
+  // NO puede terminar en 500: cae a la plantilla y responde 200.
+  const { repositorio, mensajes } = repoCaptura({
+    ultimoMensajeAsistente: () => Promise.resolve(ANTERIOR_SEGUIMIENTO),
+  });
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "explícamelo más fácil" }),
+    deps({
+      repositorio,
+      fetchFn: fetch429,
+      claveLLM: "clave-prueba",
+      clasificarIntencion: () => ({ intencion: "conversacion", confianza: 0.9 }),
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "conversacion");
+  assertEquals(salida["origen"], "plantilla");
+  assert(String(salida["respuesta"]).includes(ANTERIOR_SEGUIMIENTO));
+  // Punto 3c: el motivo deja rastro del fallo y se distingue de "sin_clave".
+  assertEquals(mensajes[1].origen, "plantilla");
+  assertEquals(mensajes[1].motivo, "modelo|gemini_429_ambos_plantilla");
+});
+
+Deno.test("429 solo en el principal y 200 en el respaldo: se usa el respaldo", async () => {
+  // Punto 3b: el principal da 429 y el respaldo (lite) responde 200 con texto
+  // válido, así que la respuesta sale del LLM y la petición responde 200.
+  const TEXTO_RESPALDO =
+    "En corto: esta semana has gastado $85.000 y el 40 % se fue en Comidas.";
+  const { repositorio, mensajes } = repoCaptura({
+    ultimoMensajeAsistente: () => Promise.resolve(ANTERIOR_SEGUIMIENTO),
+  });
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "explícamelo más fácil" }),
+    deps({
+      repositorio,
+      fetchFn: fetch429YRespaldoOk(TEXTO_RESPALDO),
+      claveLLM: "clave-prueba",
+      clasificarIntencion: () => ({ intencion: "conversacion", confianza: 0.9 }),
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "conversacion");
+  assertEquals(salida["origen"], "llm");
+  assertEquals(salida["respuesta"], TEXTO_RESPALDO);
+  assertEquals(mensajes[1].origen, "llm");
+  assertEquals(mensajes[1].motivo, "modelo|gemini_429_principal_respaldo_ok");
 });
 
 Deno.test("regla híbrida: 'q es el 4 por mil…' va a aprender_concepto antes del modelo", async () => {

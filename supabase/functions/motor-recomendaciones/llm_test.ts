@@ -263,7 +263,7 @@ Deno.test("redactarConGemini usa el respaldo ante un 404 y reporta su fallo", as
   ]);
 });
 
-Deno.test("redactarConGemini NO usa el respaldo ante un 429", async () => {
+Deno.test("redactarConGemini usa el respaldo ante un 429 y lo deja en el motivo", async () => {
   const llamadas: Llamada[] = [];
   const fetchFalso = fetchGuion({
     [GEMINI_MODELO]: [{
@@ -283,10 +283,13 @@ Deno.test("redactarConGemini NO usa el respaldo ante un 429", async () => {
     { clave: CLAVE },
   );
 
-  assertEquals(resultado.texto, null);
-  assertEquals(resultado.modelo, GEMINI_MODELO);
-  assertEquals(resultado.motivo, "error_http:429:RESOURCE_EXHAUSTED");
-  assertEquals(llamadas.map((llamada) => llamada.modelo), [GEMINI_MODELO]);
+  assertEquals(resultado.texto, "En Mercado llevas $206.000 este mes.");
+  assertEquals(resultado.modelo, GEMINI_MODELO_RESPALDO);
+  assertEquals(resultado.motivo, "gemini_429_principal_respaldo_ok");
+  assertEquals(llamadas.map((llamada) => llamada.modelo), [
+    GEMINI_MODELO,
+    GEMINI_MODELO_RESPALDO,
+  ]);
 });
 
 Deno.test("redactarConGemini devuelve null y motivo timeout si tarda de más", async () => {

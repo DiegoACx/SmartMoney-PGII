@@ -28,6 +28,15 @@ function fetchTexto(texto: string): typeof fetch {
 const fetchQueFalla = (() =>
   Promise.reject(new Error("no debe llamarse"))) as unknown as typeof fetch;
 
+/** fetch que responde 429 (cuota agotada) en cualquier modelo. */
+const fetch429 = (() =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    ),
+  )) as unknown as typeof fetch;
+
 Deno.test("saludo: respuesta corta con ejemplos", async () => {
   const resultado = await responderConversacion({
     mensaje: "hola",
@@ -122,5 +131,17 @@ Deno.test("seguimiento sin clave de LLM cae a plantilla", async () => {
   });
   assertEquals(resultado.origen, "plantilla");
   assertEquals(resultado.motivo, "sin_clave");
+  assert(resultado.respuesta.includes(ANTERIOR));
+});
+
+Deno.test("seguimiento: 429 de Gemini cae a plantilla y el motivo lo deja claro", async () => {
+  const resultado = await responderConversacion({
+    mensaje: "explícamelo más fácil",
+    ultimoMensajeAsistente: ANTERIOR,
+    fetchFn: fetch429,
+    claveLLM: "clave-prueba",
+  });
+  assertEquals(resultado.origen, "plantilla");
+  assertEquals(resultado.motivo, "gemini_429_ambos_plantilla");
   assert(resultado.respuesta.includes(ANTERIOR));
 });

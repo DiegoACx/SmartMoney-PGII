@@ -847,6 +847,15 @@ function fetchQueResponde(texto: string): typeof fetch {
     )) as unknown as typeof fetch;
 }
 
+/** `fetch` falso que responde 429 (cuota agotada) en cualquier modelo. */
+const fetch429 = (() =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    ),
+  )) as unknown as typeof fetch;
+
 const MENSAJE_OBJETIVO = "¿cuánto debo ahorrar para tener 6 millones en 12 meses?";
 
 Deno.test("respuesta: redacción válida de Gemini usa origen llm", async () => {
@@ -929,6 +938,28 @@ Deno.test("respuesta: sin clave de Gemini cae a la plantilla", async () => {
 
   assertEquals(resultado.origen, "calculo");
   assertEquals(resultado.motivo, "simulacion:objetivo_plazo:sin_clave");
+  assertEquals(resultado.aviso, AVISO_SIMULACION);
+  assert(resultado.respuesta.includes("$6.000.000"));
+});
+
+Deno.test("respuesta: 429 de Gemini cae a la plantilla y el motivo lo deja claro", async () => {
+  const resultado = await responderSimulacion(
+    MENSAJE_OBJETIVO,
+    "usuario-1",
+    {
+      repositorio: repoConDatos(),
+      grupos: gruposFalsos(),
+      fetchFn: fetch429,
+      claveLLM: "clave-de-prueba",
+    },
+    AHORA,
+  );
+
+  assertEquals(resultado.origen, "calculo");
+  assertEquals(
+    resultado.motivo,
+    "simulacion:objetivo_plazo:gemini_429_ambos_plantilla",
+  );
   assertEquals(resultado.aviso, AVISO_SIMULACION);
   assert(resultado.respuesta.includes("$6.000.000"));
 });

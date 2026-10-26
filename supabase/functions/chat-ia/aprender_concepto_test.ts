@@ -41,6 +41,15 @@ function fetchQueResponde(texto: string): typeof fetch {
     )) as unknown as typeof fetch;
 }
 
+/** `fetch` falso que responde 429 (cuota agotada) en cualquier modelo. */
+const fetch429 = (() =>
+  Promise.resolve(
+    new Response(
+      JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    ),
+  )) as unknown as typeof fetch;
+
 /** `fetch` falso que responde un texto distinto en cada llamada, en orden. */
 function fetchPorLlamadas(textos: string[]): typeof fetch {
   let llamada = 0;
@@ -243,5 +252,35 @@ Deno.test("aprender general: sin Gemini cae a la plantilla", async () => {
 
   assertEquals(resultado.origen, "plantilla");
   assertEquals(resultado.motivo, "aprender:general:sin_clave");
+  assert(resultado.respuesta.startsWith(SIN_INFORMACION));
+});
+
+Deno.test("aprender glosario: 429 de Gemini cae a la plantilla y el motivo lo deja claro", async () => {
+  const resultado = await responderAprendizaje("que es un cdt", {
+    repositorio: repoAprendizaje(),
+    fetchFn: fetch429,
+    claveLLM: "clave-de-prueba",
+  });
+
+  assertEquals(resultado.origen, "plantilla");
+  assertEquals(
+    resultado.motivo,
+    "aprender:glosario:cdt:gemini_429_ambos_plantilla",
+  );
+  assert(resultado.respuesta.startsWith("Un CDT es un ahorro"));
+});
+
+Deno.test("aprender general: 429 de Gemini cae a la plantilla", async () => {
+  const resultado = await responderAprendizaje("por que mi jefe no me sube el sueldo", {
+    repositorio: repoAprendizaje(),
+    fetchFn: fetch429,
+    claveLLM: "clave-de-prueba",
+  });
+
+  assertEquals(resultado.origen, "plantilla");
+  assertEquals(
+    resultado.motivo,
+    "aprender:general:gemini_429_ambos_plantilla",
+  );
   assert(resultado.respuesta.startsWith(SIN_INFORMACION));
 });

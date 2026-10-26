@@ -39,12 +39,18 @@ export const LLM_MAX_CARACTERES = 280;
  *   validacion:<motivo>             → llegó texto pero no pasó el validador
  *                                    (validacion:truncado también cuando el
  *                                    modelo no terminó: finishReason ≠ STOP)
+ *   gemini_429_principal_respaldo_ok → el principal dio 429 (cuota agotada) y el
+ *                                    respaldo sí redactó un texto válido
+ *   gemini_429_ambos_plantilla       → el principal dio 429 y el respaldo
+ *                                    tampoco sirvió (429 u otro fallo)
  */
 export type MotivoLLM =
   | "ok"
   | "timeout"
   | "sin_clave"
   | "error_red"
+  | "gemini_429_principal_respaldo_ok"
+  | "gemini_429_ambos_plantilla"
   | `error_http:${string}`
   | `validacion:${string}`;
 
@@ -314,10 +320,12 @@ async function enviarConReintentoDeParametro(
 /**
  * Pide a Gemini un texto y lo valida. Nunca lanza.
  *
- * Si el modelo principal responde 404 (retirado) o 503 (no disponible) se hace
- * UN único intento con el modelo de respaldo. Nunca se usa el respaldo ante
- * timeout ni ante 429: no se alarga la espera ni se gasta cuota. Si el respaldo
- * tampoco sirve, el llamador cae a su plantilla.
+ * Si el modelo principal responde 404 (retirado), 503 (no disponible) o 429
+ * (cuota agotada) se hace UN único intento con el modelo de respaldo, sin
+ * espera adicional. Ante 429 el motivo deja rastro de qué pasó:
+ * gemini_429_principal_respaldo_ok (el respaldo redactó) o
+ * gemini_429_ambos_plantilla (ninguno sirvió). Nunca se usa el respaldo ante
+ * timeout. Si el respaldo tampoco sirve, el llamador cae a su plantilla.
  */
 export async function generarConGemini(
   solicitud: SolicitudLLM,
@@ -340,19 +348,38 @@ export async function generarConGemini(
 
   let modelo = principal;
   let intento = await enviarConReintentoDeParametro(modelo, envio);
+  // El 429 (cuota agotada) también cae al respaldo, una sola vez y sin espera
+  // adicional. Se recuerda para que el motivo final distinga si el respaldo
+  // sirvió (gemini_429_principal_respaldo_ok) o si ninguno dio texto válido
+  // (gemini_429_ambos_plantilla).
+  const principalFue429 = intento.http === 429;
 
-  if (intento.http === 404 || intento.http === 503) {
+  if (intento.http === 404 || intento.http === 503 || principalFue429) {
     modelo = respaldo;
     intento = await enviarConReintentoDeParametro(modelo, envio);
   }
 
   if (intento.texto === null) {
-    return { texto: null, modelo, motivo: intento.motivo };
+    return {
+      texto: null,
+      modelo,
+      motivo: principalFue429 ? "gemini_429_ambos_plantilla" : intento.motivo,
+    };
   }
 
   const validacion = validador(intento.texto);
   if (!validacion.valido) {
-    return { texto: null, modelo, motivo: `validacion:${validacion.motivo}` };
+    return {
+      texto: null,
+      modelo,
+      motivo: principalFue429
+        ? "gemini_429_ambos_plantilla"
+        : `validacion:${validacion.motivo}`,
+    };
   }
-  return { texto: intento.texto, modelo, motivo: "ok" };
+  return {
+    texto: intento.texto,
+    modelo,
+    motivo: principalFue429 ? "gemini_429_principal_respaldo_ok" : "ok",
+  };
 }
