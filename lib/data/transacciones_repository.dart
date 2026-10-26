@@ -4,9 +4,9 @@ class TransaccionesRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
   /// Crea una nueva transacción para el usuario autenticado.
-  /// [grupoSugeridoId], [confianzaSugerencia], [categoriaCorregida] y
-  /// [versionModelo] son los metadatos de la sugerencia del clasificador;
-  /// van en null cuando no hubo sugerencia.
+  /// [grupoSugeridoId], [categoriaSugeridaId], [confianzaSugerencia],
+  /// [categoriaCorregida] y [versionModelo] son los metadatos de la sugerencia
+  /// del clasificador; van en null cuando no hubo sugerencia.
   Future<void> crearTransaccion({
     required String tipo,
     required double monto,
@@ -16,6 +16,7 @@ class TransaccionesRepository {
     required String metodoPago,
     required bool esGastoTrabajo,
     int? grupoSugeridoId,
+    String? categoriaSugeridaId,
     double? confianzaSugerencia,
     bool? categoriaCorregida,
     String? versionModelo,
@@ -35,6 +36,7 @@ class TransaccionesRepository {
       'metodo_pago': metodoPago,
       'es_gasto_trabajo': esGastoTrabajo,
       'grupo_sugerido_id': grupoSugeridoId,
+      'categoria_sugerida_id': categoriaSugeridaId,
       'confianza_sugerencia': confianzaSugerencia,
       'categoria_corregida': categoriaCorregida,
       'version_modelo': versionModelo,
@@ -45,7 +47,7 @@ class TransaccionesRepository {
   Future<List<Map<String, dynamic>>> obtenerTransacciones(String usuarioId) async {
     final data = await _client
         .from('transacciones')
-        .select('*, categorias(nombre)')
+        .select('*, categorias!fk_transacciones_categoria(nombre)')
         .eq('usuario_id', usuarioId)
         .order('fecha', ascending: false);
 
@@ -60,7 +62,7 @@ class TransaccionesRepository {
       String usuarioId) async {
     final data = await _client
         .from('transacciones')
-        .select('*, categorias(nombre)')
+        .select('*, categorias!fk_transacciones_categoria(nombre)')
         .eq('usuario_id', usuarioId)
         .order('fecha', ascending: false)
         .order('fecha_creacion', ascending: false);
@@ -70,7 +72,7 @@ class TransaccionesRepository {
 
   /// Edita una transacción existente por su id.
   /// Los metadatos de la sugerencia solo se envían cuando
-  /// [escribirMetadatosSugerencia] es true: en ese caso se escriben los cuatro
+  /// [escribirMetadatosSugerencia] es true: en ese caso se escriben los cinco
   /// tal cual (con null explícito si no hubo sugerencia). Si es false, no se
   /// envían y se conservan los que ya estaban guardados.
   Future<void> editarTransaccion({
@@ -83,6 +85,7 @@ class TransaccionesRepository {
     String? metodoPago,
     bool? esGastoTrabajo,
     int? grupoSugeridoId,
+    String? categoriaSugeridaId,
     double? confianzaSugerencia,
     bool? categoriaCorregida,
     String? versionModelo,
@@ -98,6 +101,7 @@ class TransaccionesRepository {
     if (esGastoTrabajo != null) updates['es_gasto_trabajo'] = esGastoTrabajo;
     if (escribirMetadatosSugerencia) {
       updates['grupo_sugerido_id'] = grupoSugeridoId;
+      updates['categoria_sugerida_id'] = categoriaSugeridaId;
       updates['confianza_sugerencia'] = confianzaSugerencia;
       updates['categoria_corregida'] = categoriaCorregida;
       updates['version_modelo'] = versionModelo;

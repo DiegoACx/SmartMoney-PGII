@@ -172,9 +172,9 @@ class TransaccionesLogic {
   }
 
   /// Valida y registra una nueva transacción.
-  /// [grupoSugeridoId], [confianzaSugerencia], [categoriaCorregida] y
-  /// [versionModelo] son los metadatos de la sugerencia del clasificador
-  /// (null cuando no hubo sugerencia).
+  /// [grupoSugeridoId], [categoriaSugeridaId], [confianzaSugerencia],
+  /// [categoriaCorregida] y [versionModelo] son los metadatos de la sugerencia
+  /// del clasificador (null cuando no hubo sugerencia).
   /// Retorna null si todo sale bien, o un String con el mensaje de error.
   Future<String?> registrarTransaccion({
     required double monto,
@@ -186,6 +186,7 @@ class TransaccionesLogic {
     required String metodoPago,
     required bool esGastoTrabajo,
     int? grupoSugeridoId,
+    String? categoriaSugeridaId,
     double? confianzaSugerencia,
     bool? categoriaCorregida,
     String? versionModelo,
@@ -219,6 +220,7 @@ class TransaccionesLogic {
         metodoPago: metodoPago,
         esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
         grupoSugeridoId: grupoSugeridoId,
+        categoriaSugeridaId: categoriaSugeridaId,
         confianzaSugerencia: confianzaSugerencia,
         categoriaCorregida: categoriaCorregida,
         versionModelo: versionModelo,
@@ -248,6 +250,7 @@ class TransaccionesLogic {
     required String metodoPago,
     required bool esGastoTrabajo,
     int? grupoSugeridoId,
+    String? categoriaSugeridaId,
     double? confianzaSugerencia,
     bool? categoriaCorregida,
     String? versionModelo,
@@ -282,6 +285,7 @@ class TransaccionesLogic {
         metodoPago: metodoPago,
         esGastoTrabajo: tipo == 'egreso' && esGastoTrabajo,
         grupoSugeridoId: grupoSugeridoId,
+        categoriaSugeridaId: categoriaSugeridaId,
         confianzaSugerencia: confianzaSugerencia,
         categoriaCorregida: categoriaCorregida,
         versionModelo: versionModelo,
