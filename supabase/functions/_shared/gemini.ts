@@ -18,10 +18,10 @@
 // ============================================================================
 
 /** Modelo de Gemini usado por defecto. */
-export const GEMINI_MODELO = "gemini-3.5-flash";
+export const GEMINI_MODELO = "gemini-3.5-flash-lite";
 
-/** Modelo al que se cae una sola vez si el principal da 404 o 503. */
-export const GEMINI_MODELO_RESPALDO = "gemini-3.5-flash-lite";
+/** Modelo al que se cae una sola vez si el principal da 404, 503 o 429. */
+export const GEMINI_MODELO_RESPALDO = "gemini-3.1-flash-lite";
 
 /** Tiempo máximo (ms) que se espera la respuesta de Gemini. */
 export const GEMINI_TIMEOUT_MS = 8000;
