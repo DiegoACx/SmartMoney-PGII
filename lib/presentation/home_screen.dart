@@ -61,10 +61,26 @@ class _CurvedHeaderClipper extends CustomClipper<Path> {
 /// `obtenerTodasLasTransacciones`; al cambiar de periodo solo se recalcula
 /// en memoria (`calcularTotalesPeriodo`) sin volver a consultar Supabase.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.onCambiarPestana});
+  const HomeScreen({
+    super.key,
+    this.onCambiarPestana,
+    this.claveResumen,
+    this.claveBotonAsistente,
+    this.onCargadoInicial,
+  });
 
   /// Cambia de pestaña en el `MainShell` (2 = Educación, 4 = Metas).
   final ValueChanged<int>? onCambiarPestana;
+
+  /// Clave de las tarjetas de Ingresos/Egresos/Diferencia, para que el
+  /// recorrido guiado pueda resaltar el resumen.
+  final Key? claveResumen;
+
+  /// Clave del botón circular del asistente (no del globo), para resaltarlo.
+  final Key? claveBotonAsistente;
+
+  /// Se invoca una sola vez, cuando termina la primera carga del Inicio.
+  final VoidCallback? onCargadoInicial;
 
   @override
   State<HomeScreen> createState() => HomeScreenState();
@@ -90,6 +106,9 @@ class HomeScreenState extends State<HomeScreen> {
   Timer? _metaResumeTimer;
 
   List<NivelConEstado> _nivelesEducacion = [];
+
+  /// Garantiza que `onCargadoInicial` se dispare una sola vez por pantalla.
+  bool _avisoCargaInicialEnviado = false;
 
   // ===== Label visible por periodo (para el selector) =====
   static const Map<PeriodoDashboard, String> _labelsPeriodo = {
@@ -154,6 +173,13 @@ class HomeScreenState extends State<HomeScreen> {
 
     _cargarMetas();
     _cargarEducacion();
+
+    // Avisa una sola vez que el Inicio ya tiene contenido (el recorrido
+    // guiado se muestra después de este momento).
+    if (!_avisoCargaInicialEnviado) {
+      _avisoCargaInicialEnviado = true;
+      widget.onCargadoInicial?.call();
+    }
   }
 
   /// Abre la lección sugerida por el motor; si no se puede abrir directamente
@@ -243,6 +269,8 @@ class HomeScreenState extends State<HomeScreen> {
       floatingActionButton: fabAsistente(
         heroTag: 'fab_asistente_inicio',
         onCambiarPestana: widget.onCambiarPestana,
+        pestana: PestanaAsistente.inicio,
+        claveBoton: widget.claveBotonAsistente,
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -439,39 +467,48 @@ class HomeScreenState extends State<HomeScreen> {
                   )
                 else ...[
                   // ===== Tarjetas de totales =====
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _TarjetaTotal(
-                      titulo: 'Ingresos',
-                      monto: totales.totalIngresos,
-                      signo: '+',
-                      color: const Color(0xFF58774B),
-                      icon: Icons.arrow_upward_rounded,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _TarjetaTotal(
-                      titulo: 'Egresos',
-                      monto: totales.totalEgresos,
-                      signo: '-',
-                      color: const Color(0xFFC0392B),
-                      icon: Icons.arrow_downward_rounded,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _TarjetaTotal(
-                      titulo: 'Diferencia',
-                      monto: totales.diferencia.abs(),
-                      signo: signoDif,
-                      color: colorDif,
-                      icon: totales.diferencia >= 0
-                          ? Icons.trending_up_rounded
-                          : Icons.trending_down_rounded,
-                    ),
+                  // Agrupadas bajo una sola clave para que el recorrido guiado
+                  // pueda resaltar el resumen completo (ingresos, egresos y
+                  // diferencia) como un único bloque.
+                  Column(
+                    key: widget.claveResumen,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _TarjetaTotal(
+                          titulo: 'Ingresos',
+                          monto: totales.totalIngresos,
+                          signo: '+',
+                          color: const Color(0xFF58774B),
+                          icon: Icons.arrow_upward_rounded,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _TarjetaTotal(
+                          titulo: 'Egresos',
+                          monto: totales.totalEgresos,
+                          signo: '-',
+                          color: const Color(0xFFC0392B),
+                          icon: Icons.arrow_downward_rounded,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _TarjetaTotal(
+                          titulo: 'Diferencia',
+                          monto: totales.diferencia.abs(),
+                          signo: signoDif,
+                          color: colorDif,
+                          icon: totales.diferencia >= 0
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 28),
 

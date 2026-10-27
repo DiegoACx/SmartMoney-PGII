@@ -37,10 +37,13 @@ BoxDecoration _decoracionTarjeta() => BoxDecoration(
 /// Solo usa la capa `logic` (`PerfilLogic` para datos/acciones y
 /// `AuthLogic` para cerrar sesión); nunca toca `data/` ni Supabase.
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key, this.onCambiarPestana});
+  const PerfilScreen({super.key, this.onCambiarPestana, this.onVerRecorrido});
 
   /// Cambia de pestaña en el `MainShell` (1 = IA).
   final ValueChanged<int>? onCambiarPestana;
+
+  /// Vuelve a mostrar el recorrido guiado de bienvenida.
+  final VoidCallback? onVerRecorrido;
 
   @override
   State<PerfilScreen> createState() => PerfilScreenState();
@@ -307,6 +310,7 @@ class PerfilScreenState extends State<PerfilScreen> {
       floatingActionButton: fabAsistente(
         heroTag: 'fab_asistente_perfil',
         onCambiarPestana: widget.onCambiarPestana,
+        pestana: PestanaAsistente.perfil,
       ),
       body: SingleChildScrollView(
         // Espacio extra para que el FAB del asistente no tape el último
@@ -358,6 +362,13 @@ class PerfilScreenState extends State<PerfilScreen> {
                   _buildSeccion(
                     'Información',
                     [
+                      if (widget.onVerRecorrido != null)
+                        _FilaConfig(
+                          icono: Icons.explore_outlined,
+                          titulo: 'Ver recorrido de la app',
+                          subtitulo: 'Repite el tutorial de bienvenida',
+                          onTap: widget.onVerRecorrido,
+                        ),
                       _FilaConfig(
                         icono: Icons.privacy_tip_outlined,
                         titulo: 'Privacidad y términos',

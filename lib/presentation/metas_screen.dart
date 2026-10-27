@@ -140,6 +140,7 @@ class _MetasScreenState extends State<MetasScreen> {
         children: [
           FabAsistente(
             heroTag: 'fab_asistente_metas',
+            pestana: PestanaAsistente.metas,
             onPressed: () => widget.onCambiarPestana?.call(1),
           ),
           const SizedBox(height: 12),

@@ -217,6 +217,7 @@ class _IngresoMontosScreenState extends State<IngresoMontosScreen> {
         children: [
           FabAsistente(
             heroTag: 'fab_asistente_ingresos',
+            pestana: PestanaAsistente.ingresos,
             onPressed: () => widget.onCambiarPestana?.call(1),
           ),
           const SizedBox(height: 12),

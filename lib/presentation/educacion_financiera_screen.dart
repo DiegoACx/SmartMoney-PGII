@@ -387,6 +387,7 @@ class EducacionFinancieraScreenState
       floatingActionButton: fabAsistente(
         heroTag: 'fab_asistente_educacion',
         onCambiarPestana: widget.onCambiarPestana,
+        pestana: PestanaAsistente.educacion,
       ),
       body: Stack(
         children: [
