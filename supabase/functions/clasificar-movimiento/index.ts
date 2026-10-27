@@ -7,6 +7,9 @@
 //
 // Clasifica la descripción de un egreso en uno de los 13 grupos del modelo
 // entrenado y devuelve la categoría de egreso que la app debería preseleccionar.
+// Antes del modelo se consulta la memoria del usuario (memoria.ts): si ya
+// registró un egreso con la misma descripción, se sugiere la categoría que
+// eligió esa vez (version_modelo = "memoria-usuario-v1").
 //
 // El usuario_id SIEMPRE sale del JWT. Las lecturas usan el cliente service_role
 // filtrando por ese usuario_id. La descripción nunca se registra en los logs.
@@ -14,6 +17,13 @@
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
+import {
+  buscarEnMemoria,
+  type EgresoPrevio,
+  LIMITE_HISTORIAL_MEMORIA,
+  type Recuerdo,
+  VERSION_MEMORIA,
+} from "./memoria.ts";
 import { modelo, nombreGrupo, predecir } from "./modelo.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL") ?? "";
@@ -185,6 +195,67 @@ async function elegirCategoria(
   return categorias.find((categoria) => categoria.usuario_id === null) ?? null;
 }
 
+/**
+ * Egresos recientes del usuario con descripción y categoría, del más reciente
+ * al más antiguo, para la memoria por usuario.
+ */
+async function leerHistorialEgresos(
+  admin: SupabaseClient,
+  usuarioId: string,
+): Promise<EgresoPrevio[]> {
+  const { data, error } = await admin
+    .from("transacciones")
+    .select(
+      "descripcion, categoria_id, categorias!fk_transacciones_categoria(nombre, grupo_id)",
+    )
+    .eq("usuario_id", usuarioId)
+    .eq("tipo", "egreso")
+    .not("descripcion", "is", null)
+    .not("categoria_id", "is", null)
+    .order("fecha", { ascending: false })
+    .limit(LIMITE_HISTORIAL_MEMORIA);
+  if (error) {
+    throw new Error(`No se pudo leer el historial: ${error.message}`);
+  }
+
+  return ((data ?? []) as Record<string, unknown>[]).map((fila) => {
+    const categoria = (fila["categorias"] ?? null) as
+      | Record<string, unknown>
+      | null;
+    const grupo = categoria?.["grupo_id"];
+    return {
+      descripcion: fila["descripcion"] === null
+        ? null
+        : String(fila["descripcion"]),
+      categoria_id: fila["categoria_id"] === null
+        ? null
+        : String(fila["categoria_id"]),
+      categoria_nombre: categoria?.["nombre"] == null
+        ? null
+        : String(categoria["nombre"]),
+      grupo_id: grupo == null ? null : Number(grupo),
+    };
+  });
+}
+
+/**
+ * Categoría recordada para la descripción, o null. Si la lectura falla, se
+ * sigue con el modelo: la memoria nunca impide que haya sugerencia.
+ */
+async function recordarCategoria(
+  admin: SupabaseClient,
+  usuarioId: string,
+  descripcion: string,
+): Promise<Recuerdo | null> {
+  try {
+    const historial = await leerHistorialEgresos(admin, usuarioId);
+    return buscarEnMemoria(descripcion, historial);
+  } catch (error) {
+    console.error("clasificar-movimiento: memoria no disponible:", error);
+    return null;
+  }
+}
+
 // --- HTTP --------------------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -230,14 +301,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    const admin = createClient(URL_SUPABASE, CLAVE_SERVICIO, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // 1) Memoria del usuario: misma descripción → la categoría que eligió.
+    const recuerdo = await recordarCategoria(admin, usuarioId, descripcion);
+    if (recuerdo !== null) {
+      return responder({
+        sugerencia: {
+          grupo_id: recuerdo.grupo_id,
+          grupo_nombre: nombreGrupo(recuerdo.grupo_id),
+          confianza: 1,
+          categoria_id: recuerdo.categoria_id,
+          categoria_nombre: recuerdo.categoria_nombre,
+          preseleccionar: true,
+          version_modelo: VERSION_MEMORIA,
+          top3: [],
+        },
+      });
+    }
+
+    // 2) Modelo general.
     const prediccion = predecir(descripcion);
     if (prediccion === null) {
       return responder({ sugerencia: null });
     }
-
-    const admin = createClient(URL_SUPABASE, CLAVE_SERVICIO, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const categoria = await elegirCategoria(
       admin,
       usuarioId,
