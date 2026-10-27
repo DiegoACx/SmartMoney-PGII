@@ -7,7 +7,11 @@
 //   · validarTextoLLM (validación previa de la salida del modelo);
 //   · formatearCOP (pesos colombianos, separador de miles con punto);
 //   · cifrasEnTexto (números presentes en un texto, para reutilizarlos como
-//     cifras permitidas al pedir una reexplicación).
+//     cifras permitidas al pedir una reexplicación);
+//   · formatoBloques (frase inicial + viñetas + cierre, para las plantillas);
+//   · limpiarMarkdownNoPermitido (deja solo **negrita**, viñetas "- " y saltos
+//     de línea antes de guardar y enviar la respuesta);
+//   · sinSimbolosMarkdown (quita esos símbolos para medir el largo y las cifras).
 //
 // Lo ESPECÍFICO de cada función (qué prompt se arma y qué cifras se permiten)
 // se queda en su propio módulo: motor-recomendaciones/llm.ts, chat-ia/*.
@@ -116,6 +120,96 @@ function extraerNumeros(texto: string): number[] {
   return coincidencias.map((token) => Number(token.replace(/\./g, "")));
 }
 
+/**
+ * Texto sin los símbolos del Markdown permitido: `**negrita**` y la viñeta
+ * "- " al inicio de línea. Sirve para medir el largo y las cifras como las ve
+ * la persona, sin contar los símbolos de formato.
+ */
+export function sinSimbolosMarkdown(texto: string): string {
+  return (texto ?? "")
+    .replace(/\*\*/g, "")
+    .replace(/(^|\n)[ \t]*-[ \t]+/g, "$1")
+    .trim();
+}
+
+/** Largo del texto sin los símbolos del Markdown permitido. */
+export function longitudSinSimbolos(texto: string): number {
+  return sinSimbolosMarkdown(texto).length;
+}
+
+// --- Formato en bloques ------------------------------------------------------
+
+/**
+ * Arma un texto en bloques: frase inicial, viñetas y cierre, separados por una
+ * línea en blanco. Las viñetas se marcan con "- " (máximo 4) y las cifras clave
+ * pueden ir en **negrita**. Es la estructura que el chat sabe dibujar en la app.
+ */
+export function formatoBloques(
+  fraseInicial: string,
+  vinetas: string[],
+  cierre: string,
+): string {
+  const bloques: string[] = [];
+  const inicio = fraseInicial.trim();
+  if (inicio.length > 0) bloques.push(inicio);
+  const lista = vinetas.map((vineta) => vineta.trim()).filter((vineta) =>
+    vineta.length > 0
+  ).slice(0, 4);
+  if (lista.length > 0) bloques.push(lista.map((vineta) => `- ${vineta}`).join("\n"));
+  const fin = cierre.trim();
+  if (fin.length > 0) bloques.push(fin);
+  return bloques.join("\n\n");
+}
+
+/**
+ * Deja SOLO el Markdown permitido (**negrita**, viñetas "- " y saltos de línea)
+ * y quita lo que no lo es: títulos (#), enlaces, imágenes, tablas, código y
+ * HTML. Se aplica antes de guardar y enviar la respuesta (nunca se guarda HTML).
+ */
+export function limpiarMarkdownNoPermitido(texto: string): string {
+  let limpio = texto ?? "";
+
+  // Bloques de código ```…``` y código en línea `…` (se descartan las marcas).
+  limpio = limpio.replace(/```[\s\S]*?```/g, " ");
+  limpio = limpio.replace(/`([^`]*)`/g, "$1");
+
+  // Imágenes ![alt](url): fuera. Enlaces [texto](url): se conserva el texto.
+  limpio = limpio.replace(/!\[[^\]]*\]\([^)]*\)/g, "");
+  limpio = limpio.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+
+  // Títulos, citas y líneas horizontales.
+  limpio = limpio.replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "");
+  limpio = limpio.replace(/^[ \t]*>[ \t]?/gm, "");
+  limpio = limpio.replace(/^[ \t]*([-*_])\1{2,}[ \t]*$/gm, "");
+
+  // Tablas: solo si hay una fila separadora (---|---|---).
+  const lineas = limpio.split("\n");
+  const hayTabla = lineas.some((linea) =>
+    /^[ \t]*\|?[ \t]*:?-{3,}[ \t]*(\|[ \t]*:?-{3,}[ \t]*)*\|?[ \t]*$/.test(linea)
+  );
+  if (hayTabla) {
+    limpio = lineas
+      .filter((linea) => !/^[ \t]*\|?[ \t]*:?-{3,}/.test(linea))
+      .map((linea) =>
+        linea.includes("|") ? linea.replace(/[ \t]*\|[ \t]*/g, " ").trim() : linea
+      )
+      .join("\n");
+  }
+
+  // HTML: comentarios (incluido su contenido) y etiquetas.
+  limpio = limpio.replace(/<!--[\s\S]*?-->/g, "");
+  limpio = limpio.replace(/<\/?[a-zA-Z][^>]*>/g, "");
+
+  // Negrita/cursiva de más: ***texto*** y __texto__ quedan como **texto**.
+  limpio = limpio.replace(/\*\*\*([^*]+)\*\*\*/g, "**$1**");
+  limpio = limpio.replace(/__([^_]+)__/g, "**$1**");
+
+  // Espacios al final de línea y saltos de más (máximo uno entre bloques).
+  limpio = limpio.replace(/[ \t]+$/gm, "");
+  limpio = limpio.replace(/\n{3,}/g, "\n\n");
+  return limpio.trim();
+}
+
 /** Números de un texto ya convertidos a texto, listos para validarTextoLLM. */
 export function cifrasEnTexto(texto: string): string[] {
   return extraerNumeros(texto).map((valor) => String(valor));
@@ -130,6 +224,10 @@ function numeroDeCifra(cifra: string): number {
  * una URL, quedó cortado a mitad de frase (no cierra con . ! ? » " ) o menciona
  * algún número que no esté entre las cifras permitidas.
  *
+ * El largo y las cifras se miden SIN los símbolos del Markdown permitido
+ * (`**negrita**` y la viñeta "- "): así una respuesta con viñetas no se rechaza
+ * por los símbolos de formato ni los hace pasar por cifras nuevas.
+ *
  * `maxCaracteres` permite que una intención con más contexto (por ejemplo
  * simular_escenario) use un tope mayor sin cambiar el comportamiento por
  * defecto del resto.
@@ -143,17 +241,22 @@ export function validarTextoLLM(
   // comilla final, que sí es un cierre válido.
   const bruto = (texto ?? "").trim();
   const limpio = recortarComillas(texto ?? "");
-  if (limpio.length === 0) return { valido: false, motivo: "vacio" };
-  if (limpio.length > maxCaracteres) {
+  // Sin los símbolos de formato: es el texto que ve la persona.
+  const plano = sinSimbolosMarkdown(limpio);
+  if (plano.length === 0) return { valido: false, motivo: "vacio" };
+  if (plano.length > maxCaracteres) {
     return { valido: false, motivo: "largo" };
   }
   if (/https?:\/\/|www\./i.test(limpio)) return { valido: false, motivo: "url" };
-  if (!RE_CIERRE_TEXTO.test(bruto)) return { valido: false, motivo: "truncado" };
+  // El último bloque puede ser una viñeta que cierra en punto.
+  if (!RE_CIERRE_TEXTO.test(sinSimbolosMarkdown(bruto))) {
+    return { valido: false, motivo: "truncado" };
+  }
 
   const permitidos = new Set(
     cifrasPermitidas.map(numeroDeCifra).filter((valor) => Number.isFinite(valor)),
   );
-  for (const valor of extraerNumeros(limpio)) {
+  for (const valor of extraerNumeros(plano)) {
     if (!permitidos.has(valor)) {
       return { valido: false, motivo: `cifra_no_permitida:${valor}` };
     }

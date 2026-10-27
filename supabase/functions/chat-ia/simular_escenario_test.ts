@@ -227,7 +227,7 @@ Deno.test("caso d) recorte: los hechos obligatorios son los meses antes y despu�
   assertEquals(hecho(resultado, 'Meses para "Viaje"'), "2 meses");
   assert(
     resultado.texto_plantilla.includes(
-      'Hoy, a tu ritmo de $400.000 al mes, llegarías a "Viaje" en 5 meses; si recortas $500.000 en Comidas fuera y domicilios, pasarías a 2 meses (adelantas 3).',
+      'Si recortas $500.000 al mes en Comidas fuera y domicilios:\n\n- hoy, a tu ritmo de $400.000 al mes, llegarías a "Viaje" en 5 meses\n- con el recorte pasarías a 2 meses (adelantas 3)',
     ),
   );
 
@@ -379,7 +379,7 @@ Deno.test("caso d) recorte: caso real (ritmo 30 días 130.000 vs ahorro 43.333) 
   assertEquals(hecho(resultado, 'Meses que adelantas en "Moto"'), "4 meses");
   assert(
     resultado.texto_plantilla.includes(
-      'Hoy, a tu ritmo de $43.333 al mes, llegarías a "Moto" en 25 meses; si recortas $7.667 en Comidas fuera y domicilios, pasarías a 21 meses (adelantas 4).',
+      'Si recortas $7.667 al mes en Comidas fuera y domicilios:\n\n- hoy, a tu ritmo de $43.333 al mes, llegarías a "Moto" en 25 meses\n- con el recorte pasarías a 21 meses (adelantas 4)',
     ),
   );
 });
@@ -399,7 +399,7 @@ Deno.test("caso d) recorte sin ritmo de ahorro: lo dice y no promete meses hoy",
   );
 
   assertEquals(resultado.caso, "recorte");
-  assert(resultado.texto_plantilla.includes("Hoy no tienes un ritmo de ahorro"));
+  assert(resultado.texto_plantilla.includes("hoy no tienes un ritmo de ahorro"));
   assertEquals(hecho(resultado, 'Meses hoy para "Viaje"'), null);
   assertEquals(hecho(resultado, 'Meses para "Viaje"'), "4 meses");
 });
@@ -509,7 +509,7 @@ Deno.test("caso c) con lo que ahorro: proyecta al plazo y pide el precio", () =>
   assertEquals(hecho(resultado, "Tendrías para esa fecha"), "$800.000");
   assert(
     resultado.texto_plantilla.includes(
-      "Con tu ritmo de ahorro de $400.000 al mes, para diciembre tendrías unos $800.000.",
+      "Con tu ritmo de ahorro de $400.000 al mes:\n\n- para diciembre tendrías unos $800.000",
     ),
   );
   assert(resultado.texto_plantilla.includes("¿Cuánto cuesta el portatil?"));
@@ -548,7 +548,7 @@ Deno.test("caso g) sin caso claro: resume el perfil y pide un dato", () => {
   assertEquals(resultado.caso, "resumen");
   assert(
     resultado.texto_plantilla.includes(
-      "tu ingreso mensual estimado es $3.000.000, tus gastos son $2.000.000 al mes, te quedan $1.000.000 al mes",
+      "Con lo que tengo registrado:\n\n- tu ingreso mensual estimado es $3.000.000\n- tus gastos son $2.000.000 al mes\n- te quedan $1.000.000 al mes",
     ),
   );
   assert(resultado.texto_plantilla.includes("Dime una cuota, un monto o un plazo"));

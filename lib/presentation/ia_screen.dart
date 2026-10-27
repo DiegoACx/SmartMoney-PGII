@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../logic/auth_logic.dart';
@@ -490,6 +491,23 @@ class _IaScreenState extends State<IaScreen> {
     return _buildBurbujaAsistente(indice, mensaje, contenido);
   }
 
+  /// Estilo del Markdown de las respuestas del asistente: Poppins, los colores
+  /// de la app y viñetas cuidadas. Los enlaces y las imágenes no se dibujan.
+  MarkdownStyleSheet _estiloMarkdown() {
+    final base = GoogleFonts.poppins(fontSize: 14, height: 1.4, color: _texto);
+    return MarkdownStyleSheet(
+      p: base,
+      strong: base.copyWith(fontWeight: FontWeight.w600),
+      em: base.copyWith(fontStyle: FontStyle.italic),
+      listBullet: base.copyWith(fontWeight: FontWeight.w600, color: _verde),
+      listIndent: 18,
+      blockSpacing: 8,
+      // Los enlaces están desactivados: se muestran como texto normal.
+      a: base,
+      code: base,
+    );
+  }
+
   Widget _buildBurbujaUsuario(String contenido) {
     return Align(
       alignment: Alignment.centerRight,
@@ -547,13 +565,15 @@ class _IaScreenState extends State<IaScreen> {
               ),
               border: Border.all(color: _borde),
             ),
-            child: Text(
-              contenido,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                height: 1.4,
-                color: _texto,
-              ),
+            child: MarkdownBody(
+              data: contenido,
+              selectable: false,
+              // Un salto de línea en el texto del asistente se respeta tal cual.
+              softLineBreak: true,
+              styleSheet: _estiloMarkdown(),
+              // Sin enlaces ni imágenes: el asistente solo escribe texto.
+              onTapLink: (texto, enlace, titulo) {},
+              imageBuilder: (uri, titulo, alt) => const SizedBox.shrink(),
             ),
           ),
           if (aviso.isNotEmpty)

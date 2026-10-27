@@ -18,8 +18,11 @@ import {
 } from "../_shared/gemini.ts";
 import type { RespuestaIntencion } from "./tipos.ts";
 
+/** Tope de caracteres (sin símbolos de Markdown) para la reexplicación. */
+export const LLM_MAX_CARACTERES_CONVERSACION = 420;
+
 const INSTRUCCION_SEGUIMIENTO =
-  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Reexplica la idea anterior en máximo 3 frases cortas (menos de 280 caracteres en total), en español colombiano, tuteando, con palabras muy sencillas y sin tecnicismos. Usa SOLO las cifras que aparezcan en la explicación anterior, escritas exactamente igual; no agregues números nuevos. Responde solo con el texto, sin comillas ni emojis.";
+  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Reexplica la idea anterior en español colombiano, tuteando, con palabras muy sencillas y sin tecnicismos. Usa esta estructura: una frase inicial que responda directo, si hace falta de 2 a 4 viñetas que empiecen con \"- \" y una frase final corta; el texto, sin contar los símbolos de formato, debe quedar por debajo de 420 caracteres. Puedes poner en **negrita** las cifras clave, pero usa SOLO las cifras que aparezcan en la explicación anterior, escritas exactamente igual; no agregues números nuevos. No uses títulos, enlaces, imágenes, tablas, código ni HTML. Responde solo con el texto, sin comillas ni emojis.";
 
 const EJEMPLOS =
   "Puedes preguntarme «¿cuánto llevo gastado esta semana?», «¿cómo van mis metas?» o «¿cómo registro un movimiento?».";
@@ -111,7 +114,12 @@ async function responderSeguimiento(
       instruccion: INSTRUCCION_SEGUIMIENTO,
       mensaje: `Explicación anterior: ${anterior}\nReexplícala más fácil.`,
     },
-    (texto) => validarTextoLLM(texto, cifrasEnTexto(anterior)),
+    (texto) =>
+      validarTextoLLM(
+        texto,
+        cifrasEnTexto(anterior),
+        LLM_MAX_CARACTERES_CONVERSACION,
+      ),
     entrada.fetchFn,
     { clave: entrada.claveLLM },
   );

@@ -7,12 +7,15 @@
 // respaldo una sola vez y que el motivo deje rastro.
 // ============================================================================
 
-import { assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals } from "jsr:@std/assert@1";
 
 import {
   GEMINI_MODELO,
   GEMINI_MODELO_RESPALDO,
   generarConGemini,
+  limpiarMarkdownNoPermitido,
+  longitudSinSimbolos,
+  sinSimbolosMarkdown,
   validarTextoLLM,
 } from "./gemini.ts";
 
@@ -208,4 +211,83 @@ Deno.test("404 y 503 siguen cayendo al respaldo como antes", async () => {
   assertEquals(por503.motivo, "ok");
   assertEquals(por503.modelo, GEMINI_MODELO_RESPALDO);
   assertEquals(llamadas503, [GEMINI_MODELO, GEMINI_MODELO_RESPALDO]);
+});
+
+// --- Formato en bloques, limpieza y medición sin símbolos ---------------------
+
+Deno.test("limpiarMarkdownNoPermitido deja solo negrita, viñetas y saltos", () => {
+  const sucio = [
+    "# Título que sobra",
+    "",
+    "Mira esto: ![grafico](https://x.com/i.png) y este [enlace](https://x.com).",
+    "",
+    "| Concepto | Valor |",
+    "| --- | --- |",
+    "| Deuda | $500.000 |",
+    "",
+    "<div>algo de HTML</div><!-- comentario -->",
+    "",
+    "`codigo` y ```bloque```",
+    "",
+    "- dato **importante**",
+    "***mucho***",
+  ].join("\n");
+
+  const limpio = limpiarMarkdownNoPermitido(sucio);
+
+  // Títulos, HTML, comentarios, imágenes, tablas y código: fuera.
+  assertEquals(limpio.includes("#"), false);
+  assertEquals(limpio.includes("<div>"), false);
+  assertEquals(limpio.includes("comentario"), false);
+  assertEquals(limpio.includes("![grafico]"), false);
+  assertEquals(limpio.includes("|"), false);
+  assertEquals(limpio.includes("`"), false);
+  // El enlace conserva su texto, la tabla su dato y la negrita se mantiene.
+  assertEquals(limpio.includes("enlace"), true);
+  assertEquals(limpio.includes("$500.000"), true);
+  assertEquals(limpio.includes("**importante**"), true);
+  assertEquals(limpio.includes("***mucho***"), false);
+});
+
+Deno.test("validarTextoLLM acepta cifras en negrita dentro de viñetas", () => {
+  const texto = "Con tu excedente te cabría una cuota.\n\n" +
+    "- cuota de **$500.000** al mes\n" +
+    "- te quedarían **$500.000** libres\n\n" +
+    "Empieza por ahí.";
+  assertEquals(validarTextoLLM(texto, ["$500.000"]), {
+    valido: true,
+    motivo: "ok",
+  });
+});
+
+Deno.test("validarTextoLLM mide el largo sin los símbolos de Markdown", () => {
+  // Viñetas con negrita: el texto con símbolos es más largo que el que ve la
+  // persona, así que el tope se aplica sobre el texto plano.
+  const texto = "Cierre.\n\n" +
+    ["uno", "dos", "tres", "cuatro", "cinco"]
+      .map(() => "- **$100.000** de gasto fijo.")
+      .join("\n");
+
+  assert(longitudSinSimbolos(texto) < texto.length);
+  // Con el tope exacto del texto plano, cabe.
+  assertEquals(
+    validarTextoLLM(texto, ["$100.000"], longitudSinSimbolos(texto)),
+    { valido: true, motivo: "ok" },
+  );
+  // Una letra menos en el tope ya lo rechaza.
+  assertEquals(
+    validarTextoLLM(texto, ["$100.000"], longitudSinSimbolos(texto) - 1),
+    { valido: false, motivo: "largo" },
+  );
+});
+
+Deno.test("validarTextoLLM acepta que el último bloque sea una viñeta", () => {
+  const texto = "Estos son los pasos:\n\n" +
+    "- registra tus gastos.\n" +
+    "- aparta algo cada mes.";
+  assertEquals(validarTextoLLM(texto, []), { valido: true, motivo: "ok" });
+});
+
+Deno.test("sinSimbolosMarkdown quita la negrita y la viñeta, no el texto", () => {
+  assertEquals(sinSimbolosMarkdown("- **$500.000** al mes"), "$500.000 al mes");
 });

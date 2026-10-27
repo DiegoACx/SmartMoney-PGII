@@ -232,7 +232,7 @@ Deno.test("consejo: rechaza cifras inventadas y cae a la plantilla", async () =>
     "consejo:validacion:cifra_no_permitida:9999999",
   );
   assertEquals(resultado.aviso, AVISO_CONSEJO);
-  assert(resultado.respuesta.startsWith("1. "));
+  assert(resultado.respuesta.startsWith("Dos pasos concretos para empezar:"));
 });
 
 Deno.test("consejo: 429 de Gemini cae a la plantilla y el motivo lo deja claro", async () => {
@@ -255,7 +255,7 @@ Deno.test("consejo: 429 de Gemini cae a la plantilla y el motivo lo deja claro",
   assertEquals(resultado.origen, "plantilla");
   assertEquals(resultado.motivo, "consejo:gemini_429_ambos_plantilla");
   assertEquals(resultado.aviso, AVISO_CONSEJO);
-  assert(resultado.respuesta.startsWith("1. "));
+  assert(resultado.respuesta.startsWith("Dos pasos concretos para empezar:"));
 });
 
 Deno.test("consejo: acepta como válida una cifra del mensaje («1 millon» → $1.000.000)", async () => {
@@ -331,7 +331,7 @@ Deno.test("consejo sin Gemini: dos pasos con el mayor gasto y la meta", async ()
   assertEquals(resultado.origen, "plantilla");
   assertEquals(resultado.motivo, "consejo:sin_clave");
   assertEquals(resultado.aviso, AVISO_CONSEJO);
-  assert(resultado.respuesta.startsWith("1. revisa"));
+  assert(resultado.respuesta.includes("- revisa"));
   assert(resultado.respuesta.includes("Comidas fuera y domicilios"));
   assert(resultado.respuesta.includes('"Viaje"'));
 });
@@ -350,7 +350,7 @@ Deno.test("consejo con excedente negativo: el primer paso es equilibrar", async 
   );
 
   assertEquals(resultado.origen, "plantilla");
-  assert(resultado.respuesta.startsWith("1. equilibra primero tus gastos con tus ingresos"));
+  assert(resultado.respuesta.includes("- equilibra primero tus gastos con tus ingresos"));
   assert(
     resultado.respuesta.includes("tus gastos superan tus ingresos en $500.000 al mes"),
   );

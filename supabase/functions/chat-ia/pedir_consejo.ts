@@ -13,6 +13,7 @@
 
 import {
   cifrasEnTexto,
+  formatoBloques,
   formatearCOP,
   generarConGemini,
   validarTextoLLM,
@@ -32,7 +33,7 @@ import { fraseMargen, gruposMayorGasto } from "./simular_escenario.ts";
 import type { Accion, RespuestaIntencion } from "./tipos.ts";
 
 /** Tope de caracteres del texto redactado por Gemini en esta intención. */
-export const LLM_MAX_CARACTERES_CONSEJO = 450;
+export const LLM_MAX_CARACTERES_CONSEJO = 650;
 
 /** Se agrega a toda respuesta de la intención (el usuario lo ve en la app). */
 export const AVISO_CONSEJO =
@@ -42,7 +43,7 @@ export const AVISO_CONSEJO =
 export const DIAS_HALLAZGOS = 7;
 
 const INSTRUCCION_CONSEJO =
-  "Eres el asesor financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Da 2 o 3 pasos concretos y aplicables, en máximo 450 caracteres, en español colombiano, tuteando y sin regaños. Usa SOLO las cifras del contexto y las que escribió el usuario, escritas igual; no inventes cifras, tasas ni plazos. No recomiendes bancos, productos financieros ni inversiones específicas. Si la decisión es entre productos financieros, da criterios generales: fondo de emergencia primero, pagar primero la deuda más cara y comparar la tasa efectiva anual. Si el tema son impuestos o reportes en centrales de riesgo, sugiere consultar a la DIAN o a la entidad. Si el excedente es cero o negativo, el primer paso siempre es equilibrar los gastos con los ingresos. Responde solo con el texto, sin comillas ni emojis.";
+  "Eres el asesor financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Da 2 o 3 pasos concretos y aplicables, en español colombiano, tuteando y sin regaños. Usa esta estructura: una frase inicial que responda directo, de 2 a 3 viñetas que empiecen con \"- \" y una frase final corta; el texto, sin contar los símbolos de formato, debe quedar por debajo de 650 caracteres. Puedes poner en **negrita** las cifras clave. Usa SOLO las cifras del contexto y las que escribió el usuario, escritas igual; no inventes cifras, tasas ni plazos. No recomiendes bancos, productos financieros ni inversiones específicas. Si la decisión es entre productos financieros, da criterios generales: fondo de emergencia primero, pagar primero la deuda más cara y comparar la tasa efectiva anual. Si el tema son impuestos o reportes en centrales de riesgo, sugiere consultar a la DIAN o a la entidad. Si el excedente es cero o negativo, el primer paso siempre es equilibrar los gastos con los ingresos. No uses títulos, enlaces, imágenes, tablas, código ni HTML. Responde solo con el texto, sin comillas ni emojis.";
 
 export interface DepsConsejo {
   repositorio: RepositorioChat;
@@ -225,7 +226,9 @@ function plantillaConsejo(
   const pasos: string[] = [];
   const excedente = perfil.excedente_mensual;
   const fraseEquilibrar = excedente !== null && excedente <= 0
-    ? `equilibra primero tus gastos con tus ingresos: hoy ${fraseMargen(excedente)}`
+    ? `equilibra primero tus gastos con tus ingresos: hoy **${
+      fraseMargen(excedente)
+    }**`
     : null;
 
   // Ante una decisión, el orden correcto de criterios para elegir.
@@ -240,14 +243,20 @@ function plantillaConsejo(
     pasos.push(
       "compara la tasa efectiva anual de la deuda con la que te ofrezca el ahorro y elige la más alta",
     );
-    return pasos.map((paso, indice) => `${indice + 1}. ${paso}.`).join(" ");
+    return formatoBloques(
+      "Para decidir, mira estos criterios en orden:",
+      pasos,
+      "Con eso puedes comparar las opciones que te ofrezcan.",
+    );
   }
 
   if (fraseEquilibrar !== null) pasos.push(fraseEquilibrar);
 
   if (mayores.length > 0) {
     pasos.push(
-      `revisa "${mayores[0].nombre}", donde más gastas (${formatearCOP(mayores[0].monto)} al mes): ahí tienes el mayor margen para ajustar`,
+      `revisa "${mayores[0].nombre}", donde más gastas (**${
+        formatearCOP(mayores[0].monto)
+      }** al mes): ahí tienes el mayor margen para ajustar`,
     );
   }
 
@@ -255,7 +264,7 @@ function plantillaConsejo(
   if (meta !== null) {
     const ritmo = meta.meses_al_ritmo_actual;
     pasos.push(
-      `para "${meta.nombre}" te faltan ${formatearCOP(meta.falta)}` +
+      `para "${meta.nombre}" te faltan **${formatearCOP(meta.falta)}**` +
         (ritmo !== null ? `; a tu ritmo actual llegarías en ${ritmo} meses` : ""),
     );
   }
@@ -264,7 +273,13 @@ function plantillaConsejo(
   if (elegidos.length === 0) {
     return "Registra tus ingresos y tus gastos de este mes y con eso te doy pasos concretos.";
   }
-  return elegidos.map((paso, indice) => `${indice + 1}. ${paso}.`).join(" ");
+  return formatoBloques(
+    elegidos.length === 1
+      ? "Un paso concreto para empezar:"
+      : "Dos pasos concretos para empezar:",
+    elegidos,
+    "Empieza por el primero y me cuentas cómo te va.",
+  );
 }
 
 // --- Respuesta ----------------------------------------------------------------

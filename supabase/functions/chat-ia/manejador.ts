@@ -17,6 +17,7 @@
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
+import { limpiarMarkdownNoPermitido } from "../_shared/gemini.ts";
 import {
   clasificarIntencion as clasificarIntencionReal,
   grupos as gruposReales,
@@ -465,6 +466,10 @@ export async function manejarPeticion(
     //   "modelo|aprender:glosario:cdt"
     const motivo = `${decision.origen}|${resultado.motivo}`;
 
+    // Última barrera antes de guardar y enviar: solo se admite el Markdown
+    // permitido (**negrita**, viñetas "- " y saltos de línea). Nunca HTML.
+    const respuestaFinal = limpiarMarkdownNoPermitido(resultado.respuesta);
+
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,
       rol: "usuario",
@@ -478,7 +483,7 @@ export async function manejarPeticion(
     await dependencias.repositorio.insertarMensaje({
       usuario_id: usuarioId,
       rol: "asistente",
-      contenido: resultado.respuesta,
+      contenido: respuestaFinal,
       intencion,
       confianza: confianzaFinal,
       origen: resultado.origen,
@@ -493,7 +498,7 @@ export async function manejarPeticion(
     );
 
     const respuesta: RespuestaChat = {
-      respuesta: resultado.respuesta,
+      respuesta: respuestaFinal,
       intencion,
       confianza: confianzaFinal,
       origen: resultado.origen,

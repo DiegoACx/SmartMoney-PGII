@@ -16,7 +16,9 @@
 
 import {
   cifrasEnTexto,
+  formatoBloques,
   generarConGemini,
+  sinSimbolosMarkdown,
   validarTextoLLM,
 } from "../_shared/gemini.ts";
 import {
@@ -29,7 +31,7 @@ import type { RepositorioChat } from "./repositorio.ts";
 import type { RespuestaIntencion } from "./tipos.ts";
 
 /** Tope de caracteres del texto redactado por Gemini en esta intención. */
-export const LLM_MAX_CARACTERES_APRENDIZAJE = 450;
+export const LLM_MAX_CARACTERES_APRENDIZAJE = 600;
 
 /** Cierre obligatorio de una explicación sin fuente en el glosario. */
 export const CIERRE_FUENTE_OFICIAL =
@@ -40,9 +42,9 @@ export const SIN_INFORMACION =
   "Todavía no tengo información confiable sobre eso.";
 
 const INSTRUCCION_FUENTE =
-  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Explica el concepto en máximo 4 frases cortas, en español colombiano sencillo, tuteando. Usa SOLO el texto fuente que te doy: no agregues datos, cifras ni condiciones que no estén ahí. Si el texto fuente no explica el concepto preguntado, responde exactamente " +
+  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Explica el concepto en español colombiano sencillo, tuteando, con esta estructura: una frase inicial que responda directo, si hace falta de 2 a 4 viñetas que empiecen con \"- \" y, cuando el texto fuente traiga un ejemplo, una última línea que empiece con **Ejemplo:**; el texto, sin contar los símbolos de formato, debe quedar por debajo de 600 caracteres. Puedes poner en **negrita** las cifras clave. Usa SOLO el texto fuente que te doy: no agregues datos, cifras ni condiciones que no estén ahí. Si el texto fuente no explica el concepto preguntado, responde exactamente " +
   SIN_INFORMACION +
-  " Las únicas cifras que puedes escribir son las del texto fuente, igual. No menciones bancos ni productos por su nombre. No menciones \"el texto\", \"la fuente\" ni \"lo que me das\": respóndele al usuario directamente, sin hablar de dónde sacaste la información. Responde solo con el texto, sin comillas ni emojis.";
+  " Las únicas cifras que puedes escribir son las del texto fuente, igual. No menciones bancos ni productos por su nombre. No uses títulos, enlaces, imágenes, tablas, código ni HTML. No menciones \"el texto\", \"la fuente\" ni \"lo que me das\": respóndele al usuario directamente, sin hablar de dónde sacaste la información. Responde solo con el texto, sin comillas ni emojis.";
 
 /** Frases prohibidas: delatan que el modelo habla de la fuente y no del concepto. */
 const FRASES_PROHIBIDAS = ["el texto", "la fuente", "lo que me das"];
@@ -54,7 +56,7 @@ function mencionaFuente(texto: string): boolean {
 }
 
 const INSTRUCCION_GENERAL =
-  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Explica la idea en máximo 3 frases, en español colombiano sencillo, tuteando. No escribas cifras: nada de porcentajes, montos, pesos ni números. No menciones bancos ni productos financieros por su nombre. Termina el texto exactamente con esta frase: " +
+  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Explica la idea con una frase inicial y, si hace falta, de 2 a 4 viñetas que empiecen con \"- \"; el texto, sin contar los símbolos de formato, debe quedar por debajo de 600 caracteres. Escribe en español colombiano sencillo, tuteando. No escribas cifras: nada de porcentajes, montos, pesos ni números. No menciones bancos ni productos financieros por su nombre. No uses títulos, enlaces, imágenes, tablas, código ni HTML. Termina el texto exactamente con esta frase: " +
   CIERRE_FUENTE_OFICIAL +
   " Responde solo con el texto, sin comillas ni emojis.";
 
@@ -115,7 +117,7 @@ function textoFuente(coincidencia: Coincidencia): string {
 function plantillaConFuente(coincidencia: Coincidencia): string {
   if (coincidencia.glosario !== null) {
     const { definicion, ejemplo } = coincidencia.glosario.entrada;
-    return `${definicion} ${ejemplo}`;
+    return formatoBloques(definicion, [], `**Ejemplo:** ${ejemplo}`);
   }
   const { titulo, contenido } = coincidencia.leccion!.leccion;
   return `${titulo}: ${(contenido ?? "").slice(0, LARGO_FUENTE_LECCION)}`;
@@ -191,7 +193,8 @@ function validarGeneral(texto: string): { valido: boolean; motivo: string } {
     LLM_MAX_CARACTERES_APRENDIZAJE,
   );
   if (!general.valido) return general;
-  if (!texto.trim().endsWith(CIERRE_FUENTE_OFICIAL)) {
+  // El cierre se mira sin los símbolos de formato: la frase puede ir en **negrita**.
+  if (!sinSimbolosMarkdown(texto).endsWith(CIERRE_FUENTE_OFICIAL)) {
     return { valido: false, motivo: "sin_fuente_oficial" };
   }
   return { valido: true, motivo: "ok" };
@@ -218,8 +221,11 @@ async function responderGeneral(
 
   const sugeridos = sugerirConceptos().map((entrada) => entrada.termino);
   return {
-    respuesta:
-      `${SIN_INFORMACION} Puedes empezar por estos temas: ${sugeridos.join(", ")}.`,
+    respuesta: formatoBloques(
+      SIN_INFORMACION,
+      sugeridos,
+      "Puedes empezar por uno de estos temas.",
+    ),
     origen: "plantilla",
     motivo: `aprender:general:${resultado.motivo}`,
   };

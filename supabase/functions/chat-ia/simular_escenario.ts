@@ -24,6 +24,7 @@
 import {
   cifrasEnTexto,
   formatearCOP,
+  formatoBloques,
   generarConGemini,
   validarTextoLLM,
 } from "../_shared/gemini.ts";
@@ -48,14 +49,14 @@ import type { RepositorioChat } from "./repositorio.ts";
 import type { RespuestaIntencion } from "./tipos.ts";
 
 /** Tope de caracteres del texto redactado por Gemini en esta intención. */
-export const LLM_MAX_CARACTERES_SIMULACION = 450;
+export const LLM_MAX_CARACTERES_SIMULACION = 650;
 
 /** Se agrega a toda respuesta de la intención (el usuario lo ve en la app). */
 export const AVISO_SIMULACION =
   "Es una estimación con tus registros; no es asesoría financiera profesional.";
 
 const INSTRUCCION_SIMULACION =
-  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Responde primero directamente la pregunta y luego explica. Explica el resultado en máximo 3 frases, tuteando, en español colombiano, usando SOLO estas cifras escritas igual. No inventes cifras, tasas ni plazos. No recomiendes bancos ni productos específicos. Responde solo con el texto, sin comillas ni emojis.";
+  "Eres el asistente financiero de SmartMoney para trabajadores independientes y jóvenes adultos en Colombia. Usa esta estructura: una frase inicial que responda directo la pregunta, si hace falta de 2 a 4 viñetas que empiecen con \"- \" con los datos o los pasos clave (las cifras clave en **negrita**) y una frase final corta. El texto, sin contar los símbolos de formato, debe quedar por debajo de 650 caracteres. Tutea, en español colombiano, y usa SOLO las cifras que aparezcan en los hechos, escritas igual. No inventes cifras, tasas ni plazos. No recomiendes bancos ni productos específicos. No uses títulos, enlaces, imágenes, tablas, código ni HTML. Responde solo con el texto, sin comillas ni emojis.";
 
 // --- Palabras clave de cada caso ---------------------------------------------
 
@@ -237,10 +238,16 @@ function resumen(perfil: PerfilFinanciero, pregunta: string | null): Simulacion 
   // La cifra principal del resumen es la primera que sí tengamos.
   if (hechos.length > 0) hechos[0].obligatorio = true;
 
-  const cuerpo = `Con lo que tengo registrado: ${partes.join(", ")}.`;
-  const cierre = pregunta ??
-    "Dime una cuota, un monto o un plazo (por ejemplo «en 6 meses») y hago la simulación.";
-  return { caso: "resumen", hechos, texto_plantilla: `${cuerpo} ${cierre}` };
+  return {
+    caso: "resumen",
+    hechos,
+    texto_plantilla: formatoBloques(
+      "Con lo que tengo registrado:",
+      partes,
+      pregunta ??
+        "Dime una cuota, un monto o un plazo (por ejemplo «en 6 meses») y hago la simulación.",
+    ),
+  };
 }
 
 /**
@@ -285,23 +292,30 @@ function casoCapacidadSinMargen(
     });
   }
 
-  let texto = `Hoy ${fraseMargen(excedente)}, así que no te queda margen`;
-  texto += cuota !== null
-    ? ` para una cuota de ${formatearCOP(cuota)}.`
-    : " para una cuota.";
-  const cuentas = perfil.ingreso_mensual !== null
-    ? ` Tu ingreso es ${formatearCOP(perfil.ingreso_mensual)} y tus gastos ${formatearCOP(perfil.gasto_mensual)}`
-    : ` Tus gastos son ${formatearCOP(perfil.gasto_mensual)}`;
-  texto +=
-    `${cuentas}: para equilibrar tendrías que bajar ${formatearCOP(deficit)} al mes.`;
+  const inicio = `Hoy ${fraseMargen(excedente)}, así que no te queda margen` +
+    (cuota !== null
+      ? ` para una cuota de ${formatearCOP(cuota)}.`
+      : " para una cuota.");
+  const vinetas: string[] = [
+    perfil.ingreso_mensual !== null
+      ? `tu ingreso es ${formatearCOP(perfil.ingreso_mensual)} y tus gastos ${formatearCOP(perfil.gasto_mensual)}`
+      : `tus gastos son ${formatearCOP(perfil.gasto_mensual)}`,
+    `para equilibrar tendrías que bajar ${formatearCOP(deficit)} al mes`,
+  ];
   if (mayores.length > 0) {
     const donde = mayores
       .map((grupo) => `"${grupo.nombre}" (${formatearCOP(grupo.monto)})`)
       .join(" y ");
-    texto += ` Los grupos donde más gastas son ${donde}: ahí suele haber más para recortar.`;
+    vinetas.push(
+      `los grupos donde más gastas son ${donde}: ahí suele haber más para recortar`,
+    );
   }
 
-  return { caso: "capacidad_pago", hechos, texto_plantilla: texto };
+  return {
+    caso: "capacidad_pago",
+    hechos,
+    texto_plantilla: formatoBloques(inicio, vinetas, ""),
+  };
 }
 
 /**
@@ -349,14 +363,24 @@ function casoCapacidadSinMonto(
     valor_formateado: `${formatearCOP(topeGuia)} (30 %)`,
   });
 
-  let texto = `Con tu excedente de ${formatearCOP(excedente)} al mes`;
-  if (apartar > 0) {
-    texto += ` y los ${formatearCOP(apartar)} que necesitas apartar para ${nombres}`;
-  }
-  texto +=
-    `, te cabría una cuota de hasta ${formatearCOP(cuotaMaxima)} al mes. Como guía general se dice que las cuotas de deudas no deberían pasar del 30 % de tu ingreso (${formatearCOP(topeGuia)}), pero eso no es una norma fija. Dime de cuánto sería la cuota que te ofrecen y la comparo con tu excedente.`;
+  const inicio = `Con tu excedente de ${formatearCOP(excedente)} al mes` +
+    (apartar > 0
+      ? ` y los ${formatearCOP(apartar)} que necesitas apartar para ${nombres}`
+      : "") +
+    `, te cabría una cuota de hasta ${formatearCOP(cuotaMaxima)} al mes.`;
+  const vinetas = [
+    `como guía general se dice que las cuotas de deudas no deberían pasar del 30 % de tu ingreso (${formatearCOP(topeGuia)}), pero eso no es una norma fija`,
+  ];
 
-  return { caso: "capacidad_pago", hechos, texto_plantilla: texto };
+  return {
+    caso: "capacidad_pago",
+    hechos,
+    texto_plantilla: formatoBloques(
+      inicio,
+      vinetas,
+      "Dime de cuánto sería la cuota que te ofrecen y la comparo con tu excedente.",
+    ),
+  };
 }
 
 /** a) ¿Me alcanza para una cuota de X al mes? */
@@ -422,15 +446,20 @@ function casoCapacidad(
     valor_formateado: `${formatearCOP(topeGuia)} (30 %)`,
   });
 
-  const cierre = libre >= 0
+  const respuesta = libre >= 0
     ? `Con una cuota de ${formatearCOP(cuota)} al mes, que es el ${porcentaje} % de tu ingreso, te quedarían ${formatearCOP(libre)} libres.`
     : `Con una cuota de ${formatearCOP(cuota)} al mes, que es el ${porcentaje} % de tu ingreso, te faltarían ${formatearCOP(-libre)} al mes para cubrirla.`;
 
   return {
     caso: "capacidad_pago",
     hechos,
-    texto_plantilla:
-      `${cierre} Como guía general se dice que las cuotas de deudas no deberían pasar del 30 % de tu ingreso (${formatearCOP(topeGuia)}), pero eso no es una norma fija.`,
+    texto_plantilla: formatoBloques(
+      respuesta,
+      [
+        `como guía general se dice que las cuotas de deudas no deberían pasar del 30 % de tu ingreso (${formatearCOP(topeGuia)}), pero eso no es una norma fija`,
+      ],
+      "",
+    ),
   };
 }
 
@@ -465,17 +494,18 @@ function casoAhorro(
     { etiqueta: "En 6 meses", valor_formateado: formatearCOP(ahorro * 6) },
     { etiqueta: "En 12 meses", valor_formateado: formatearCOP(ahorro * 12) },
   ];
-  const partes = [
-    `Si ahorras ${formatearCOP(ahorro)} al mes, en 6 meses tendrías ${formatearCOP(ahorro * 6)} y en 12 meses ${formatearCOP(ahorro * 12)}.`,
+  const vinetas = [
+    `en 6 meses tendrías ${formatearCOP(ahorro * 6)}`,
+    `en 12 meses tendrías ${formatearCOP(ahorro * 12)}`,
   ];
+  let cierre = "";
 
   // El escenario que pide se calcula igual, pero se advierte que hoy no cabe.
   const excedente = perfil.excedente_mensual;
   if (excedente !== null && excedente <= 0) {
     hechos.push(hechoExcedente(excedente));
-    partes.push(
-      `Ojo: hoy ${fraseMargen(excedente)}, así que ese ahorro te exigiría recortar gastos.`,
-    );
+    cierre =
+      `Ojo: hoy ${fraseMargen(excedente)}, así que ese ahorro te exigiría recortar gastos.`;
   }
 
   if (objetivo !== null && objetivo > 0) {
@@ -484,8 +514,8 @@ function casoAhorro(
       etiqueta: "Meses para tu objetivo",
       valor_formateado: `${meses} meses`,
     });
-    partes.push(
-      `Para juntar ${formatearCOP(objetivo)} necesitarías ${meses} meses.`,
+    vinetas.push(
+      `para juntar ${formatearCOP(objetivo)} necesitarías ${meses} meses`,
     );
   } else if (perfil.metas.length > 0) {
     for (const meta of perfil.metas) {
@@ -498,17 +528,24 @@ function casoAhorro(
         etiqueta: `Meses para "${meta.nombre}"`,
         valor_formateado: `${meses} meses`,
       });
-      partes.push(
-        `A ese ritmo llegarías a "${meta.nombre}" en ${meses} meses (te faltan ${formatearCOP(meta.falta)}).`,
+      vinetas.push(
+        `a ese ritmo llegarías a "${meta.nombre}" en ${meses} meses (te faltan ${formatearCOP(meta.falta)})`,
       );
     }
   } else {
-    partes.push(
-      "Cuando registres una meta en la app te digo en cuántos meses la alcanzarías a ese ritmo.",
-    );
+    cierre =
+      "Cuando registres una meta en la app te digo en cuántos meses la alcanzarías a ese ritmo.";
   }
 
-  return { caso: "ahorro_periodico", hechos, texto_plantilla: partes.join(" ") };
+  return {
+    caso: "ahorro_periodico",
+    hechos,
+    texto_plantilla: formatoBloques(
+      `Si ahorras ${formatearCOP(ahorro)} al mes:`,
+      vinetas,
+      cierre,
+    ),
+  };
 }
 
 /** c) ¿Llego a X para tal plazo? (ritmo actual vs aporte necesario) */
@@ -553,20 +590,29 @@ function casoMetaPlazo(
   ];
 
   const faltaPorMes = necesario - ritmo;
-  let texto =
-    `Para juntar ${formatearCOP(objetivo)} en ${plazo} meses necesitas apartar ${formatearCOP(necesario)} al mes. Tu ritmo de ahorro es ${formatearCOP(ritmo)} al mes`;
+  const vinetas = [
+    `tu ritmo de ahorro es ${formatearCOP(ritmo)} al mes` +
+    (faltaPorMes > 0
+      ? `, así que te faltarían ${formatearCOP(faltaPorMes)} cada mes`
+      : ", que sí te alcanza"),
+  ];
 
   if (faltaPorMes > 0) {
     hechos.push({
       etiqueta: "Te falta por mes",
       valor_formateado: formatearCOP(faltaPorMes),
     });
-    texto += `, así que te faltarían ${formatearCOP(faltaPorMes)} cada mes.`;
-  } else {
-    texto += ", que sí te alcanza.";
   }
 
-  return { caso: "meta_plazo", hechos, texto_plantilla: texto };
+  return {
+    caso: "meta_plazo",
+    hechos,
+    texto_plantilla: formatoBloques(
+      `Para juntar ${formatearCOP(objetivo)} en ${plazo} meses necesitas apartar ${formatearCOP(necesario)} al mes.`,
+      vinetas,
+      "",
+    ),
+  };
 }
 
 /**
@@ -629,46 +675,55 @@ function casoMetaConRitmo(
       valor_formateado: formatearCOP(objetivo),
     });
     const diferencia = objetivo - total;
-    let texto =
-      `A tu ritmo de ahorro de ${formatearCOP(ritmo)} al mes, en ${plazo} meses tendrías ${formatearCOP(total)}`;
+    const vinetas = [
+      diferencia > 0
+        ? `para llegar a ${formatearCOP(objetivo)} te faltarían ${formatearCOP(diferencia)}`
+        : `con eso cubrirías los ${formatearCOP(objetivo)} que necesitas`,
+    ];
     if (diferencia > 0) {
       hechos.push({
         etiqueta: "Te faltarían para ese objetivo",
         valor_formateado: formatearCOP(diferencia),
       });
-      texto += ` Para llegar a ${formatearCOP(objetivo)} te faltarían ${formatearCOP(diferencia)}.`;
-    } else {
-      texto += ` Con eso cubrirías los ${formatearCOP(objetivo)} que necesitas.`;
     }
-    return { caso: "meta_plazo", hechos, texto_plantilla: texto };
+    return {
+      caso: "meta_plazo",
+      hechos,
+      texto_plantilla: formatoBloques(
+        `A tu ritmo de ahorro de ${formatearCOP(ritmo)} al mes, en ${plazo} meses tendrías ${formatearCOP(total)}.`,
+        vinetas,
+        "",
+      ),
+    };
   }
 
   // Sin precio: plantilla determinista (no pasa por Gemini).
   const mes = mesMencionado(mensaje);
   const objeto = objetoDeCompra(mensaje);
   const cuando = mes !== null ? `para ${mes}` : `en ${plazo} meses`;
-  let texto =
-    `Con tu ritmo de ahorro de ${formatearCOP(ritmo)} al mes, ${cuando} tendrías unos ${formatearCOP(total)}`;
-  if (yaLleva > 0 && meta !== null) {
-    texto +=
-      ` (incluyen los ${formatearCOP(yaLleva)} que ya llevas en "${meta.nombre}")`;
-  }
-  texto += ".";
+  const vineta = `${cuando} tendrías unos ${formatearCOP(total)}` +
+    (yaLleva > 0 && meta !== null
+      ? ` (incluyen los ${formatearCOP(yaLleva)} que ya llevas en "${meta.nombre}")`
+      : "");
 
   const excedente = perfil.excedente_mensual;
+  let cierre = "";
   if (excedente !== null && excedente <= 0) {
     hechos.push(hechoExcedente(excedente));
-    texto += ` Ojo: hoy ${fraseMargen(excedente)}.`;
+    cierre += `Ojo: hoy ${fraseMargen(excedente)}. `;
   }
-
-  texto += objeto !== null
-    ? ` ¿Cuánto cuesta el ${objeto}? Así te digo si alcanzas.`
-    : " ¿Cuánto cuesta lo que quieres comprar? Así te digo si alcanzas.";
+  cierre += objeto !== null
+    ? `¿Cuánto cuesta el ${objeto}? Así te digo si alcanzas.`
+    : "¿Cuánto cuesta lo que quieres comprar? Así te digo si alcanzas.";
 
   return {
     caso: "meta_plazo",
     hechos,
-    texto_plantilla: texto,
+    texto_plantilla: formatoBloques(
+      `Con tu ritmo de ahorro de ${formatearCOP(ritmo)} al mes:`,
+      [vineta],
+      cierre,
+    ),
     // Sin el precio no se puede afirmar si alcanza o no.
     requierePrecio: true,
   };
@@ -704,8 +759,10 @@ function casoRecorte(
     const hechos: Hecho[] = [
       { etiqueta: "Grupo de gasto", valor_formateado: grupoNombre },
     ];
-    let texto =
+    const inicio =
       `No tienes gastos registrados en ${grupoNombre} en los últimos 3 meses.`;
+    const vinetas: string[] = [];
+    let cierre = "Todavía no tengo gastos tuyos por grupo registrados.";
     if (mayores.length > 0) {
       const donde = mayores
         .map((grupo) => `"${grupo.nombre}" (${formatearCOP(grupo.monto)})`)
@@ -716,12 +773,14 @@ function casoRecorte(
           valor_formateado: formatearCOP(grupo.monto),
         });
       }
-      texto +=
-        ` Los grupos donde más gastas son ${donde}: por ahí podrías recortar.`;
-    } else {
-      texto += " Todavía no tengo gastos tuyos por grupo registrados.";
+      vinetas.push(`los grupos donde más gastas son ${donde}`);
+      cierre = "Por ahí podrías recortar.";
     }
-    return { caso: "recorte", hechos, texto_plantilla: texto };
+    return {
+      caso: "recorte",
+      hechos,
+      texto_plantilla: formatoBloques(inicio, vinetas, cierre),
+    };
   }
 
   let base: number | null = null;
@@ -750,7 +809,7 @@ function casoRecorte(
     hechos.push({ etiqueta: "Grupo de gasto", valor_formateado: grupoNombre });
   }
 
-  const partes: string[] = [];
+  const vinetas: string[] = [];
   // UN solo ritmo para comparar los dos plazos: el ahorro mensual (ventana de
   // 90 días). Así "hoy" y "con recorte" salen de la misma base y el adelanto
   // nunca queda en 0 por mezclar el ritmo de 30 días con el de 90.
@@ -783,26 +842,38 @@ function casoRecorte(
         etiqueta: `Meses que adelantas en "${meta.nombre}"`,
         valor_formateado: `${antes} meses`,
       });
-      partes.push(
-        `Hoy, a tu ritmo de ${formatearCOP(perfil.ahorro_mensual)} al mes, llegarías a "${meta.nombre}" en ${mesesSin} meses; si recortas ${recorte} en ${dondeRecorta}, pasarías a ${mesesCon} meses (adelantas ${antes}).`,
+      vinetas.push(
+        `hoy, a tu ritmo de ${formatearCOP(perfil.ahorro_mensual)} al mes, llegarías a "${meta.nombre}" en ${mesesSin} meses`,
+      );
+      vinetas.push(
+        `con el recorte pasarías a ${mesesCon} meses (adelantas ${antes})`,
       );
     } else {
-      partes.push(
-        `Hoy no tienes un ritmo de ahorro, así que no puedo decirte en cuántos meses llegarías a "${meta.nombre}"; si recortas ${recorte} en ${dondeRecorta}, pasarías a ${mesesCon} meses.`,
+      vinetas.push(
+        `hoy no tienes un ritmo de ahorro, así que no puedo decirte en cuántos meses llegarías a "${meta.nombre}"`,
       );
+      vinetas.push(`con el recorte pasarías a ${mesesCon} meses`);
     }
   }
 
   // Sin margen mensual, primero hay que cuadrar el mes.
   const excedente = perfil.excedente_mensual;
+  let cierre = "";
   if (excedente !== null && excedente <= 0) {
     hechos.push(hechoExcedente(excedente));
-    partes.push(
-      `Ojo: hoy ${fraseMargen(excedente)}, así que primero hay que equilibrar tus gastos con tus ingresos.`,
-    );
+    cierre =
+      `Ojo: hoy ${fraseMargen(excedente)}, así que primero hay que equilibrar tus gastos con tus ingresos.`;
   }
 
-  return { caso: "recorte", hechos, texto_plantilla: partes.join(" ") };
+  return {
+    caso: "recorte",
+    hechos,
+    texto_plantilla: formatoBloques(
+      `Si recortas ${recorte} al mes en ${dondeRecorta}:`,
+      vinetas,
+      cierre,
+    ),
+  };
 }
 
 /** e) ¿Cuánto debo ahorrar para tener X en N meses? */
@@ -833,35 +904,43 @@ function casoObjetivoPlazo(
       obligatorio: true,
     },
   ];
-  let texto =
-    `Para tener ${formatearCOP(objetivo)} en ${plazo} meses necesitas ahorrar ${formatearCOP(necesario)} al mes.`;
+  const vinetas: string[] = [];
+  let cierre = "";
 
   const excedente = perfil.excedente_mensual;
   if (excedente === null) {
-    texto +=
-      " Todavía no tengo tu ingreso registrado, así que no puedo compararlo con tu excedente.";
+    cierre =
+      "Todavía no tengo tu ingreso registrado, así que no puedo compararlo con tu excedente.";
   } else if (excedente <= 0) {
     // Nunca un excedente en negativo: se dice cuánto superan los gastos.
     hechos.push(hechoExcedente(excedente));
-    texto +=
-      ` Hoy ${fraseMargen(excedente)}, así que ese ahorro te exigiría recortar gastos antes de poder apartarlo.`;
+    cierre =
+      `Hoy ${fraseMargen(excedente)}, así que ese ahorro te exigiría recortar gastos antes de poder apartarlo.`;
   } else {
     hechos.push(hechoExcedente(excedente, "Tu excedente al mes"));
     const diferencia = necesario - excedente;
-    if (diferencia <= 0) {
-      texto +=
-        ` Tu excedente estimado es ${formatearCOP(excedente)}, así que sí te alcanza.`;
-    } else {
+    vinetas.push(
+      diferencia <= 0
+        ? `tu excedente estimado es ${formatearCOP(excedente)}, así que sí te alcanza`
+        : `tu excedente estimado es ${formatearCOP(excedente)}, así que te faltarían ${formatearCOP(diferencia)} al mes`,
+    );
+    if (diferencia > 0) {
       hechos.push({
         etiqueta: "Te faltaría al mes",
         valor_formateado: formatearCOP(diferencia),
       });
-      texto +=
-        ` Tu excedente estimado es ${formatearCOP(excedente)}, así que te faltarían ${formatearCOP(diferencia)} al mes.`;
     }
   }
 
-  return { caso: "objetivo_plazo", hechos, texto_plantilla: texto };
+  return {
+    caso: "objetivo_plazo",
+    hechos,
+    texto_plantilla: formatoBloques(
+      `Para tener ${formatearCOP(objetivo)} en ${plazo} meses necesitas ahorrar ${formatearCOP(necesario)} al mes.`,
+      vinetas,
+      cierre,
+    ),
+  };
 }
 
 /**
@@ -883,7 +962,7 @@ function casoTasas(
     !RE_CUOTA_EXPLICITA.test(texto);
 
   const hechos: Hecho[] = [];
-  let respuesta =
+  const inicio =
     "No puedo calcular intereses ni rendimientos porque no tengo las tasas reales de las entidades: el resultado depende de la tasa que te ofrezcan, así que pídele a la entidad su simulación oficial.";
 
   if (monto !== null && esInversion) {
@@ -893,6 +972,7 @@ function casoTasas(
       obligatorio: true,
     });
 
+    const vinetas: string[] = [];
     if (perfil.ingreso_mensual !== null && perfil.ingreso_mensual > 0) {
       hechos.push({
         etiqueta: "Tu ingreso mensual",
@@ -906,16 +986,18 @@ function casoTasas(
           etiqueta: "Meses de tu ingreso que equivale",
           valor_formateado: `${meses} meses`,
         });
-        respuesta +=
-          ` Con tus datos: invertir ${formatearCOP(monto)} equivale a unos ${meses} meses de tu ingreso (${formatearCOP(perfil.ingreso_mensual)}).`;
+        vinetas.push(
+          `con tus datos, invertir ${formatearCOP(monto)} equivale a unos ${meses} meses de tu ingreso (${formatearCOP(perfil.ingreso_mensual)})`,
+        );
       } else {
         const porcentaje = Math.round((monto / perfil.ingreso_mensual) * 100);
         hechos.push({
           etiqueta: "Porcentaje de tu ingreso mensual",
           valor_formateado: `${porcentaje} %`,
         });
-        respuesta +=
-          ` Con tus datos: invertir ${formatearCOP(monto)} es el ${porcentaje} % de tu ingreso mensual (${formatearCOP(perfil.ingreso_mensual)}).`;
+        vinetas.push(
+          `con tus datos, invertir ${formatearCOP(monto)} es el ${porcentaje} % de tu ingreso mensual (${formatearCOP(perfil.ingreso_mensual)})`,
+        );
       }
     }
 
@@ -928,11 +1010,16 @@ function casoTasas(
         etiqueta: "Lo que ya tienes ahorrado en tus metas",
         valor_formateado: formatearCOP(ahorrado),
       });
-      respuesta +=
-        ` Ese monto ya lo tienes ahorrado en tus metas (${formatearCOP(ahorrado)}).`;
+      vinetas.push(
+        `ese monto ya lo tienes ahorrado en tus metas (${formatearCOP(ahorrado)})`,
+      );
     }
 
-    return { caso: "tasas", hechos, texto_plantilla: respuesta };
+    return {
+      caso: "tasas",
+      hechos,
+      texto_plantilla: formatoBloques(inicio, vinetas, ""),
+    };
   }
 
   // Cuota de una deuda: aquí sí tiene sentido compararla con el excedente.
@@ -952,21 +1039,30 @@ function casoTasas(
     hechos.push(hechoExcedente(excedente, "Tu excedente al mes"));
   }
 
+  const vinetas: string[] = [];
   if (cuota !== null && excedente !== null) {
     if (excedente <= 0) {
-      respuesta +=
-        ` Lo que sí puedo mirar con tus datos: hoy ${fraseMargen(excedente)}, así que no te queda margen para una cuota de ${formatearCOP(cuota)} al mes.`;
+      vinetas.push(
+        `lo que sí puedo mirar con tus datos: hoy ${fraseMargen(excedente)}, así que no te queda margen para una cuota de ${formatearCOP(cuota)} al mes`,
+      );
     } else {
-      respuesta += cuota <= excedente
-        ? ` Lo que sí puedo mirar con tus datos: una cuota de ${formatearCOP(cuota)} al mes cabe en tu excedente de ${formatearCOP(excedente)}.`
-        : ` Lo que sí puedo mirar con tus datos: una cuota de ${formatearCOP(cuota)} al mes no cabe en tu excedente de ${formatearCOP(excedente)}.`;
+      vinetas.push(
+        cuota <= excedente
+          ? `lo que sí puedo mirar con tus datos: una cuota de ${formatearCOP(cuota)} al mes cabe en tu excedente de ${formatearCOP(excedente)}`
+          : `lo que sí puedo mirar con tus datos: una cuota de ${formatearCOP(cuota)} al mes no cabe en tu excedente de ${formatearCOP(excedente)}`,
+      );
     }
   } else if (cuota !== null) {
-    respuesta +=
-      ` Tampoco tengo tus ingresos registrados para comparar una cuota de ${formatearCOP(cuota)} con tu excedente.`;
+    vinetas.push(
+      `tampoco tengo tus ingresos registrados para comparar una cuota de ${formatearCOP(cuota)} con tu excedente`,
+    );
   }
 
-  return { caso: "tasas", hechos, texto_plantilla: respuesta };
+  return {
+    caso: "tasas",
+    hechos,
+    texto_plantilla: formatoBloques(inicio, vinetas, ""),
+  };
 }
 
 /**
@@ -1030,7 +1126,7 @@ function conHistorialInsuficiente(
       { etiqueta: "Historial", valor_formateado: "pocos registros" },
     ],
     texto_plantilla:
-      `Todavía tengo pocos registros tuyos, así que esta estimación es gruesa. ${simulacion.texto_plantilla}`,
+      `Todavía tengo pocos registros tuyos, así que esta estimación es gruesa.\n\n${simulacion.texto_plantilla}`,
     requierePrecio: simulacion.requierePrecio,
   };
 }
