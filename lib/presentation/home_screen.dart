@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../logic/auth_logic.dart';
 import '../logic/educacion_logic.dart';
+import '../logic/flujo_caja_view_logic.dart';
 import '../logic/formato_utils.dart';
 import '../logic/metas_logic.dart';
 import '../logic/transacciones_logic.dart';
@@ -749,26 +750,18 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   // ================================================================
-  // TARJETA 3 — Gráfico de línea: Flujo de caja + toggle
+  // TARJETA 3 — Flujo de caja: línea "Acumulado" / barras "Por mes"
   // ================================================================
   Widget _buildTarjetaLineChart(List<Map<String, dynamic>> transacciones) {
     final flujo = _transaccionesLogic.obtenerFlujoCajaMensual(
       transacciones,
       meses: 6,
     );
-    final valores = [
-      for (final m in flujo)
-        _modoFlujoCaja == 'acumulado'
-            ? (m['acumulado'] as double)
-            : (m['neto'] as double),
-    ];
-    final hayDatos = valores.any((v) => v != 0);
-    // maxY saneado: si el máximo de los datos es 0, negativo, NaN o infinito,
-    // se usa 1 para evitar un intervalo de cuadrícula nulo/infinito.
-    final maxY = _maxYValido(
-      valores.isEmpty ? 0 : valores.reduce((a, b) => a > b ? a : b),
+    final esAcumulado = _modoFlujoCaja == 'acumulado';
+    final datos = FlujoCajaViewLogic.preparar(
+      flujo: flujo,
+      acumulado: esAcumulado,
     );
-    final intervalo = _intervaloSeguro(maxY);
 
     return Card(
       elevation: 1,
@@ -776,136 +769,60 @@ class HomeScreenState extends State<HomeScreen> {
       shadowColor: const Color(0x0D000000),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        padding: const EdgeInsets.fromLTRB(10, 18, 14, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Flujo de caja',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2B2B2B),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Flujo de caja',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2B2B2B),
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Últimos 6 meses',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: const Color(0xFF8C8474),
+                        const SizedBox(height: 2),
+                        // Explica qué mide la vista seleccionada.
+                        Text(
+                          esAcumulado
+                              ? 'Lo que llevas ahorrado en total desde '
+                                  '${datos.primerMesLargo}'
+                              : 'Lo que te sobró o faltó cada mes',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF8C8474),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _buildToggleFlujo(),
-              ],
+                  const SizedBox(width: 8),
+                  _buildToggleFlujo(),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             SizedBox(
-              height: 220,
-              child: hayDatos
-                  ? Padding(
-                      padding: const EdgeInsets.only(right: 8, top: 8),
-                      child: LineChart(
-                        LineChartData(
-                          maxY: maxY,
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: intervalo,
-                            getDrawingHorizontalLine: (_) => const FlLine(
-                              color: Color(0x1A8C8474),
-                              strokeWidth: 0.8,
-                            ),
-                          ),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: false,
-                                interval: intervalo,
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 24,
-                                getTitlesWidget: (value, meta) {
-                                  final idx = value.toInt();
-                                  if (idx < 0 || idx >= flujo.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final mes = flujo[idx]['mes'] as DateTime;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Text(
-                                      _mesAbrev(mes),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        color: const Color(0xFF8C8474),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          lineTouchData: LineTouchData(
-                            handleBuiltInTouches: true,
-                            touchTooltipData: LineTouchTooltipData(
-                              getTooltipColor: (_) => const Color(0xFF2B2B2B),
-                              tooltipBorderRadius: BorderRadius.circular(8),
-                              fitInsideHorizontally: true,
-                              fitInsideVertically: true,
-                              getTooltipItems: (spots) {
-                                return spots.map((spot) {
-                                  final valor = FormatoUtils.moneda.format(spot.y);
-                                  return LineTooltipItem(
-                                    valor,
-                                    GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  );
-                                }).toList();
-                              },
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: [
-                                for (int i = 0; i < valores.length; i++)
-                                  FlSpot(i.toDouble(), valores[i]),
-                              ],
-                              isCurved: true,
-                              curveSmoothness: 0.2,
-                              color: const Color(0xFF58774B),
-                              barWidth: 2.5,
-                              dotData: FlDotData(show: true),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color:
-                                    const Color(0xFF58774B).withValues(alpha: 0.08),
-                              ),
-                            ),
-                          ],
-                        ),
+              height: 224,
+              child: datos.hayDatos
+                  ? AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 320),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      child: KeyedSubtree(
+                        key: ValueKey(_modoFlujoCaja),
+                        child: esAcumulado
+                            ? _buildGraficaAcumulado(datos)
+                            : _buildGraficaPorMes(datos),
                       ),
                     )
                   : _buildEstadoVacio(_textoSinDatosGrafica),
@@ -913,6 +830,236 @@ class HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Vista "Acumulado": línea con área sombreada suave, sin sobrepasar los
+  /// puntos (preventCurveOverShooting), para no inventar subidas ni bajadas.
+  Widget _buildGraficaAcumulado(DatosGraficaFlujo datos) {
+    return LineChart(
+      LineChartData(
+        minY: datos.minY,
+        maxY: datos.maxY,
+        gridData: _cuadriculaFlujo(datos),
+        titlesData: _titulosFlujo(datos),
+        extraLinesData: _lineaCeroFlujo(),
+        borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          handleBuiltInTouches: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => const Color(0xFF2B2B2B),
+            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipPadding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            getTooltipItems: (spots) => [
+              for (final spot in spots)
+                LineTooltipItem(
+                  _textoTooltipFlujo(datos, spot.x.round(), spot.y),
+                  GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < datos.valores.length; i++)
+                FlSpot(i.toDouble(), datos.valores[i]),
+            ],
+            isCurved: true,
+            curveSmoothness: 0.25,
+            preventCurveOverShooting: true,
+            color: FlujoCajaViewLogic.colorPositivo,
+            barWidth: 2.5,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                radius: 3.2,
+                color: Colors.white,
+                strokeWidth: 2,
+                strokeColor: FlujoCajaViewLogic.colorPositivo,
+              ),
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  FlujoCajaViewLogic.colorPositivo.withValues(alpha: 0.22),
+                  FlujoCajaViewLogic.colorPositivo.withValues(alpha: 0.02),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Vista "Por mes": barras verdes si al mes le sobró y rojas si le faltó.
+  Widget _buildGraficaPorMes(DatosGraficaFlujo datos) {
+    return BarChart(
+      BarChartData(
+        minY: datos.minY,
+        maxY: datos.maxY,
+        alignment: BarChartAlignment.spaceEvenly,
+        gridData: _cuadriculaFlujo(datos),
+        titlesData: _titulosFlujo(datos),
+        extraLinesData: _lineaCeroFlujo(),
+        borderData: FlBorderData(show: false),
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => const Color(0xFF2B2B2B),
+            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipPadding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            maxContentWidth: 180,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                BarTooltipItem(
+              _textoTooltipFlujo(datos, group.x, rod.toY),
+              GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        barGroups: [
+          for (var i = 0; i < datos.valores.length; i++)
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  fromY: 0,
+                  toY: datos.valores[i],
+                  color: datos.colores[i],
+                  width: 18,
+                  borderRadius: _radioBarra(datos.valores[i]),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Texto del tooltip: mes y valor completo con signo (ej. "Sept · -$80.917").
+  String _textoTooltipFlujo(DatosGraficaFlujo datos, int indice, double valor) {
+    final etiqueta = indice >= 0 && indice < datos.etiquetas.length
+        ? datos.etiquetas[indice]
+        : '';
+    return '$etiqueta · ${FormatoUtils.moneda.format(valor)}';
+  }
+
+  /// Redondea solo el extremo libre de la barra (arriba si sube, abajo si baja).
+  BorderRadius _radioBarra(double valor) {
+    if (valor >= 0) {
+      return const BorderRadius.only(
+        topLeft: Radius.circular(5),
+        topRight: Radius.circular(5),
+      );
+    }
+    return const BorderRadius.only(
+      bottomLeft: Radius.circular(5),
+      bottomRight: Radius.circular(5),
+    );
+  }
+
+  /// Comparte los ejes entre las dos vistas: marcas del eje Y en formato corto
+  /// y exactamente una etiqueta por mes en el eje X.
+  FlTitlesData _titulosFlujo(DatosGraficaFlujo datos) {
+    return FlTitlesData(
+      show: true,
+      topTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+      rightTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 58,
+          interval: datos.intervalo,
+          getTitlesWidget: (value, meta) => Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: Text(
+              FlujoCajaViewLogic.formatoCortoPesos(value),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+              style: GoogleFonts.poppins(
+                fontSize: 9.5,
+                color: const Color(0xFF8C8474),
+              ),
+            ),
+          ),
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 26,
+          // Sin un interval fijo, fl_chart repite meses ("May May May May").
+          interval: 1,
+          getTitlesWidget: (value, meta) {
+            final idx = value.round();
+            final fueraDeRango = idx < 0 || idx >= datos.etiquetas.length;
+            if (fueraDeRango || (value - idx).abs() > 0.01) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                datos.etiquetas[idx],
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF8C8474),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  FlGridData _cuadriculaFlujo(DatosGraficaFlujo datos) {
+    return FlGridData(
+      show: true,
+      drawVerticalLine: false,
+      horizontalInterval: datos.intervalo,
+      getDrawingHorizontalLine: (_) => const FlLine(
+        color: Color(0x148C8474),
+        strokeWidth: 0.8,
+      ),
+    );
+  }
+
+  /// Línea horizontal punteada y sutil en el cero, visible en las dos vistas.
+  ExtraLinesData _lineaCeroFlujo() {
+    return ExtraLinesData(
+      horizontalLines: [
+        HorizontalLine(
+          y: 0,
+          color: const Color(0x668C8474),
+          strokeWidth: 1,
+          dashArray: const [4, 4],
+        ),
+      ],
     );
   }
 
@@ -1481,14 +1628,6 @@ class HomeScreenState extends State<HomeScreen> {
   double _maxYValido(double valor) {
     if (valor.isNaN || valor.isInfinite || valor <= 0) return 1;
     return valor;
-  }
-
-  /// Intervalo seguro para la cuadrícula y los títulos del eje Y:
-  /// maxY / 4, nunca menor que 1; si el resultado fuera 0 o NaN devuelve 1.
-  double _intervaloSeguro(double maxY) {
-    final intervalo = maxY / 4;
-    if (intervalo.isNaN || intervalo.isInfinite || intervalo < 1) return 1;
-    return intervalo;
   }
 }
 
