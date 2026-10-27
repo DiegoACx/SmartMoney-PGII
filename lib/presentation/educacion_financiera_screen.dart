@@ -448,7 +448,9 @@ class EducacionFinancieraScreenState
                                     ],
                                   ),
                       ),
-                      const SizedBox(height: 40),
+                      // Espacio extra para que el FAB del asistente no tape el
+                      // último contenido al hacer scroll.
+                      const SizedBox(height: 88),
                     ],
                   ),
                 ),

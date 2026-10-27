@@ -52,6 +52,13 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Etiquetas de la barra en una sola línea: con 6 pestañas a 360 px cada
+    // una dispone de ~60 px, por lo que se reduce el tamaño de letra (y se
+    // quita el espaciado entre caracteres heredado de M3) para que "Educación"
+    // no se parta en dos líneas.
+    final baseLabelStyle = Theme.of(context).textTheme.labelMedium ??
+        const TextStyle(fontSize: 12, fontWeight: FontWeight.w500);
+
     return Scaffold(
       body: IndexedStack(
         index: _index,
@@ -76,6 +83,17 @@ class _MainShellState extends State<MainShell> {
             backgroundColor: Colors.white,
             indicatorColor:
                 const Color(0xFF58774B).withValues(alpha: 0.12),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final seleccionado = states.contains(WidgetState.selected);
+              return baseLabelStyle.copyWith(
+                fontSize: 10,
+                letterSpacing: 0,
+                fontWeight: FontWeight.w600,
+                color: seleccionado
+                    ? const Color(0xFF2B2B2B)
+                    : const Color(0xFF8C8474),
+              );
+            }),
             onDestinationSelected: _irAPestana,
             destinations: const [
               NavigationDestination(

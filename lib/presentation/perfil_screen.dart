@@ -309,7 +309,9 @@ class PerfilScreenState extends State<PerfilScreen> {
         onCambiarPestana: widget.onCambiarPestana,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 32),
+        // Espacio extra para que el FAB del asistente no tape el último
+        // contenido al hacer scroll.
+        padding: const EdgeInsets.only(bottom: 88),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

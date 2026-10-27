@@ -253,7 +253,9 @@ class HomeScreenState extends State<HomeScreen> {
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 24),
+            // Espacio extra para que el FAB del asistente no tape el último
+            // contenido (etiquetas del eje X, última tarjeta, etc.).
+            padding: const EdgeInsets.only(bottom: 88),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -678,7 +680,6 @@ class HomeScreenState extends State<HomeScreen> {
     return _buildTarjetaGraficaBase(
       titulo: 'Gastos por categoría',
       subtitulo: 'Mes actual',
-      altura: 320,
       child: hayDatos
           ? Column(
               children: [
@@ -701,51 +702,102 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 6,
-                    children: [
-                      for (int i = 0; i < entradas.length; i++)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _paletteCategorias[
-                                    i % _paletteCategorias.length],
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              entradas[i].key,
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: const Color(0xFF2B2B2B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              FormatoUtils.moneda.format(entradas[i].value),
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: const Color(0xFF8C8474),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 12),
+                _buildLeyendaTorta(entradas),
               ],
             )
           : _buildEstadoVacio(_textoSinDatosGrafica),
+    );
+  }
+
+  /// Leyenda de la torta. En pantallas angostas (menos de 400 px) usa una sola
+  /// columna con el nombre completo y el monto alineado a la derecha; en
+  /// pantallas anchas mantiene las dos columnas. Los ítems van de mayor a menor
+  /// monto y muestran su porcentaje sobre el total.
+  Widget _buildLeyendaTorta(List<MapEntry<String, double>> entradas) {
+    final total = entradas.fold<double>(0, (acc, e) => acc + e.value);
+    // Se ordena de mayor a menor monto conservando el índice original, para que
+    // el color del punto siga coincidiendo con su porción de la torta.
+    final items = <({String nombre, double valor, int colorIndex})>[
+      for (int i = 0; i < entradas.length; i++)
+        (nombre: entradas[i].key, valor: entradas[i].value, colorIndex: i),
+    ]..sort((a, b) => b.valor.compareTo(a.valor));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Angosto: una sola columna, así el nombre dispone de todo el ancho.
+        if (constraints.maxWidth < 400) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                _buildItemLeyendaTorta(items[i], total),
+              ],
+            ],
+          );
+        }
+
+        // Ancho: dos columnas con el ancho calculado para no desbordar.
+        const double separacionHorizontal = 12;
+        final anchoItem =
+            (constraints.maxWidth - separacionHorizontal) / 2;
+        return Wrap(
+          spacing: separacionHorizontal,
+          runSpacing: 8,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: anchoItem,
+                child: _buildItemLeyendaTorta(item, total),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Fila de la leyenda: punto de color, nombre (con ellipsis solo si aun así
+  /// no cabe) y monto con su porcentaje alineado a la derecha.
+  Widget _buildItemLeyendaTorta(
+    ({String nombre, double valor, int colorIndex}) item,
+    double total,
+  ) {
+    final porcentaje = total > 0 ? (item.valor / total * 100).round() : 0;
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _paletteCategorias[
+                item.colorIndex % _paletteCategorias.length],
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            item.nombre,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFF2B2B2B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${FormatoUtils.moneda.format(item.valor)} · $porcentaje %',
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            color: const Color(0xFF8C8474),
+          ),
+        ),
+      ],
     );
   }
 
@@ -775,40 +827,7 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Flujo de caja',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF2B2B2B),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        // Explica qué mide la vista seleccionada.
-                        Text(
-                          esAcumulado
-                              ? 'Lo que llevas ahorrado en total desde '
-                                  '${datos.primerMesLargo}'
-                              : 'Lo que te sobró o faltó cada mes',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: const Color(0xFF8C8474),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildToggleFlujo(),
-                ],
-              ),
+              child: _buildEncabezadoFlujo(datos, esAcumulado),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -1063,7 +1082,64 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildToggleFlujo() {
+  /// Encabezado de la tarjeta de flujo: en pantallas angostas (menos de 400 px)
+  /// los botones van debajo del título/subtítulo ocupando el ancho completo,
+  /// para que el título quede en una sola línea. En pantallas anchas se
+  /// mantiene el título a la izquierda y los botones a la derecha.
+  Widget _buildEncabezadoFlujo(DatosGraficaFlujo datos, bool esAcumulado) {
+    final titulo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Flujo de caja',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2B2B2B),
+          ),
+        ),
+        const SizedBox(height: 2),
+        // Explica qué mide la vista seleccionada.
+        Text(
+          esAcumulado
+              ? 'Lo que llevas ahorrado en total desde ${datos.primerMesLargo}'
+              : 'Lo que te sobró o faltó cada mes',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: const Color(0xFF8C8474),
+          ),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final angosto = constraints.maxWidth < 400;
+        if (angosto) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titulo,
+              const SizedBox(height: 10),
+              _buildToggleFlujo(anchoCompleto: true),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titulo),
+            const SizedBox(width: 8),
+            _buildToggleFlujo(),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Control segmentado "Acumulado / Por mes". Con [anchoCompleto] los botones
+  /// se reparten todo el ancho disponible.
+  Widget _buildToggleFlujo({bool anchoCompleto = false}) {
     final activo = _modoFlujoCaja;
     Widget boton(String valor, String texto) {
       final seleccionado = activo == valor;
@@ -1071,6 +1147,7 @@ class HomeScreenState extends State<HomeScreen> {
         onTap: () => setState(() => _modoFlujoCaja = valor),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             gradient: seleccionado
@@ -1098,6 +1175,8 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           child: Text(
             texto,
+            maxLines: 1,
+            softWrap: false,
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1105,6 +1184,16 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      );
+    }
+
+    if (anchoCompleto) {
+      return Row(
+        children: [
+          Expanded(child: boton('acumulado', 'Acumulado')),
+          const SizedBox(width: 8),
+          Expanded(child: boton('porPeriodo', 'Por mes')),
+        ],
       );
     }
 
@@ -1566,7 +1655,7 @@ class HomeScreenState extends State<HomeScreen> {
   Widget _buildTarjetaGraficaBase({
     required String titulo,
     required String subtitulo,
-    required double altura,
+    double? altura,
     required Widget child,
   }) {
     return Card(
@@ -1596,7 +1685,9 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(height: altura, child: child),
+            // Si no se fija altura, la tarjeta crece con su contenido (útil
+            // para la leyenda de la torta, que varía según las categorías).
+            if (altura != null) SizedBox(height: altura, child: child) else child,
           ],
         ),
       ),
