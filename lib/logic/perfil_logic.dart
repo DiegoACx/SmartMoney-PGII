@@ -334,6 +334,40 @@ class PerfilLogic {
     return const ResultadoPerfil.exito();
   }
 
+  /// Muestra una notificación inmediata de prueba para que el usuario
+  /// compruebe que los avisos funcionan. Si el permiso del sistema no está
+  /// concedido (Android 13+), lo pide antes. Nunca propaga errores.
+  Future<ResultadoPerfil> enviarNotificacionDePrueba() async {
+    bool permisoConcedido;
+    try {
+      permisoConcedido = await _notificacionesService
+          .solicitarPermiso()
+          .timeout(_timeoutNotificaciones);
+    } catch (e) {
+      debugPrint('ERROR AL PEDIR PERMISO DE NOTIFICACIONES: $e');
+      permisoConcedido = false;
+    }
+
+    if (!permisoConcedido) {
+      return const ResultadoPerfil.error(
+        'Activa los permisos de notificaciones en los ajustes del sistema',
+      );
+    }
+
+    try {
+      await _notificacionesService
+          .mostrarNotificacionDePrueba()
+          .timeout(_timeoutNotificaciones);
+    } catch (e) {
+      debugPrint('ERROR AL MOSTRAR LA NOTIFICACIÓN DE PRUEBA: $e');
+      return const ResultadoPerfil.error(
+        'No se pudo mostrar la notificación de prueba',
+      );
+    }
+
+    return const ResultadoPerfil.exito();
+  }
+
   /// Reprograma el recordatorio de cada meta activa con fecha límite futura.
   /// Reutiliza el cálculo y la programación ya existentes en `MetasLogic` y
   /// `NotificacionesService`. Nunca propaga errores.

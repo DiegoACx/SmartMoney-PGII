@@ -124,25 +124,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
       final meta = resultado.metaCreada!;
       final metaId = meta['id'].toString();
 
-      if (_fechaLimiteSeleccionada != null) {
-        final fechaRecordatorio =
-            _metasLogic.calcularFechaRecordatorio(_fechaLimiteSeleccionada);
-        if (fechaRecordatorio != null) {
-          try {
-            await _notificacionesService
-                .programarRecordatorio(
-                  metaId: metaId,
-                  nombreMeta: nombre,
-                  fecha: fechaRecordatorio,
-                )
-                .timeout(const Duration(seconds: 5));
-          } catch (e) {
-            debugPrint(
-              'ERROR PROGRAMAR NOTIFICACIÓN (meta nueva $metaId): $e',
-            );
-          }
-        }
-      }
+      await _reprogramarRecordatorio(metaId: metaId, nombre: nombre);
 
       if (!mounted) return;
 
@@ -198,6 +180,10 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
     if (!mounted) return;
 
     if (error == null) {
+      await _reprogramarRecordatorio(metaId: metaId, nombre: nombre);
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Cambios guardados'),
@@ -228,12 +214,57 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
     }
   }
 
+  /// Cancela el recordatorio anterior de la meta y programa el nuevo según la
+  /// fecha límite actual. Si la meta no tiene fecha o esta ya venció, solo
+  /// cancela. Cualquier fallo del sistema de notificaciones se registra y se
+  /// ignora: nunca interrumpe el guardado de la meta.
+  Future<void> _reprogramarRecordatorio({
+    required String metaId,
+    required String nombre,
+  }) async {
+    try {
+      await _notificacionesService
+          .cancelarRecordatorio(metaId)
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('ERROR CANCELAR NOTIFICACIÓN (meta $metaId): $e');
+    }
+
+    final fechaLimite = _fechaLimiteSeleccionada;
+    if (fechaLimite == null) return;
+
+    final fechaRecordatorio =
+        _metasLogic.calcularFechaRecordatorio(fechaLimite);
+    if (fechaRecordatorio == null) return;
+
+    try {
+      await _notificacionesService
+          .programarRecordatorio(
+            metaId: metaId,
+            nombreMeta: nombre,
+            fecha: fechaRecordatorio,
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('ERROR PROGRAMAR NOTIFICACIÓN (meta $metaId): $e');
+    }
+  }
+
   // ===== Selector de fecha =====
   Future<void> _seleccionarFecha() async {
+    final ahora = DateTime.now();
+    // La fecha límite siempre debe ser futura, así que el calendario abre en
+    // el mes actual (mañana) y, al editar, en la fecha ya guardada si sigue
+    // siendo válida.
+    final manana = DateTime(ahora.year, ahora.month, ahora.day + 1);
+    final guardada = _fechaLimiteSeleccionada;
+    final initialDate =
+        (guardada != null && !guardada.isBefore(manana)) ? guardada : manana;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 7)),
-      firstDate: DateTime(2000),
+      initialDate: initialDate,
+      firstDate: manana,
       lastDate: DateTime(2100),
       locale: const Locale('es', 'ES'),
       builder: (context, child) {

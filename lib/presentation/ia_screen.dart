@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../logic/auth_logic.dart';
 import '../logic/chat_logic.dart';
 import 'utils/abrir_leccion.dart';
 
@@ -335,22 +334,6 @@ class _IaScreenState extends State<IaScreen> {
               ),
             ],
           ),
-          TextButton.icon(
-            onPressed: () async {
-              await AuthLogic().cerrarSesion();
-              // AuthGate escucha el cambio de sesión y muestra LoginScreen.
-            },
-            icon: const Icon(Icons.logout, size: 18, color: Color(0xFFC0392B)),
-            label: Text(
-              'Salir',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFFC0392B),
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(

@@ -60,6 +60,7 @@ class PerfilScreenState extends State<PerfilScreen> {
   bool _notificacionesActivas = true;
   bool _procesando = false;
   bool _cambiandoNotificaciones = false;
+  bool _enviandoNotificacionPrueba = false;
 
   @override
   void initState() {
@@ -277,6 +278,25 @@ class PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
+  /// Envía una notificación inmediata de prueba. Si el permiso no está
+  /// concedido, `PerfilLogic` lo pide primero y, si lo deniegan, se avisa.
+  Future<void> _enviarNotificacionDePrueba() async {
+    if (_enviandoNotificacionPrueba) return;
+
+    setState(() => _enviandoNotificacionPrueba = true);
+    final resultado = await _perfilLogic.enviarNotificacionDePrueba();
+    if (!mounted) return;
+
+    setState(() => _enviandoNotificacionPrueba = false);
+
+    _mostrarMensaje(
+      resultado.exito
+          ? 'Notificación de prueba enviada'
+          : (resultado.error ?? 'No se pudo mostrar la notificación'),
+      color: resultado.exito ? _exito : _error,
+    );
+  }
+
   Future<void> _abrirCambiarContrasena() async {
     final actualizada = await Navigator.push<bool>(
       context,
@@ -343,6 +363,22 @@ class PerfilScreenState extends State<PerfilScreen> {
                         ),
                         onTap: () =>
                             _cambiarNotificaciones(!_notificacionesActivas),
+                      ),
+                      _FilaConfig(
+                        icono: Icons.notifications_active_outlined,
+                        titulo: 'Enviar notificación de prueba',
+                        subtitulo: 'Comprueba que las notificaciones llegan',
+                        trailing: _enviandoNotificacionPrueba
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: _verde,
+                                ),
+                              )
+                            : null,
+                        onTap: _enviarNotificacionDePrueba,
                       ),
                     ],
                   ),
