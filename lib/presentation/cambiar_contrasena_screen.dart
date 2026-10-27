@@ -238,6 +238,7 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
   }) {
     return Material(
       elevation: 1,
+      shadowColor: Colors.transparent,
       borderRadius: BorderRadius.circular(14),
       color: Colors.transparent,
       child: TextField(

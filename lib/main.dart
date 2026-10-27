@@ -35,6 +35,8 @@ class MyApp extends StatelessWidget {
     const Color secondaryColor = Color(0xFF8C8474);
     const Color textColor = Color(0xFF2B2B2B);
     const Color errorColor = Color(0xFFC0392B);
+    // Borde sutil gris-verde muy claro para el estado de reposo de los campos.
+    const Color borderColor = Color(0xFFD8DED1);
 
     return MaterialApp(
       title: 'SmartMoney',
@@ -115,11 +117,11 @@ class MyApp extends StatelessWidget {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: borderColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -142,6 +144,12 @@ class MyApp extends StatelessWidget {
             color: secondaryColor,
             fontWeight: FontWeight.w400,
             fontSize: 14,
+          ),
+          // Error de validación: texto rojo pequeño bajo el campo, sin fondo.
+          errorStyle: GoogleFonts.poppins(
+            color: errorColor,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

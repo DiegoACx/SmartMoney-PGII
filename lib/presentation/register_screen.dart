@@ -222,6 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo nombre completo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -248,6 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo correo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -275,6 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -335,6 +338,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo confirmar contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(

@@ -337,6 +337,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                       const SizedBox(height: 6),
                       Material(
                         elevation: 1,
+                        shadowColor: Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                         color: Colors.transparent,
                         child: TextFormField(
@@ -354,11 +355,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                             fontSize: 14,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Nombre',
-                            labelStyle: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            hintText: 'Ej: Viaje a Cartagena',
                             prefixIcon: const Icon(
                               Icons.label_outline,
                               color: Color(0xFFC9C2B0),
@@ -380,6 +377,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                       const SizedBox(height: 6),
                       Material(
                         elevation: 1,
+                        shadowColor: Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                         color: Colors.transparent,
                         child: TextFormField(
@@ -408,11 +406,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Monto objetivo',
-                            labelStyle: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            hintText: 'Ej: 1.200.000',
                             prefixIcon: const Icon(
                               Icons.savings_outlined,
                               color: Color(0xFFC9C2B0),
@@ -434,6 +428,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                       const SizedBox(height: 6),
                       Material(
                         elevation: 1,
+                        shadowColor: Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                         color: Colors.transparent,
                         child: Row(
@@ -444,7 +439,7 @@ class _RegistroMetaScreenState extends State<RegistroMetaScreen> {
                                 readOnly: true,
                                 onTap: _seleccionarFecha,
                                 decoration: InputDecoration(
-                                  labelText: 'Fecha límite',
+                                  hintText: 'Selecciona una fecha',
                                   prefixIcon: const Icon(
                                     Icons.calendar_today_outlined,
                                     color: Color(0xFFC9C2B0),

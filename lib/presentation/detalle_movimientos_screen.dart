@@ -291,6 +291,7 @@ class _DetalleMovimientosScreenState extends State<DetalleMovimientosScreen> {
                               const SizedBox(height: 6),
                               Material(
                                 elevation: 1,
+                                shadowColor: Colors.transparent,
                                 borderRadius: BorderRadius.circular(14),
                                 color: Colors.transparent,
                                 child: TextFormField(
@@ -298,7 +299,7 @@ class _DetalleMovimientosScreenState extends State<DetalleMovimientosScreen> {
                                   readOnly: true,
                                   onTap: _seleccionarDesde,
                                   decoration: const InputDecoration(
-                                    labelText: 'Desde',
+                                    hintText: 'dd/mm/aaaa',
                                     prefixIcon: Icon(
                                       Icons.calendar_today_outlined,
                                       color: Color(0xFFC9C2B0),
@@ -329,6 +330,7 @@ class _DetalleMovimientosScreenState extends State<DetalleMovimientosScreen> {
                               const SizedBox(height: 6),
                               Material(
                                 elevation: 1,
+                                shadowColor: Colors.transparent,
                                 borderRadius: BorderRadius.circular(14),
                                 color: Colors.transparent,
                                 child: TextFormField(
@@ -336,7 +338,7 @@ class _DetalleMovimientosScreenState extends State<DetalleMovimientosScreen> {
                                   readOnly: true,
                                   onTap: _seleccionarHasta,
                                   decoration: const InputDecoration(
-                                    labelText: 'Hasta',
+                                    hintText: 'dd/mm/aaaa',
                                     prefixIcon: Icon(
                                       Icons.calendar_today_outlined,
                                       color: Color(0xFFC9C2B0),

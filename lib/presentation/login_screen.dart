@@ -164,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Campo correo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -191,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Campo contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(

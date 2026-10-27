@@ -239,10 +239,6 @@ class HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF6EA),
-        elevation: 0,
-      ),
       floatingActionButton: fabAsistente(
         heroTag: 'fab_asistente_inicio',
         onCambiarPestana: widget.onCambiarPestana,

@@ -669,6 +669,7 @@ class _RegistroTransaccionScreenState extends State<RegistroTransaccionScreen> {
                       const SizedBox(height: 6),
                       Material(
                         elevation: 1,
+                        shadowColor: Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                         color: Colors.transparent,
                         child: TextFormField(
@@ -686,11 +687,7 @@ class _RegistroTransaccionScreenState extends State<RegistroTransaccionScreen> {
                             fontSize: 14,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Nombre',
-                            labelStyle: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            hintText: 'Ej: Mercado',
                             prefixIcon: const Icon(
                               Icons.label_outline,
                               color: _grisIcono,
@@ -713,6 +710,7 @@ class _RegistroTransaccionScreenState extends State<RegistroTransaccionScreen> {
                         const SizedBox(height: 6),
                         Material(
                           elevation: 1,
+                          shadowColor: Colors.transparent,
                           borderRadius: BorderRadius.circular(14),
                           color: Colors.transparent,
                           child: DropdownButtonFormField<int>(
@@ -724,7 +722,7 @@ class _RegistroTransaccionScreenState extends State<RegistroTransaccionScreen> {
                                 ? 'Selecciona un grupo para la categoría de egreso'
                                 : null,
                             decoration: InputDecoration(
-                              labelText: 'Grupo',
+                              hintText: 'Selecciona un grupo',
                               prefixIcon: const Icon(
                                 Icons.category_outlined,
                                 color: _grisIcono,

@@ -1022,6 +1022,7 @@ class _EditarNombreSheetState extends State<_EditarNombreSheet> {
             const SizedBox(height: 18),
             Material(
               elevation: 1,
+              shadowColor: Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               color: Colors.transparent,
               child: TextField(
@@ -1253,6 +1254,7 @@ class _EliminarCuentaSheetState extends State<_EliminarCuentaSheet> {
               const SizedBox(height: 16),
               Material(
                 elevation: 1,
+                shadowColor: Colors.transparent,
                 borderRadius: BorderRadius.circular(14),
                 color: Colors.transparent,
                 child: TextField(
