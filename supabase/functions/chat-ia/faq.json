@@ -1,0 +1,277 @@
+{
+  "lista_capacidades": "Puedo darte los totales de lo que llevas gastado o recibido (hoy, esta semana, este mes y más), mostrarte cómo van tus metas de ahorro y resolver dudas sobre el uso de la app. Escríbeme, por ejemplo: «¿cuánto llevo gastado esta semana?» o «¿cómo van mis metas?».",
+  "preguntas": [
+    {
+      "id": "como-funciona-smartmoney",
+      "pregunta": "¿Cómo funciona SmartMoney?",
+      "ejemplos": [
+        "como funciona smartmoney",
+        "para que sirve smartmoney",
+        "que hace smartmoney",
+        "que es smartmoney",
+        "para que me sirve la app"
+      ],
+      "variantes": [
+        "como funciona la app",
+        "para que sirve la app",
+        "que hace esta app",
+        "que puedo hacer en la app",
+        "como se usa smartmoney"
+      ],
+      "respuesta": "SmartMoney te ayuda a organizar tus finanzas en seis pestañas: Inicio, con tu resumen de ingresos y egresos y tus recomendaciones; Ingresos, donde registras tus movimientos; Metas, para ahorrar con un objetivo y una fecha; Educación financiera, con lecciones y evaluaciones; el Asistente de IA, donde me puedes preguntar por tus datos o por conceptos; y Perfil, con tus datos y tu cuenta."
+    },
+    {
+      "id": "registrar-movimiento",
+      "pregunta": "¿Cómo registro un ingreso o un egreso?",
+      "ejemplos": [
+        "como registro un movimiento",
+        "como registro un ingreso",
+        "como registro un egreso",
+        "como anoto un gasto",
+        "como agrego un movimiento",
+        "donde registro lo que gasto",
+        "como meto un gasto en la app"
+      ],
+      "variantes": [
+        "no se como registrar un gasto",
+        "donde anoto lo que gasto",
+        "como pongo un ingreso",
+        "me entro plata y no se donde registrarla"
+      ],
+      "respuesta": "Ve a la pestaña Ingresos y toca el botón \"+\". Elige si es un ingreso o un egreso, escribe el monto (la app agrega los puntos de miles sola), selecciona la categoría y la fecha, y si quieres agrega una nota y el método de pago. En los egresos, al escribir la descripción la app puede sugerirte una categoría con la etiqueta \"Sugerida\": puedes aceptarla o elegir otra. Si no encuentras la categoría que necesitas, puedes crear una propia desde el mismo formulario.",
+      "accion": { "tipo": "ir_a", "destino": "movimientos" }
+    },
+    {
+      "id": "editar-movimiento",
+      "pregunta": "¿Cómo edito o elimino un movimiento?",
+      "ejemplos": [
+        "como edito un movimiento",
+        "como borro un gasto",
+        "como elimino un movimiento",
+        "como corrijo un movimiento",
+        "como cambio un monto ya registrado",
+        "no encuentro un movimiento viejo"
+      ],
+      "variantes": [
+        "quiero cambiar un gasto que registre",
+        "como modifico un movimiento",
+        "se me equivoco el monto de un gasto",
+        "como quito un movimiento de la lista",
+        "puedo borrar un gasto equivocado"
+      ],
+      "respuesta": "Desde la lista de movimientos de la pestaña Ingresos puedes editar o eliminar cada uno. Antes de borrar, la app te pide confirmación para evitar errores. Si el movimiento que buscas no aparece entre los más recientes, usa \"Ver más\" y el rango de fechas (Desde / Hasta) para encontrarlo.",
+      "accion": { "tipo": "ir_a", "destino": "movimientos" }
+    },
+    {
+      "id": "metas-ahorro",
+      "pregunta": "¿Cómo funcionan las metas de ahorro?",
+      "ejemplos": [
+        "como funcionan las metas",
+        "como creo una meta de ahorro",
+        "como ahorro para algo",
+        "como registro un aporte a una meta",
+        "puedo sacar plata de una meta",
+        "como retiro de una meta"
+      ],
+      "variantes": [
+        "quiero crear una meta",
+        "como aparto plata para un viaje",
+        "como agrego plata a mi meta",
+        "cuanto me falta para cumplir la meta",
+        "puedo usar la plata que ahorre"
+      ],
+      "respuesta": "En la pestaña Metas creas una meta con nombre, monto objetivo y fecha límite. Cada vez que ahorres, registra un aporte; si necesitas usar parte de ese dinero, registra un retiro (no puede ser mayor a lo que llevas ahorrado). La app calcula tu porcentaje de avance y estima cuánto tiempo te falta según tu ritmo de ahorro de los últimos 30 días. Si tienes las notificaciones activas, también te recordará cuando se acerque la fecha límite.",
+      "accion": { "tipo": "ir_a", "destino": "metas" }
+    },
+    {
+      "id": "inicio-graficas",
+      "pregunta": "¿Qué muestran las gráficas y la alerta de gasto en Inicio?",
+      "ejemplos": [
+        "que muestran las graficas de inicio",
+        "que significa la alerta de gasto",
+        "por que me sale una alerta de gasto",
+        "como leo las graficas",
+        "que es el flujo de caja"
+      ],
+      "variantes": [
+        "no entiendo las graficas de inicio",
+        "que es la grafica de torta",
+        "por que me sale una alerta de gasto alto",
+        "donde veo el resumen de mi mes",
+        "que significan las barras de ingresos y egresos"
+      ],
+      "respuesta": "En Inicio ves el total de tus ingresos, tus egresos y la diferencia entre ambos según el periodo que elijas (Mes actual, Mes pasado, Últimos 3 meses, Últimos 5 meses o Anual). Debajo hay tres gráficas: barras que comparan ingresos y egresos de los últimos seis meses, una torta con la distribución de tus gastos por categoría y una línea con la evolución de tu flujo de caja. Si el gasto de una categoría alcanza o supera el 40 % de tus ingresos del mes, la app te avisa para que puedas ajustarlo a tiempo."
+    },
+    {
+      "id": "educacion",
+      "pregunta": "¿Cómo se desbloquean los niveles de Educación financiera?",
+      "ejemplos": [
+        "como desbloqueo los niveles de educacion",
+        "como paso de nivel en educacion financiera",
+        "como apruebo una leccion",
+        "que necesito para la evaluacion",
+        "por que no puedo abrir la siguiente leccion"
+      ],
+      "variantes": [
+        "como avanzo en educacion financiera",
+        "cuantas preguntas necesito para aprobar una evaluacion",
+        "que pasa si pierdo una evaluacion",
+        "cuantos niveles tiene educacion financiera"
+      ],
+      "respuesta": "Los contenidos van en orden: cada lección se desbloquea al completar la anterior. En las evaluaciones necesitas 70 % o más para aprobar y avanzar; si no lo logras, puedes repetirlas las veces que quieras. Al aprobar puedes revisar tus respuestas y las explicaciones antes de continuar. Hay cuatro niveles: Principiante, Intermedio, Avanzado y Experto, y tu progreso se guarda en tu cuenta. Algunos contenidos de los niveles más altos aún están en construcción y se irán habilitando."
+    },
+    {
+      "id": "recomendaciones",
+      "pregunta": "¿De dónde salen las recomendaciones?",
+      "ejemplos": [
+        "de donde salen las recomendaciones",
+        "quien calcula las recomendaciones",
+        "por que me recomiendan eso",
+        "como funcionan las recomendaciones",
+        "son confiables las recomendaciones"
+      ],
+      "variantes": [
+        "por que me sale esta recomendacion",
+        "quien decide lo que me recomiendan",
+        "de donde salen esos consejos",
+        "las recomendaciones son de fiar",
+        "como se calculan los consejos que me dan"
+      ],
+      "respuesta": "Se calculan con tus propios movimientos y metas: la app compara tu gasto con tu comportamiento habitual y con referencias de gasto por categoría, y detecta situaciones como gastos más altos de lo normal para ti o metas que necesitan atención. Mientras más movimientos registres, más personalizadas serán. Son orientativas y no reemplazan la asesoría de un profesional."
+    },
+    {
+      "id": "perfil-contrasena",
+      "pregunta": "¿Cómo cambio mi contraseña?",
+      "ejemplos": [
+        "como cambio mi contrasena",
+        "como cambio mi clave",
+        "quiero cambiar la contrasena",
+        "olvide mi contrasena",
+        "como recupero mi cuenta"
+      ],
+      "variantes": [
+        "¿Cómo cambio la contraseña?",
+        "olvide mi clave",
+        "cambiar clave",
+        "como pongo otra contraseña",
+        "no me acuerdo de mi contrasena"
+      ],
+      "respuesta": "En Perfil, en la sección Seguridad, toca \"Cambiar contraseña\": te pedirá la contraseña actual y la nueva. Si olvidaste tu contraseña, en la pantalla de inicio de sesión toca \"¿Olvidaste tu contraseña?\" y sigue las instrucciones que te llegan por correo.",
+      "accion": { "tipo": "ir_a", "destino": "perfil" }
+    },
+    {
+      "id": "editar-perfil",
+      "pregunta": "¿Cómo cambio mi nombre o los datos de mi perfil?",
+      "ejemplos": [
+        "como cambio mi nombre",
+        "como cambio mis datos de perfil",
+        "como edito mi perfil",
+        "quiero cambiar mi nombre",
+        "puedo cambiar mi correo"
+      ],
+      "variantes": [
+        "necesito actualizar mi nombre",
+        "como le cambio el nombre a mi cuenta",
+        "donde edito mis datos personales",
+        "quiero poner otro nombre en mi perfil"
+      ],
+      "respuesta": "En Perfil toca \"Editar perfil\" para cambiar tu nombre: el correo electrónico no se puede modificar. Desde esa misma pantalla también puedes revisar y actualizar los demás datos de tu cuenta.",
+      "accion": { "tipo": "ir_a", "destino": "perfil" }
+    },
+    {
+      "id": "eliminar-cuenta",
+      "pregunta": "¿Cómo elimino mi cuenta y mis datos?",
+      "ejemplos": [
+        "como elimino mi cuenta",
+        "como borro mi cuenta",
+        "quiero eliminar mis datos",
+        "como me doy de baja",
+        "como borro todo lo que tengo"
+      ],
+      "variantes": [
+        "quiero borrar mi cuenta",
+        "como cancelo mi cuenta de smartmoney",
+        "quiero que borren todos mis datos",
+        "como desactivo mi cuenta",
+        "que pasa si elimino mi cuenta"
+      ],
+      "respuesta": "En Perfil, al final de la pantalla, toca \"Eliminar cuenta\" y escribe ELIMINAR para confirmar. Se borran de forma permanente tu cuenta y toda tu información: movimientos, categorías propias, metas, aportes, progreso de educación, recomendaciones y mensajes del asistente. Esta acción no se puede deshacer.",
+      "accion": { "tipo": "ir_a", "destino": "perfil" }
+    },
+    {
+      "id": "capacidades",
+      "pregunta": "¿Qué puede hacer el asistente?",
+      "ejemplos": [
+        "que puedes hacer",
+        "en que me puedes ayudar",
+        "para que sirves",
+        "que le puedo preguntar",
+        "que sabes hacer"
+      ],
+      "variantes": [
+        "que me puedes ayudar",
+        "que le puedo preguntar al asistente",
+        "cuales son tus funciones",
+        "para que me puedes servir",
+        "que cosas sabes hacer"
+      ],
+      "respuesta": "Puedo darte los totales de lo que llevas gastado o recibido (hoy, esta semana, este mes y más), mostrarte cómo van tus metas de ahorro y resolver dudas sobre el uso de la app. Escríbeme, por ejemplo: «¿cuánto llevo gastado esta semana?» o «¿cómo van mis metas?». Pronto también voy a ayudarte a simular escenarios y a aprender conceptos de finanzas personales."
+    },
+    {
+      "id": "recordatorios-metas",
+      "pregunta": "¿La app me recuerda mis metas?",
+      "ejemplos": [
+        "la app me recuerda las metas",
+        "hay recordatorios de metas",
+        "me avisa cuando se acerca la fecha de una meta",
+        "como activo los recordatorios de metas"
+      ],
+      "variantes": [
+        "me avisas cuando se venza una meta",
+        "como activo las notificaciones de metas",
+        "quiero que me recuerdes mis metas",
+        "hay avisos cuando se acerca la fecha limite"
+      ],
+      "respuesta": "Sí. Si activas las notificaciones en tu perfil, la app te avisa cuando se acerca la fecha límite de una meta. En la pestaña Metas ves el porcentaje de avance, cuánto te falta y una estimación del tiempo según tu ritmo de ahorro de los últimos 30 días.",
+      "accion": { "tipo": "ir_a", "destino": "metas" }
+    },
+    {
+      "id": "exportar-datos",
+      "pregunta": "¿Puedo exportar mis datos?",
+      "ejemplos": [
+        "puedo exportar mis datos",
+        "como descargo mis movimientos",
+        "como saco un excel de mis gastos",
+        "puedo descargar un reporte",
+        "como imprimo mis movimientos"
+      ],
+      "variantes": [
+        "quiero descargar mis movimientos",
+        "puedo sacar mis datos de la app",
+        "como exporto mis gastos a excel",
+        "donde descargo un reporte",
+        "puedo bajar mis movimientos a un archivo"
+      ],
+      "respuesta": "Por ahora no puedes exportar tus datos desde la app: esa función todavía no está disponible. Mientras tanto puedes consultar tus movimientos y tus totales en las pestañas Inicio e Ingresos."
+    },
+    {
+      "id": "seguridad-privacidad",
+      "pregunta": "¿Mis datos están seguros?",
+      "ejemplos": [
+        "mis datos estan seguros",
+        "quien puede ver mis datos",
+        "que hacen con mi informacion",
+        "es segura la app",
+        "mis datos son privados"
+      ],
+      "variantes": [
+        "mis datos estan protegidos",
+        "puedo confiar en la app con mis datos",
+        "quien ve mi informacion",
+        "la app es segura con mi plata",
+        "comparten mis datos con alguien"
+      ],
+      "respuesta": "Tus datos viven en tu propia cuenta y solo tú puedes verlos: tus movimientos, tus metas y tus conversaciones conmigo quedan protegidos para que nadie más los consulte. No compartimos tu información con terceros."
+    }
+  ]
+}

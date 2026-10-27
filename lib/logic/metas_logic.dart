@@ -44,7 +44,9 @@ class ResultadoRegistrarAporte {
 }
 
 class MetasLogic {
-  final MetasRepository _repository = MetasRepository();
+  // Se crea de forma diferida: `calcularFechaRecordatorio` es lógica pura y
+  // debe poder probarse sin inicializar Supabase.
+  late final MetasRepository _repository = MetasRepository();
 
   double calcularPorcentajeAvance(Map<String, dynamic> meta) {
     final montoActual = (meta['monto_actual'] as num?)?.toDouble() ?? 0;
@@ -253,17 +255,33 @@ class MetasLogic {
     return _repository.obtenerMetas(usuarioId);
   }
 
-  /// Calcula la fecha para un recordatorio N días ANTES de la fecha límite.
-  /// Si no hay fecha límite, o la fecha calculada ya pasó, retorna null.
+  /// Calcula la fecha y hora del recordatorio previo a la fecha límite.
+  ///
+  /// El aviso suena a las 9:00 a. m. locales del día que queda [diasAntes]
+  /// días antes de [fechaLimite]. Si esa hora ya pasó pero la fecha límite
+  /// todavía no ha llegado, se devuelve `ahora + 1 minuto` para avisar cuanto
+  /// antes sin programar nunca una fecha pasada. Si no hay fecha límite o ya
+  /// venció, retorna null (no hay nada que recordar).
   DateTime? calcularFechaRecordatorio(
     DateTime? fechaLimite, {
     int diasAntes = 3,
   }) {
     if (fechaLimite == null) return null;
-    final fecha = fechaLimite.subtract(Duration(days: diasAntes));
+
+    final limite =
+        DateTime(fechaLimite.year, fechaLimite.month, fechaLimite.day);
     final ahora = DateTime.now();
-    final hoySinHora = DateTime(ahora.year, ahora.month, ahora.day);
-    if (fecha.isBefore(hoySinHora)) return null;
-    return fecha;
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+
+    // La fecha límite ya pasó: no se programa nada.
+    if (limite.isBefore(hoy)) return null;
+
+    final dia = limite.subtract(Duration(days: diasAntes));
+    final recordatorio = DateTime(dia.year, dia.month, dia.day, 9);
+
+    if (recordatorio.isAfter(ahora)) return recordatorio;
+
+    // Quedan menos de [diasAntes] días para el límite: se avisa de inmediato.
+    return ahora.add(const Duration(minutes: 1));
   }
 }

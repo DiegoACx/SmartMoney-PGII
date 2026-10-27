@@ -1,0 +1,721 @@
+﻿respondente,num_gasto,texto,grupo_id,grupo_nombre,generica,etiqueta_inconsistente,discrepa_mayoria,usar_en_prueba
+0,1,Transporte Universidad,7,Transporte,False,False,False,True
+1,1,Recocha futbol,9,Entretenimiento,False,False,False,True
+2,1,Pokemon,9,Entretenimiento,False,False,False,True
+3,1,Gasolina,7,Transporte,False,False,False,True
+4,1,Pago de nóminas,13,Obligaciones y transferencias,False,False,False,True
+5,1,Gastos casa,4,Vivienda y servicios,False,False,False,True
+6,1,Comida,11,Comidas fuera y domicilios,True,True,False,True
+7,1,Tarjetas,13,Obligaciones y transferencias,False,False,False,True
+8,1,mercado,1,Mercado,True,True,False,True
+9,1,Cuota del arriendo,4,Vivienda y servicios,False,False,False,True
+10,1,Carro independiente,7,Transporte,False,False,False,True
+11,1,Arriendo,4,Vivienda y servicios,False,True,False,True
+12,1,Internet,8,"Celular, internet y suscripciones",True,True,False,True
+13,1,Quitagrasa,5,Hogar,False,False,False,True
+14,1,Servicios de la casa,4,Vivienda y servicios,False,False,False,True
+15,1,Claude pro,10,Educación,False,False,False,True
+16,1,Odontologia,6,Salud,False,False,False,True
+17,1,Recibos públicos,4,Vivienda y servicios,False,False,False,True
+18,1,Acai,11,Comidas fuera y domicilios,False,False,False,True
+19,1,Transportes,7,Transporte,True,False,False,True
+20,1,Mercado,1,Mercado,True,True,False,True
+21,1,Jabon en polvo,5,Hogar,False,False,False,True
+22,1,Arriendo,4,Vivienda y servicios,False,True,False,True
+23,1,Transporte Uber,7,Transporte,False,False,False,True
+24,1,Chat gpt,8,"Celular, internet y suscripciones",False,False,False,True
+25,1,Arriendo,12,Otros gastos personales,False,True,True,False
+26,1,Mercado,1,Mercado,True,True,False,True
+27,1,Obligaciones,4,Vivienda y servicios,True,True,False,True
+28,1,Arriendo más servicios,4,Vivienda y servicios,False,False,False,True
+29,1,Arriendo,4,Vivienda y servicios,False,True,False,True
+30,1,Mercado recibos,4,Vivienda y servicios,False,False,False,True
+31,1,Comidas fuera,11,Comidas fuera y domicilios,False,False,False,True
+32,1,corrientaso,11,Comidas fuera y domicilios,False,False,False,True
+33,1,Arriendo,4,Vivienda y servicios,False,True,False,True
+34,1,Arriendo,1,Mercado,False,True,True,False
+35,1,Pago obligaciones,4,Vivienda y servicios,False,False,False,True
+36,1,Pasajes de la universidad,7,Transporte,False,False,False,True
+37,1,mercado en el D1,1,Mercado,False,False,False,True
+38,1,Mercado arriendo transporte,1,Mercado,False,False,False,True
+39,1,Educacion,10,Educación,True,True,False,True
+40,1,almuerzo corrientazo,11,Comidas fuera y domicilios,False,False,False,True
+41,1,plan claro,8,"Celular, internet y suscripciones",False,False,False,True
+42,1,ollas,5,Hogar,False,False,False,True
+43,1,pods para el vape,2,Licor y cigarrillos,False,False,False,True
+44,1,cuchillas de afeitar,12,Otros gastos personales,False,False,False,True
+45,1,libro para la clase,10,Educación,False,False,False,True
+46,1,cambio de aceite moto,7,Transporte,False,False,False,True
+47,1,Mercado,1,Mercado,True,True,False,True
+48,1,ventilador,5,Hogar,False,False,False,True
+49,1,Gastos de la casa,4,Vivienda y servicios,False,False,False,True
+50,1,Postres,5,Hogar,False,False,False,True
+51,1,café molido para la casa,1,Mercado,False,False,False,True
+52,1,domicilio pollo asado,11,Comidas fuera y domicilios,False,False,False,True
+53,1,Mercado,1,Mercado,True,True,False,True
+54,1,prime video,8,"Celular, internet y suscripciones",False,False,False,True
+55,1,mercado,1,Mercado,True,True,False,True
+56,1,Apartamento,4,Vivienda y servicios,False,False,False,True
+57,1,Compré ropa y zapatos,3,Ropa y calzado,False,False,False,True
+58,1,Mercado plaza,1,Mercado,False,False,False,True
+59,1,Nequi a mi mamá.,13,Obligaciones y transferencias,False,False,False,True
+60,1,Servicios,4,Vivienda y servicios,True,False,False,True
+61,1,Arriendo,1,Mercado,False,True,True,False
+62,1,Nequi a mami,12,Otros gastos personales,False,False,False,True
+63,1,suscripcion de crunchyroll,8,"Celular, internet y suscripciones",False,False,False,True
+64,1,Bus,7,Transporte,False,False,False,True
+65,1,Comida,1,Mercado,True,True,True,False
+66,1,Estudio,10,Educación,False,True,False,True
+67,1,Comida,11,Comidas fuera y domicilios,True,True,False,True
+68,1,Servicios,4,Vivienda y servicios,True,False,False,True
+69,1,Comida y arena gatos,9,Entretenimiento,False,False,False,True
+70,1,Gastos del hogar,5,Hogar,False,False,False,True
+71,1,pensión de colegio,10,Educación,False,False,False,True
+0,2,Ida a Pasteleria,11,Comidas fuera y domicilios,False,False,False,True
+1,2,Peluqueado,12,Otros gastos personales,False,False,False,True
+2,2,Comida,11,Comidas fuera y domicilios,True,True,False,True
+3,2,Peaje,7,Transporte,False,False,False,True
+4,2,Mercado,1,Mercado,True,True,False,True
+5,2,Mercado,1,Mercado,True,True,False,True
+6,2,Transporte,7,Transporte,True,False,False,True
+7,2,Mércado,1,Mercado,True,True,False,True
+8,2,Arriendo,4,Vivienda y servicios,False,True,False,True
+9,2,Cuota del Celular,8,"Celular, internet y suscripciones",False,False,False,True
+10,2,Almuerzo afuera,11,Comidas fuera y domicilios,False,False,False,True
+11,2,Comida,11,Comidas fuera y domicilios,True,True,False,True
+12,2,Almuerzos,11,Comidas fuera y domicilios,False,False,False,True
+13,2,Gel de baño,12,Otros gastos personales,False,False,False,True
+14,2,Gasolina,7,Transporte,False,False,False,True
+15,2,Corte de pelo,12,Otros gastos personales,False,False,False,True
+16,2,Mercado,1,Mercado,True,True,False,True
+17,2,Mercado,1,Mercado,True,True,False,True
+18,2,Spotify,9,Entretenimiento,False,True,True,False
+19,2,Recibos,4,Vivienda y servicios,False,False,False,True
+20,2,Luz,4,Vivienda y servicios,False,False,False,True
+21,2,Spotify,8,"Celular, internet y suscripciones",False,True,False,True
+22,2,Tarjeta de credito,13,Obligaciones y transferencias,False,False,False,True
+23,2,Pago de cuota,13,Obligaciones y transferencias,False,False,False,True
+24,2,Comida,1,Mercado,True,True,True,False
+25,2,Seguro autos,11,Comidas fuera y domicilios,False,False,False,True
+26,2,Recibos,4,Vivienda y servicios,False,False,False,True
+27,2,Hogar,5,Hogar,True,False,False,True
+28,2,Mercado y cosas de aseo,1,Mercado,False,False,False,True
+29,2,Mercado,1,Mercado,True,True,False,True
+30,2,Mercado,1,Mercado,True,True,False,True
+31,2,Mercado,1,Mercado,True,True,False,True
+32,2,Mercado,1,Mercado,True,True,False,True
+33,2,Comida,1,Mercado,True,True,True,False
+34,2,Mercado,1,Mercado,True,True,False,True
+35,2,Inversión emprendimiento,1,Mercado,False,False,False,True
+36,2,"Desayunos, meriendas",11,Comidas fuera y domicilios,False,False,False,True
+37,2,six pack de águila,2,Licor y cigarrillos,False,False,False,True
+38,2,Arriendo,4,Vivienda y servicios,False,True,False,True
+39,2,Transporte,7,Transporte,True,False,False,True
+40,2,peluquería,12,Otros gastos personales,False,False,False,True
+41,2,boleta concierto,9,Entretenimiento,False,False,False,True
+42,2,exámenes de laboratorio,6,Salud,False,False,False,True
+43,2,medias y bóxers,3,Ropa y calzado,False,False,False,True
+44,2,nequi a mi mamá,13,Obligaciones y transferencias,False,False,False,True
+45,2,onces en la u,11,Comidas fuera y domicilios,False,False,False,True
+46,2,spotify,8,"Celular, internet y suscripciones",False,True,False,True
+47,2,Almuerzos,11,Comidas fuera y domicilios,False,False,False,True
+48,2,vitaminas,6,Salud,False,False,False,True
+49,2,Mercado,1,Mercado,True,True,False,True
+50,2,pago pensión,10,Educación,False,False,False,True
+51,2,aguardiente para la novena,2,Licor y cigarrillos,False,False,False,True
+52,2,depilación,12,Otros gastos personales,False,False,False,True
+53,2,club colombia para la casa,2,Licor y cigarrillos,False,False,False,True
+54,2,entrada a la piscina,9,Entretenimiento,False,False,False,True
+55,2,pijama,3,Ropa y calzado,False,False,False,True
+56,2,Cuotas moderadoras,6,Salud,False,False,False,True
+57,2,Comida,11,Comidas fuera y domicilios,True,True,False,True
+58,2,Arriendo,4,Vivienda y servicios,False,True,False,True
+59,2,Mercado casa.,1,Mercado,False,False,False,True
+60,2,Gatica,9,Entretenimiento,False,False,False,True
+61,2,Comida,1,Mercado,True,True,True,False
+62,2,Amor,3,Ropa y calzado,False,False,False,True
+63,2,almuerzos,11,Comidas fuera y domicilios,False,False,False,True
+64,2,empanada,11,Comidas fuera y domicilios,False,False,False,True
+65,2,Servicios,4,Vivienda y servicios,True,False,False,True
+66,2,Entretenimiento,9,Entretenimiento,True,True,False,True
+67,2,Tomar,2,Licor y cigarrillos,False,False,False,True
+68,2,Mercado,1,Mercado,True,True,False,True
+69,2,Servicios,4,Vivienda y servicios,True,False,False,True
+70,2,Mercado,1,Mercado,True,True,False,True
+71,2,gasolina,7,Transporte,False,False,False,True
+0,3,Compra de camisa negra,3,Ropa y calzado,False,False,False,True
+1,3,Ropa,3,Ropa y calzado,True,True,False,True
+2,3,Ropa,3,Ropa y calzado,True,True,False,True
+3,3,Comifa,11,Comidas fuera y domicilios,False,False,False,True
+4,3,Comprar regalos,12,Otros gastos personales,False,False,False,True
+5,3,Mercado,5,Hogar,True,True,True,False
+6,3,Mercado,1,Mercado,True,True,False,True
+7,3,Universidad,10,Educación,False,False,False,True
+8,3,Transportes,7,Transporte,True,False,False,True
+9,3,Carreras de taxis para ir al trabajo,7,Transporte,False,False,False,True
+10,3,Paquete de datos,8,"Celular, internet y suscripciones",False,False,False,True
+11,3,Mercado,1,Mercado,True,True,False,True
+12,3,Servicios,4,Vivienda y servicios,True,False,False,True
+13,3,Yogurt griego,1,Mercado,False,False,False,True
+14,3,Entretenimiento,9,Entretenimiento,True,True,False,True
+15,3,Uber a campus,7,Transporte,False,False,False,True
+16,3,Servicios,4,Vivienda y servicios,True,False,False,True
+17,3,Administración,4,Vivienda y servicios,False,False,False,True
+18,3,Gym,6,Salud,False,False,False,True
+19,3,Mercado,1,Mercado,True,True,False,True
+20,3,Peluqueado,12,Otros gastos personales,False,False,False,True
+21,3,Salida con panas,9,Entretenimiento,False,False,False,True
+22,3,Comida,1,Mercado,True,True,True,False
+23,3,Pago de vuelos,12,Otros gastos personales,False,False,False,True
+24,3,Ropa,3,Ropa y calzado,True,True,False,True
+25,3,Domicilio,4,Vivienda y servicios,False,True,False,True
+26,3,Creditos,13,Obligaciones y transferencias,False,False,False,True
+27,3,Gasto fijo,4,Vivienda y servicios,False,False,False,True
+28,3,Deudas,12,Otros gastos personales,False,True,True,False
+29,3,Gasolina,7,Transporte,False,False,False,True
+30,3,Ropa,3,Ropa y calzado,True,True,False,True
+31,3,Celular,8,"Celular, internet y suscripciones",True,False,False,True
+32,3,Gasolina,7,Transporte,False,False,False,True
+33,3,Recibos,4,Vivienda y servicios,False,False,False,True
+34,3,Servicios de hogar,4,Vivienda y servicios,False,False,False,True
+35,3,Comida mascotas,12,Otros gastos personales,False,True,True,False
+36,3,"Factura del teléfono, del internet",8,"Celular, internet y suscripciones",False,False,False,True
+37,3,tenis nuevos,3,Ropa y calzado,False,False,False,True
+38,3,Transporte,7,Transporte,True,False,False,True
+39,3,Entretenimiento,9,Entretenimiento,True,True,False,True
+40,3,cuota icetex,13,Obligaciones y transferencias,False,False,False,True
+41,3,fotocopias,10,Educación,False,False,False,True
+42,3,gasolina moto,7,Transporte,False,False,False,True
+43,3,gas natural,4,Vivienda y servicios,False,False,False,True
+44,3,arroz y panela,1,Mercado,False,False,False,True
+45,3,manicure,12,Otros gastos personales,False,False,False,True
+46,3,cancha sintética con los amigos,9,Entretenimiento,False,False,False,True
+47,3,Transporte,7,Transporte,True,False,False,True
+48,3,bus a San Gil,7,Transporte,False,False,False,True
+49,3,Transporte,7,Transporte,True,False,False,True
+50,3,pago cuota banco,12,Otros gastos personales,False,False,False,True
+51,3,vestido para el matrimonio,3,Ropa y calzado,False,False,False,True
+52,3,intereses de la tarjeta,13,Obligaciones y transferencias,False,False,False,True
+53,3,chanclas,3,Ropa y calzado,False,False,False,True
+54,3,carpeta y hojas de examen,10,Educación,False,False,False,True
+55,3,licuadora,5,Hogar,False,False,False,True
+56,3,Mercado,1,Mercado,True,True,False,True
+57,3,Mercado,1,Mercado,True,True,False,True
+58,3,Cafe,11,Comidas fuera y domicilios,False,False,False,True
+59,3,Recibos de las casas,4,Vivienda y servicios,False,False,False,True
+60,3,Cine,9,Entretenimiento,False,False,False,True
+61,3,Administración,4,Vivienda y servicios,False,False,False,True
+62,3,La niña,3,Ropa y calzado,False,False,False,True
+63,3,ir a ver street fighter,9,Entretenimiento,False,False,False,True
+64,3,almuerzo,11,Comidas fuera y domicilios,False,False,False,True
+65,3,Ropa,3,Ropa y calzado,True,True,False,True
+66,3,Transporte,7,Transporte,True,False,False,True
+67,3,Peluqueria,12,Otros gastos personales,False,False,False,True
+68,3,Hogar,5,Hogar,True,False,False,True
+69,3,Salidas,11,Comidas fuera y domicilios,False,True,True,False
+70,3,Servicio,4,Vivienda y servicios,False,False,False,True
+71,3,almuerzos,11,Comidas fuera y domicilios,False,False,False,True
+0,4,Peluqueada,12,Otros gastos personales,False,False,False,True
+1,4,Cine,9,Entretenimiento,False,False,False,True
+2,4,Salidas,9,Entretenimiento,False,True,False,True
+3,4,Motel,9,Entretenimiento,False,False,False,True
+4,4,Ropa,3,Ropa y calzado,True,True,False,True
+5,4,Salidas,11,Comidas fuera y domicilios,False,True,True,False
+6,4,Recarga celular,8,"Celular, internet y suscripciones",False,False,False,True
+7,4,Servicios,4,Vivienda y servicios,True,False,False,True
+8,4,"Internet ,",8,"Celular, internet y suscripciones",False,False,False,True
+9,4,Almuerzo en Guanenta,11,Comidas fuera y domicilios,False,False,False,True
+10,4,Unos zapatos,3,Ropa y calzado,False,False,False,True
+11,4,Cosas de aseo,5,Hogar,False,False,False,True
+12,4,Comida para mi perro,9,Entretenimiento,False,False,False,True
+13,4,Shampoo,12,Otros gastos personales,False,False,False,True
+14,4,Comida,11,Comidas fuera y domicilios,True,True,False,True
+15,4,Empanada,11,Comidas fuera y domicilios,False,False,False,True
+16,4,Diversion,9,Entretenimiento,False,False,False,True
+17,4,Pension colegio,10,Educación,False,False,False,True
+18,4,Salchipapa,11,Comidas fuera y domicilios,False,False,False,True
+19,4,Salidas,9,Entretenimiento,False,True,False,True
+20,4,Trago,2,Licor y cigarrillos,False,False,False,True
+21,4,Pagar el telefono,8,"Celular, internet y suscripciones",False,False,False,True
+22,4,Salud,6,Salud,True,False,False,True
+23,4,Mercado,1,Mercado,True,True,False,True
+24,4,Viajes,11,Comidas fuera y domicilios,False,True,True,False
+25,4,Ropa,8,"Celular, internet y suscripciones",True,True,True,False
+26,4,Salud,6,Salud,True,False,False,True
+27,4,Extras,7,Transporte,True,True,True,False
+28,4,Plata para mamá,13,Obligaciones y transferencias,False,False,False,True
+29,4,Internet,4,Vivienda y servicios,True,True,True,False
+30,4,Manicura,12,Otros gastos personales,False,False,False,True
+31,4,ICETEX,13,Obligaciones y transferencias,False,False,False,True
+32,4,Entretenimiento,2,Licor y cigarrillos,True,True,True,False
+33,4,Transparente,7,Transporte,False,False,False,True
+34,4,Gasolina,7,Transporte,False,False,False,True
+35,4,Pago obligaciones financieras,13,Obligaciones y transferencias,False,False,False,True
+36,4,Materiales para la universidad,10,Educación,False,False,False,True
+37,4,arriendo,4,Vivienda y servicios,False,True,False,True
+38,4,Hogar,5,Hogar,True,False,False,True
+39,4,Celular internet y suscripciones,8,"Celular, internet y suscripciones",False,False,False,True
+40,4,compra en Ara,1,Mercado,False,False,False,True
+41,4,domicilio rappi,11,Comidas fuera y domicilios,False,False,False,True
+42,4,internet de la casa,8,"Celular, internet y suscripciones",False,False,False,True
+43,4,colchón,5,Hogar,False,False,False,True
+44,4,ron para el cumple,2,Licor y cigarrillos,False,False,False,True
+45,4,pago PILA,13,Obligaciones y transferencias,False,False,False,True
+46,4,cuadernos y lapiceros,10,Educación,False,False,False,True
+47,4,Prepagada,6,Salud,False,False,False,True
+48,4,google one,8,"Celular, internet y suscripciones",False,False,False,True
+49,4,Recibo de tv,13,Obligaciones y transferencias,False,False,False,True
+50,4,pago celular,8,"Celular, internet y suscripciones",False,False,False,True
+51,4,arriendo de la pieza,4,Vivienda y servicios,False,False,False,True
+52,4,queso y arepas,1,Mercado,False,False,False,True
+53,4,servicios,4,Vivienda y servicios,True,False,False,True
+54,4,pizza con la novia,11,Comidas fuera y domicilios,False,False,False,True
+55,4,cover discoteca,9,Entretenimiento,False,False,False,True
+56,4,Pago de tarjetas,13,Obligaciones y transferencias,False,False,False,True
+57,4,Nequi,13,Obligaciones y transferencias,False,False,False,True
+58,4,SHEIN,3,Ropa y calzado,False,False,False,True
+59,4,Tareas david,10,Educación,False,False,False,True
+60,4,Comida,1,Mercado,True,True,True,False
+61,4,Cuota,12,Otros gastos personales,False,False,False,True
+62,4,Casa,1,Mercado,False,True,False,True
+63,4,videojuegos,9,Entretenimiento,False,False,False,True
+64,4,plan datos,8,"Celular, internet y suscripciones",False,False,False,True
+65,4,Ropa,1,Mercado,True,True,True,False
+66,4,Planes,8,"Celular, internet y suscripciones",False,False,False,True
+67,4,Medicamentos,6,Salud,False,False,False,True
+68,4,Celulares,8,"Celular, internet y suscripciones",False,False,False,True
+69,4,Creditos,13,Obligaciones y transferencias,False,False,False,True
+70,4,Telefonos,8,"Celular, internet y suscripciones",False,False,False,True
+71,4,fiesta de cumpleaños,9,Entretenimiento,False,False,False,True
+0,5,Regalo de cumpleaños a mi novia,12,Otros gastos personales,False,False,False,True
+1,5,Indriver,7,Transporte,False,False,False,True
+2,5,Nu,13,Obligaciones y transferencias,False,False,False,True
+3,5,Gym,6,Salud,False,False,False,True
+4,5,Transporte,7,Transporte,True,False,False,True
+5,5,Gasolina,7,Transporte,False,False,False,True
+6,5,Cine con mi novio,9,Entretenimiento,False,False,False,True
+7,5,Celulares,8,"Celular, internet y suscripciones",False,False,False,True
+8,5,Exámenes,6,Salud,False,False,False,True
+9,5,Compra de carne de lomo de cerdo,1,Mercado,False,False,False,True
+10,5,Shampoo y tratamientos para el pelo,12,Otros gastos personales,False,False,False,True
+11,5,Cuenta celular,8,"Celular, internet y suscripciones",False,False,False,True
+12,5,Gastos Transportes,7,Transporte,False,False,False,True
+13,5,perfUmito nuevo,12,Otros gastos personales,False,False,False,True
+14,5,Pagos,13,Obligaciones y transferencias,False,False,False,True
+15,5,Pago cancha riverside,9,Entretenimiento,False,False,False,True
+16,5,Transporte,7,Transporte,True,False,False,True
+17,5,Pila,13,Obligaciones y transferencias,False,False,False,True
+18,5,Universidad,10,Educación,False,False,False,True
+19,5,Hogar,5,Hogar,True,False,False,True
+20,5,Mensualidad gym,8,"Celular, internet y suscripciones",False,True,False,True
+21,5,Apple music,8,"Celular, internet y suscripciones",False,False,False,True
+22,5,Comida fuera,11,Comidas fuera y domicilios,False,False,False,True
+23,5,Almuerzo entre amigos,9,Entretenimiento,False,False,False,True
+24,5,Fiesta,2,Licor y cigarrillos,False,False,False,True
+25,5,Rutas de mis hijos,1,Mercado,False,False,False,True
+26,5,Salidas y viajes,9,Entretenimiento,False,False,False,True
+27,5,Mercado,1,Mercado,True,True,False,True
+28,5,"Netflix, youtube, plan del celular",8,"Celular, internet y suscripciones",False,False,False,True
+29,5,Productos de aseo,5,Hogar,False,False,False,True
+30,5,Productos cabello,12,Otros gastos personales,False,False,False,True
+31,5,Vivienda,4,Vivienda y servicios,True,False,False,True
+32,5,Celular y internet,8,"Celular, internet y suscripciones",False,False,False,True
+33,5,Gastos universitarios,10,Educación,False,False,False,True
+34,5,Gastos universitarios,10,Educación,False,False,False,True
+35,5,Médico,6,Salud,False,False,False,True
+36,5,"Maquillaje, skincare",12,Otros gastos personales,False,False,False,True
+37,5,detergente y jabón de loza,5,Hogar,False,False,False,True
+38,5,Educación,10,Educación,True,True,False,True
+39,5,Otros gastos personales,12,Otros gastos personales,False,False,False,True
+40,5,media de aguardiente,2,Licor y cigarrillos,False,False,False,True
+41,5,shampoo y desodorante,12,Otros gastos personales,False,False,False,True
+42,5,juego en steam,9,Entretenimiento,False,False,False,True
+43,5,gafas,6,Salud,False,False,False,True
+44,5,chaqueta,3,Ropa y calzado,False,False,False,True
+45,5,carne en la famer,1,Mercado,False,False,False,True
+46,5,salchipapa,11,Comidas fuera y domicilios,False,False,False,True
+47,5,Gastos de colegio de mi hijo,10,Educación,False,False,False,True
+48,5,mensualidad gym,9,Entretenimiento,False,True,True,False
+49,5,Pago de bancos,8,"Celular, internet y suscripciones",False,False,False,True
+50,5,mercado,1,Mercado,True,True,False,True
+51,5,platos y vasos,5,Hogar,False,False,False,True
+52,5,botella de whisky,2,Licor y cigarrillos,False,False,False,True
+53,5,peaje,7,Transporte,False,False,False,True
+54,5,regalo amigo secreto,12,Otros gastos personales,False,False,False,True
+55,5,impresiones del trabajo final,10,Educación,False,False,False,True
+56,5,Salida a comer,11,Comidas fuera y domicilios,False,False,False,True
+57,5,Transportes,7,Transporte,True,False,False,True
+58,5,Pensión niños,10,Educación,False,False,False,True
+59,5,Comida perritas,9,Entretenimiento,False,False,False,True
+60,5,Trasporte,7,Transporte,False,False,False,True
+61,5,Telefono,9,Entretenimiento,False,False,False,True
+62,5,Deudas,13,Obligaciones y transferencias,False,True,False,True
+63,5,una asta dental pequeña,5,Hogar,False,False,False,True
+64,5,pago credito,13,Obligaciones y transferencias,False,False,False,True
+65,5,Pastillas,6,Salud,False,False,False,True
+66,5,Comidas,11,Comidas fuera y domicilios,False,False,False,True
+67,5,Comida,11,Comidas fuera y domicilios,True,True,False,True
+68,5,Salud,6,Salud,True,False,False,True
+69,5,Personal,12,Otros gastos personales,False,False,False,True
+70,5,Gasolina,7,Transporte,False,False,False,True
+71,5,servicios públicos,4,Vivienda y servicios,False,False,False,True
+0,6,Mercado familiar,1,Mercado,False,False,False,True
+1,6,Salida con amigos,9,Entretenimiento,False,False,False,True
+2,6,Mercadito,1,Mercado,False,False,False,True
+3,6,Salidas,9,Entretenimiento,False,True,False,True
+4,6,Suscripciones,8,"Celular, internet y suscripciones",False,False,False,True
+5,6,Suscripciones,8,"Celular, internet y suscripciones",False,False,False,True
+6,6,Regalo mami,12,Otros gastos personales,False,False,False,True
+7,6,Gasolina,7,Transporte,False,False,False,True
+8,6,Salidas a comer,11,Comidas fuera y domicilios,False,False,False,True
+9,6,Corte de cabello,12,Otros gastos personales,False,False,False,True
+10,6,Bolsas para la basura,5,Hogar,False,False,False,True
+11,6,Spotify,8,"Celular, internet y suscripciones",False,True,False,True
+12,6,Productos de Higiene Personal,12,Otros gastos personales,False,False,False,True
+13,6,Arroz,1,Mercado,False,False,False,True
+14,6,Corte de cabello,12,Otros gastos personales,False,False,False,True
+15,6,Apple Music,8,"Celular, internet y suscripciones",False,False,False,True
+16,6,Pago celular,8,"Celular, internet y suscripciones",False,False,False,True
+17,6,Cursos,10,Educación,False,False,False,True
+18,6,Parqueadero,7,Transporte,False,False,False,True
+19,6,Ropa,3,Ropa y calzado,True,True,False,True
+20,6,taxi,7,Transporte,False,False,False,True
+21,6,Smartfit,8,"Celular, internet y suscripciones",False,False,False,True
+22,6,Servicios publicos,4,Vivienda y servicios,False,False,False,True
+23,6,Regalo de baby shower,9,Entretenimiento,False,False,False,True
+24,6,Arriendo,4,Vivienda y servicios,False,True,False,True
+25,6,Gasolina ⛽,3,Ropa y calzado,False,False,False,True
+26,6,Calzado,3,Ropa y calzado,False,False,False,True
+27,6,Hogar,5,Hogar,True,False,False,True
+28,6,Gastos personales,12,Otros gastos personales,True,False,False,True
+29,6,Educacion,10,Educación,True,True,False,True
+30,6,Gasolina,7,Transporte,False,False,False,True
+31,6,Hogar,5,Hogar,True,False,False,True
+32,6,Personal,12,Otros gastos personales,False,False,False,True
+33,6,Comidas por fuera,11,Comidas fuera y domicilios,False,False,False,True
+34,6,Comida,11,Comidas fuera y domicilios,True,True,False,True
+35,6,Comunicación,8,"Celular, internet y suscripciones",False,False,False,True
+36,6,"Sandalias, ropa, bolsos",3,Ropa y calzado,False,False,False,True
+37,6,acetaminofén en la droguería,6,Salud,False,False,False,True
+38,6,Otros gastos como peluquería,12,Otros gastos personales,False,False,False,True
+39,6,Ropa y calzado,3,Ropa y calzado,True,False,False,True
+40,6,jean,3,Ropa y calzado,False,False,False,True
+41,6,pago tarjeta de crédito,13,Obligaciones y transferencias,False,False,False,True
+42,6,curso de inglés,10,Educación,False,False,False,True
+43,6,parqueadero,7,Transporte,False,False,False,True
+44,6,pipeta de gas,4,Vivienda y servicios,False,False,False,True
+45,6,polas en la tienda,2,Licor y cigarrillos,False,False,False,True
+46,6,perfume,12,Otros gastos personales,False,False,False,True
+47,6,Salidas en familia,9,Entretenimiento,False,False,False,True
+48,6,inscripción diplomado,10,Educación,False,False,False,True
+49,6,Salida,10,Educación,False,False,False,True
+50,6,nada,11,Comidas fuera y domicilios,False,False,False,True
+51,6,ibuprofeno,6,Salud,False,False,False,True
+52,6,gorra,3,Ropa y calzado,False,False,False,True
+53,6,calculadora científica,10,Educación,False,False,False,True
+54,6,impuesto de la moto,13,Obligaciones y transferencias,False,False,False,True
+55,6,helado,11,Comidas fuera y domicilios,False,False,False,True
+56,6,Gasolina,7,Transporte,False,False,False,True
+57,6,Recibo,4,Vivienda y servicios,False,False,False,True
+58,6,Regalo amigo secreto,12,Otros gastos personales,False,False,False,True
+59,6,Domicilios,11,Comidas fuera y domicilios,False,False,False,True
+60,6,Gaseosa,11,Comidas fuera y domicilios,False,False,False,True
+61,6,Cuota carro,12,Otros gastos personales,False,False,False,True
+62,6,Casa,5,Hogar,False,True,True,False
+63,6,didi,7,Transporte,False,False,False,True
+64,6,motilado,12,Otros gastos personales,False,False,False,True
+65,6,Comida,11,Comidas fuera y domicilios,True,True,False,True
+66,6,Salidas,9,Entretenimiento,False,True,False,True
+67,6,Cafe,11,Comidas fuera y domicilios,False,False,False,True
+68,6,Educación,10,Educación,True,True,False,True
+69,6,Mercado,1,Mercado,True,True,False,True
+70,6,Tarjeta,13,Obligaciones y transferencias,False,False,False,True
+71,6,Mercado para el hogar,1,Mercado,False,False,False,True
+0,7,Ida a asado con amigos,11,Comidas fuera y domicilios,False,False,False,True
+1,7,Pagar celular,8,"Celular, internet y suscripciones",False,False,False,True
+2,7,Peluqueria,12,Otros gastos personales,False,False,False,True
+3,7,Ropa,9,Entretenimiento,True,True,True,False
+4,7,Servicios,4,Vivienda y servicios,True,False,False,True
+5,7,Créditos,13,Obligaciones y transferencias,False,False,False,True
+6,7,Pago tarjeta credito,13,Obligaciones y transferencias,False,False,False,True
+7,7,Complementario,6,Salud,False,False,False,True
+8,7,Comidas,11,Comidas fuera y domicilios,False,False,False,True
+9,7,Pago de seguridad social,13,Obligaciones y transferencias,False,False,False,True
+10,7,Impresión de un trabajo,10,Educación,False,False,False,True
+11,7,Netflix,8,"Celular, internet y suscripciones",False,False,False,True
+12,7,Datos Celular,8,"Celular, internet y suscripciones",False,False,False,True
+13,7,Vino blue label,2,Licor y cigarrillos,False,False,False,True
+14,7,Celular,8,"Celular, internet y suscripciones",True,False,False,True
+15,7,iCloud,8,"Celular, internet y suscripciones",False,False,False,True
+16,7,Jabon y toallas,5,Hogar,False,False,False,True
+17,7,Restaurantes,11,Comidas fuera y domicilios,False,False,False,True
+18,7,Regalo,12,Otros gastos personales,False,False,False,True
+19,7,Licor,2,Licor y cigarrillos,True,False,False,True
+20,7,domicilio,11,Comidas fuera y domicilios,False,True,True,False
+21,7,Zapatos,3,Ropa y calzado,False,False,False,True
+22,7,Transporte,7,Transporte,True,False,False,True
+23,7,Gpt,8,"Celular, internet y suscripciones",False,False,False,True
+24,7,Hogar,5,Hogar,True,False,False,True
+25,7,Peajes,8,"Celular, internet y suscripciones",False,False,False,True
+26,7,Celular,8,"Celular, internet y suscripciones",True,False,False,True
+27,7,Ocasionales,6,Salud,False,False,False,True
+28,7,Comida por fuera,11,Comidas fuera y domicilios,False,False,False,True
+29,7,Paseos,9,Entretenimiento,False,False,False,True
+30,7,Crepes,9,Entretenimiento,False,False,False,True
+31,7,Licor,2,Licor y cigarrillos,True,False,False,True
+32,7,Tarjetas,13,Obligaciones y transferencias,False,False,False,True
+33,7,Medicamentos,6,Salud,False,False,False,True
+34,7,Gastos universitarios,10,Educación,False,False,False,True
+35,7,Transporte,7,Transporte,True,False,False,True
+36,7,"Detergente, jabón, limpiador",5,Hogar,False,False,False,True
+37,7,pasaje Metrolínea,7,Transporte,False,False,False,True
+38,7,Citas exámenes,6,Salud,False,False,False,True
+39,7,Celular intenet,8,"Celular, internet y suscripciones",False,False,False,True
+40,7,recibo de la luz,4,Vivienda y servicios,False,False,False,True
+41,7,frutas en la plaza,1,Mercado,False,False,False,True
+42,7,tinto y empanada,11,Comidas fuera y domicilios,False,False,False,True
+43,7,netflix,8,"Celular, internet y suscripciones",False,False,False,True
+44,7,bombillos,5,Hogar,False,False,False,True
+45,7,zapatos para el trabajo,3,Ropa y calzado,False,False,False,True
+46,7,retención DIAN,13,Obligaciones y transferencias,False,False,False,True
+47,7,Viaje,12,Otros gastos personales,False,False,False,True
+48,7,café en juan valdez,11,Comidas fuera y domicilios,False,False,False,True
+49,7,Salud,6,Salud,True,False,False,True
+50,7,ropa,3,Ropa y calzado,True,True,False,True
+51,7,didi,7,Transporte,False,False,False,True
+52,7,plomero,4,Vivienda y servicios,False,False,False,True
+53,7,abono a deuda con un amigo,13,Obligaciones y transferencias,False,False,False,True
+54,7,pollo en la avícola,1,Mercado,False,False,False,True
+55,7,tinte para el pelo,12,Otros gastos personales,False,False,False,True
+56,7,Pago de Servicios,4,Vivienda y servicios,False,False,False,True
+57,7,Plan movil,8,"Celular, internet y suscripciones",False,False,False,True
+58,7,Servicios,4,Vivienda y servicios,True,False,False,True
+59,7,Dólar City,5,Hogar,False,False,False,True
+60,7,Medicina,6,Salud,False,False,False,True
+61,7,Transporte,7,Transporte,True,False,False,True
+62,7,Casa,6,Salud,False,True,True,False
+63,7,didi,7,Transporte,False,False,False,True
+64,7,Control MSI,9,Entretenimiento,False,False,False,True
+65,7,Deudas,13,Obligaciones y transferencias,False,True,False,True
+66,7,Higiene personal,12,Otros gastos personales,False,False,False,True
+67,7,Pague el servicio del cel,8,"Celular, internet y suscripciones",False,False,False,True
+68,7,Ropa,3,Ropa y calzado,True,True,False,True
+69,7,Rodamientos,7,Transporte,False,False,False,True
+70,7,Diversion,9,Entretenimiento,False,False,False,True
+71,7,Salidas a comer,11,Comidas fuera y domicilios,False,False,False,True
+0,8,Comida maquina expendedora,11,Comidas fuera y domicilios,False,False,False,True
+1,8,Parqueadero,7,Transporte,False,False,False,True
+2,8,Uber,7,Transporte,False,False,False,True
+3,8,Mercado,1,Mercado,True,True,False,True
+4,8,Entretenimiento,9,Entretenimiento,True,True,False,True
+5,8,Compras casa,5,Hogar,False,False,False,True
+6,8,Comoda noche,11,Comidas fuera y domicilios,False,False,False,True
+7,8,Mercado plaza,1,Mercado,False,False,False,True
+8,8,Regalos,12,Otros gastos personales,False,False,False,True
+9,8,Compra de clorox para la lavadora,5,Hogar,False,False,False,True
+10,8,Receta almuerzo,1,Mercado,False,False,False,True
+11,8,Transporte,7,Transporte,True,False,False,True
+12,8,Corte de pelo,12,Otros gastos personales,False,False,False,True
+13,8,Cepillo de dientes,12,Otros gastos personales,False,False,False,True
+14,8,Mercado,1,Mercado,True,True,False,True
+15,8,Camisa regalo,12,Otros gastos personales,False,False,False,True
+16,8,Salida familia,11,Comidas fuera y domicilios,False,False,False,True
+17,8,Gasolina,7,Transporte,False,False,False,True
+18,8,Crema de pelo,12,Otros gastos personales,False,False,False,True
+19,8,Personales,13,Obligaciones y transferencias,False,False,False,True
+20,8,curso,10,Educación,False,False,False,True
+21,8,Parqueadero,7,Transporte,False,False,False,True
+22,8,Planes,8,"Celular, internet y suscripciones",False,False,False,True
+23,8,Pago de universidad,10,Educación,False,False,False,True
+24,8,Peluquería uñas pelo cejas,12,Otros gastos personales,False,False,False,True
+25,8,Artículos,9,Entretenimiento,False,False,False,True
+26,8,Licor,2,Licor y cigarrillos,True,False,False,True
+27,8,Vicios,2,Licor y cigarrillos,False,False,False,True
+28,8,Ahorro,13,Obligaciones y transferencias,False,False,False,True
+29,8,Entretenimiento,9,Entretenimiento,True,True,False,True
+30,8,Comida mascotas,9,Entretenimiento,False,True,False,True
+31,8,Transporte,7,Transporte,True,False,False,True
+32,8,Gastos de casa,5,Hogar,False,False,False,True
+33,8,Internet,8,"Celular, internet y suscripciones",True,True,False,True
+34,8,Salud,6,Salud,True,False,False,True
+35,8,Regalo,12,Otros gastos personales,False,False,False,True
+36,8,Cervezas,2,Licor y cigarrillos,False,False,False,True
+37,8,recarga tigo,8,"Celular, internet y suscripciones",False,False,False,True
+38,8,Celular,8,"Celular, internet y suscripciones",True,False,False,True
+39,8,Servicios,4,Vivienda y servicios,True,False,False,True
+40,8,papel higiénico,5,Hogar,False,False,False,True
+41,8,cajetilla de cigarrillos,2,Licor y cigarrillos,False,False,False,True
+42,8,regalo cumple de mi mamá,12,Otros gastos personales,False,False,False,True
+43,8,concentrado del perro,9,Entretenimiento,False,False,False,True
+44,8,copago EPS,6,Salud,False,False,False,True
+45,8,administración del conjunto,4,Vivienda y servicios,False,False,False,True
+46,8,pan del desayuno,1,Mercado,False,False,False,True
+47,8,Giro familiar,13,Obligaciones y transferencias,False,False,False,True
+48,8,seguro de vida,12,Otros gastos personales,False,False,False,True
+49,8,Comida,11,Comidas fuera y domicilios,True,True,False,True
+50,8,salir,9,Entretenimiento,False,False,False,True
+51,8,chatgpt plus,8,"Celular, internet y suscripciones",False,False,False,True
+52,8,cortinas,5,Hogar,False,False,False,True
+53,8,almuerzo en el centro comercial,9,Entretenimiento,False,False,False,True
+54,8,porros de marihuana,2,Licor y cigarrillos,False,False,False,True
+55,8,tabaco para armar,2,Licor y cigarrillos,False,False,False,True
+56,8,Celular,8,"Celular, internet y suscripciones",True,False,False,True
+57,8,Entretenimiento,9,Entretenimiento,True,True,False,True
+58,8,Arreglo lavamanos,5,Hogar,False,False,False,True
+59,8,Pañales,6,Salud,False,False,False,True
+60,8,Aseo,5,Hogar,False,False,False,True
+61,8,Mantenimiento,12,Otros gastos personales,False,False,False,True
+62,8,Trabajo,7,Transporte,False,False,False,True
+63,8,didi,7,Transporte,False,False,False,True
+64,8,ARC Raiders,9,Entretenimiento,False,False,False,True
+65,8,Corte de cabello,12,Otros gastos personales,False,False,False,True
+66,8,Medicamentos,6,Salud,False,False,False,True
+67,8,Tarjeta de credito :(,13,Obligaciones y transferencias,False,False,False,True
+68,8,Transporte,7,Transporte,True,False,False,True
+69,8,Skincare,6,Salud,False,False,False,True
+70,8,Cenas,11,Comidas fuera y domicilios,False,False,False,True
+71,8,Juegos en centro comercial,9,Entretenimiento,False,False,False,True
+0,9,Recocha con amigos,9,Entretenimiento,False,False,False,True
+1,9,Domicilios,11,Comidas fuera y domicilios,False,False,False,True
+2,9,Datos,8,"Celular, internet y suscripciones",False,False,False,True
+3,9,Claude,10,Educación,False,False,False,True
+4,9,Comida en restaurantes,11,Comidas fuera y domicilios,False,False,False,True
+5,9,Gastos personales,12,Otros gastos personales,True,False,False,True
+6,9,Almuerzo prácticas,12,Otros gastos personales,False,False,False,True
+7,9,Aseo,5,Hogar,False,False,False,True
+8,9,Ropa,3,Ropa y calzado,True,True,False,True
+9,9,Café Americano en el Oxxo,11,Comidas fuera y domicilios,False,False,False,True
+10,9,Detalle para pareja,12,Otros gastos personales,False,False,False,True
+11,9,Salidas,9,Entretenimiento,False,True,False,True
+12,9,Consola Play 5,12,Otros gastos personales,False,False,False,True
+13,9,Escoba,5,Hogar,False,False,False,True
+14,9,Hogar,5,Hogar,True,False,False,True
+15,9,Curso AWS,10,Educación,False,False,False,True
+16,9,Corte de cabello,12,Otros gastos personales,False,False,False,True
+17,9,Medicamentos,6,Salud,False,False,False,True
+18,9,Airbnb,9,Entretenimiento,False,False,False,True
+19,9,Mascotas,9,Entretenimiento,False,False,False,True
+20,9,Salidas con amigos,9,Entretenimiento,False,False,False,True
+21,9,onces,11,Comidas fuera y domicilios,False,False,False,True
+22,9,Prestamos,13,Obligaciones y transferencias,False,False,False,True
+23,9,Salida con mi novia,11,Comidas fuera y domicilios,False,False,False,True
+24,9,Gasolina,7,Transporte,False,False,False,True
+25,9,Cuidad de los niños,2,Licor y cigarrillos,False,False,False,True
+26,9,Comidas,11,Comidas fuera y domicilios,False,False,False,True
+27,9,Lujos,3,Ropa y calzado,False,False,False,True
+28,9,Mensualidad parquedero,13,Obligaciones y transferencias,False,False,False,True
+29,9,Prestamo,13,Obligaciones y transferencias,False,False,False,True
+30,9,Sandalias,3,Ropa y calzado,False,False,False,True
+31,9,Ropa,3,Ropa y calzado,True,True,False,True
+32,9,Trasporte,7,Transporte,False,False,False,True
+33,9,Gastos personales,12,Otros gastos personales,True,False,False,True
+34,9,Internet,8,"Celular, internet y suscripciones",True,True,False,True
+35,9,Comida gatos,9,Entretenimiento,False,False,False,True
+36,9,"Arroz, harina, pan",1,Mercado,False,False,False,True
+37,9,cine,9,Entretenimiento,False,False,False,True
+38,9,Entretenimiento,9,Entretenimiento,True,True,False,True
+39,9,Licor,2,Licor y cigarrillos,True,False,False,True
+40,9,cita con el odontólogo,6,Salud,False,False,False,True
+41,9,camisetas en el centro,3,Ropa y calzado,False,False,False,True
+42,9,cuota préstamo banco,13,Obligaciones y transferencias,False,False,False,True
+43,9,curso en udemy,10,Educación,False,False,False,True
+44,9,SOAT,7,Transporte,False,True,False,True
+45,9,escoba y trapero,5,Hogar,False,False,False,True
+46,9,arreglo de pantalón con la modista,3,Ropa y calzado,False,False,False,True
+47,9,Plan celular,8,"Celular, internet y suscripciones",False,False,False,True
+48,9,cuota de la moto,13,Obligaciones y transferencias,False,False,False,True
+49,9,Entretenimiento,9,Entretenimiento,True,True,False,True
+50,9,medicamento,6,Salud,False,False,False,True
+51,9,juguete para el gato,9,Entretenimiento,False,False,False,True
+52,9,cita con el dermatólogo,6,Salud,False,False,False,True
+53,9,disney plus,8,"Celular, internet y suscripciones",False,False,False,True
+54,9,arreglo de zapatos,3,Ropa y calzado,False,False,False,True
+55,9,uniforme del trabajo,3,Ropa y calzado,False,False,False,True
+56,9,Ropa,3,Ropa y calzado,True,True,False,True
+57,9,Comida para mis mascotas,9,Entretenimiento,False,False,False,True
+58,9,Cine,9,Entretenimiento,False,False,False,True
+59,9,Tarjetas,13,Obligaciones y transferencias,False,False,False,True
+60,9,Material arte,10,Educación,False,False,False,True
+61,9,Running,12,Otros gastos personales,False,False,False,True
+62,9,juliana,11,Comidas fuera y domicilios,False,False,False,True
+63,9,didi,7,Transporte,False,False,False,True
+64,9,Apple Music,8,"Celular, internet y suscripciones",False,False,False,True
+65,9,Comida.,11,Comidas fuera y domicilios,False,False,False,True
+66,9,Mercado,1,Mercado,True,True,False,True
+67,9,Comida,11,Comidas fuera y domicilios,True,True,False,True
+68,9,Otros gastos,12,Otros gastos personales,True,False,False,True
+69,9,Citas medicas,6,Salud,False,False,False,True
+70,9,Otro,12,Otros gastos personales,False,False,False,True
+71,9,Declaración de renta,13,Obligaciones y transferencias,False,False,False,True
+0,10,Salida a ver pelicula,9,Entretenimiento,False,False,False,True
+1,10,Gasolina,7,Transporte,False,False,False,True
+2,10,League of legends,9,Entretenimiento,False,False,False,True
+3,10,ICETEX,13,Obligaciones y transferencias,False,False,False,True
+4,10,Cerveza,2,Licor y cigarrillos,False,False,False,True
+5,10,Extras,3,Ropa y calzado,True,True,False,True
+6,10,Transporte a la u,7,Transporte,False,False,False,True
+7,10,Gastos varios,12,Otros gastos personales,True,False,False,True
+8,10,Salidas a cine,9,Entretenimiento,False,False,False,True
+9,10,Pago de servicios,4,Vivienda y servicios,False,False,False,True
+10,10,Salida con amigos,9,Entretenimiento,False,False,False,True
+11,10,Ropa,3,Ropa y calzado,True,True,False,True
+12,10,Regalo para mi primo,12,Otros gastos personales,False,False,False,True
+13,10,Datos moviles,8,"Celular, internet y suscripciones",False,False,False,True
+14,10,Comida,12,Otros gastos personales,True,True,True,False
+15,10,Acciones y dolares,10,Educación,False,False,False,True
+16,10,Cortr mascota,9,Entretenimiento,False,False,False,True
+17,10,Viajes,9,Entretenimiento,False,True,False,True
+18,10,Uñas,12,Otros gastos personales,False,False,False,True
+19,10,Materiales,10,Educación,False,False,False,True
+20,10,Ropa,3,Ropa y calzado,True,True,False,True
+21,10,Arriendo,4,Vivienda y servicios,False,True,False,True
+22,10,Entretenimiento,9,Entretenimiento,True,True,False,True
+23,10,Corte de pelo,12,Otros gastos personales,False,False,False,True
+24,10,Entretenimiento,9,Entretenimiento,True,True,False,True
+25,10,Cargador del celular,12,Otros gastos personales,False,False,False,True
+26,10,Educación,10,Educación,True,True,False,True
+27,10,Gustos,9,Entretenimiento,False,False,False,True
+28,10,Gimnasio,9,Entretenimiento,False,False,False,True
+29,10,Soat,13,Obligaciones y transferencias,False,True,True,False
+30,10,Loción,12,Otros gastos personales,False,False,False,True
+31,10,salud,6,Salud,True,False,False,True
+32,10,Comida,9,Entretenimiento,True,True,True,False
+33,10,Educación,10,Educación,True,True,False,True
+34,10,Gastos personales,12,Otros gastos personales,True,False,False,True
+35,10,Peluquería,12,Otros gastos personales,False,False,False,True
+36,10,Pastillas para la menstruación,6,Salud,False,False,False,True
+37,10,matrícula semestre,10,Educación,False,False,False,True
+38,10,Mercado,1,Mercado,True,True,False,True
+39,10,Hogar,5,Hogar,True,False,False,True
+40,10,uber a la u,7,Transporte,False,False,False,True
+41,10,recibo del agua,5,Hogar,False,False,False,True
+42,10,huevos y leche en la tienda,1,Mercado,False,False,False,True
+43,10,hamburguesa con amigos,11,Comidas fuera y domicilios,False,False,False,True
+44,10,veterinario,9,Entretenimiento,False,False,False,True
+45,10,fisioterapia,6,Salud,False,False,False,True
+46,10,arreglo de la ducha,4,Vivienda y servicios,False,False,False,True
+47,10,Compra de regalo,12,Otros gastos personales,False,False,False,True
+48,10,forro para el celular,8,"Celular, internet y suscripciones",False,False,False,True
+49,10,Educación,9,Entretenimiento,True,True,True,False
+50,10,Pasajes,7,Transporte,False,False,False,True
+51,10,clases particulares de cálculo,10,Educación,False,False,False,True
+52,10,revisión tecnomecánica,7,Transporte,False,False,False,True
+53,10,Transporte,7,Transporte,True,False,False,True
+54,10,fumigación del apartamento,4,Vivienda y servicios,False,False,False,True
+55,10,cerveza,2,Licor y cigarrillos,False,False,False,True
+56,10,Ir a cine,9,Entretenimiento,False,False,False,True
+57,10,Y mas transportes,7,Transporte,False,False,False,True
+58,10,Almuerzo May,11,Comidas fuera y domicilios,False,False,False,True
+59,10,Taxis trabajo,7,Transporte,False,False,False,True
+60,10,Onces hijo,11,Comidas fuera y domicilios,False,False,False,True
+61,10,Estudio,13,Obligaciones y transferencias,False,True,True,False
+62,10,Cony,12,Otros gastos personales,False,False,False,True
+63,10,didi,7,Transporte,False,False,False,True
+64,10,medicina tratamientos,6,Salud,False,False,False,True
+65,10,Calcado,3,Ropa y calzado,False,False,False,True
+66,10,Ropa,3,Ropa y calzado,True,True,False,True
+67,10,Tomar,2,Licor y cigarrillos,False,False,False,True
+68,10,Obligaciones,13,Obligaciones y transferencias,True,True,True,False
+69,10,Internet y celular,8,"Celular, internet y suscripciones",False,False,False,True
+70,10,Mama,13,Obligaciones y transferencias,False,False,False,True
+71,10,Camisetas,3,Ropa y calzado,False,False,False,True

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -34,10 +35,13 @@ class MyApp extends StatelessWidget {
     const Color secondaryColor = Color(0xFF8C8474);
     const Color textColor = Color(0xFF2B2B2B);
     const Color errorColor = Color(0xFFC0392B);
+    // Borde sutil gris-verde muy claro para el estado de reposo de los campos.
+    const Color borderColor = Color(0xFFD8DED1);
 
     return MaterialApp(
       title: 'SmartMoney',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const _ScrollBehaviorApp(),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -55,6 +59,7 @@ class MyApp extends StatelessWidget {
         ).copyWith(
           primary: primaryColor,
           secondary: lightPrimary,
+          error: errorColor,
           surface: Colors.white,
           surfaceContainerHighest: backgroundColor,
         ),
@@ -112,11 +117,11 @@ class MyApp extends StatelessWidget {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: borderColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -140,6 +145,12 @@ class MyApp extends StatelessWidget {
             fontWeight: FontWeight.w400,
             fontSize: 14,
           ),
+          // Error de validación: texto rojo pequeño bajo el campo, sin fondo.
+          errorStyle: GoogleFonts.poppins(
+            color: errorColor,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -158,4 +169,18 @@ class MyApp extends StatelessWidget {
       home: const AuthGate(),
     );
   }
+}
+
+/// Habilita el arrastre (y con él el pull-to-refresh) con mouse, trackpad y
+/// stylus, no solo con el dedo: en Flutter web el ratón no arrastra por defecto.
+class _ScrollBehaviorApp extends MaterialScrollBehavior {
+  const _ScrollBehaviorApp();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
 }

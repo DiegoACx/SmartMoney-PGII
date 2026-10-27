@@ -1,0 +1,4 @@
+   {
+        "deno.enablePaths": ["supabase/functions", "ia/fase6"],
+     "deno.lint": true
+   }

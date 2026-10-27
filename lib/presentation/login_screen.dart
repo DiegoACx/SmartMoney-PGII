@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../logic/auth_logic.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
 
 class _CurvedHeaderClipper extends CustomClipper<Path> {
   @override
@@ -71,10 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (error == null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      // No se navega manualmente: `AuthGate` escucha el cambio de sesión y
+      // muestra el `MainShell`. Empujar una pantalla aquí sacaría a AuthGate
+      // del árbol (y con él, la barra de pestañas y el cierre de sesión).
     } else {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Campo correo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -193,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Campo contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(

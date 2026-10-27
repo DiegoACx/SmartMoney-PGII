@@ -64,6 +64,8 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
   bool _evalEnviada = false;
   ResultadoEvaluacion? _resultadoEvaluacion;
   bool _mostrarModalInicio = true;
+  bool _siguienteNivelDisponible = false;
+  final GlobalKey _tarjetaResultadoKey = GlobalKey();
 
   @override
   void initState() {
@@ -165,10 +167,7 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx, false);
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Cancelar',
               style: GoogleFonts.poppins(
@@ -201,12 +200,18 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       ),
     );
     if (!mounted) return;
+
+    // Cualquier cierre que no sea "Empezar evaluación" se trata como cancelar
+    // (incluido el botón atrás del sistema, que devuelve null). Un único pop
+    // devuelve al usuario al árbol de niveles.
+    if (cerrarModal != true) {
+      Navigator.pop(context, false);
+      return;
+    }
+
     setState(() {
       _mostrarModalInicio = false;
     });
-    if (cerrarModal == false) {
-      if (mounted) Navigator.pop(context);
-    }
   }
 
   Widget _bullet({required IconData icon, required String texto}) {
@@ -328,6 +333,98 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     return ordenActual == maxOrden;
   }
 
+  // Navega al primer escalón del siguiente nivel (orden + 1) si está
+  // desbloqueado. Lógica compartida por el modal "¡Nivel completado!" y por el
+  // botón "Continuar al siguiente nivel" de los botones post-resultado.
+  Future<void> _irAlSiguienteNivel() async {
+    if (_navegando) return;
+    setState(() => _navegando = true);
+
+    final usuarioId = _authLogic.obtenerUsuarioId();
+    if (usuarioId == null) {
+      if (mounted) {
+        setState(() => _navegando = false);
+      }
+      return;
+    }
+
+    List<NivelConEstado> arbolRecargado = [];
+    try {
+      arbolRecargado = await _educacionLogic.cargarArbolCompleto(usuarioId);
+    } catch (e) {
+      debugPrint('ERROR RECARGAR ARBOL SIGUIENTE NIVEL: $e');
+    }
+
+    if (!mounted) return;
+
+    final ordenNivelActualRaw = widget.nivel.nivel['orden'];
+    final ordenNivelActual = ordenNivelActualRaw is num
+        ? ordenNivelActualRaw.toInt()
+        : int.tryParse(ordenNivelActualRaw.toString()) ?? 0;
+
+    NivelConEstado? nivelSiguiente;
+    for (final n in arbolRecargado) {
+      final ordenRaw = n.nivel['orden'];
+      final orden = ordenRaw is num
+          ? ordenRaw.toInt()
+          : int.tryParse(ordenRaw.toString()) ?? 0;
+      if (orden == ordenNivelActual + 1) {
+        nivelSiguiente = n;
+        break;
+      }
+    }
+
+    if (nivelSiguiente == null ||
+        !nivelSiguiente.desbloqueado ||
+        nivelSiguiente.escalones.isEmpty) {
+      setState(() => _navegando = false);
+      return;
+    }
+
+    final nivelOK = nivelSiguiente;
+    final primerEscalon = nivelOK.escalones.first;
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        transitionsBuilder: (ctx, anim, secAnim, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.12),
+              end: Offset.zero,
+            ).animate(curved),
+            child: FadeTransition(
+              opacity: curved,
+              child: child,
+            ),
+          );
+        },
+        pageBuilder: (ctx, anim, secAnim) => EscalonDetalleScreen(
+          escalon: primerEscalon,
+          nivel: nivelOK,
+        ),
+      ),
+    );
+  }
+
+  void _desplazarATarjetaResultado() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _tarjetaResultadoKey.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.05,
+      );
+    });
+  }
+
   Future<void> _manejarFinalizacionExitosaUltimoEscalon() async {
     final usuarioId = _authLogic.obtenerUsuarioId();
     if (usuarioId == null) {
@@ -370,7 +467,10 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       final colorClaroSiguiente =
           Color.lerp(colorNivelSiguiente, Colors.white, 0.35) ??
               colorNivelSiguiente;
-      final primerEscalonSiguiente = nivelSiguienteOK.escalones.first;
+
+      // Existe siguiente nivel desbloqueado: habilita la opción
+      // "Continuar al siguiente nivel" en los botones post-resultado.
+      setState(() => _siguienteNivelDisponible = true);
 
       final accionElegida = await showDialog<String>(
         context: context,
@@ -418,21 +518,12 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
               ),
             ],
           ),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actionsAlignment: MainAxisAlignment.center,
+          actionsOverflowButtonSpacing: 10,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'cancelar'),
-              child: Text(
-                'Ahora no',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF8C8474),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
             SizedBox(
-              width: 160,
-              height: 44,
+              width: double.infinity,
+              height: 48,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -459,6 +550,40 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                 ),
               ),
             ),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, 'revisar'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: colorNivelActual, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Revisar evaluación',
+                  style: GoogleFonts.poppins(
+                    color: colorNivelActual,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx, 'ahora_no'),
+                child: Text(
+                  'Ahora no',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF8C8474),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -466,23 +591,20 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       if (!mounted) return;
 
       if (accionElegida == 'continuar') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EscalonDetalleScreen(
-              escalon: primerEscalonSiguiente,
-              nivel: nivelSiguienteOK,
-            ),
-          ),
-        );
-      } else {
-        Navigator.pop(context, true);
+        await _irAlSiguienteNivel();
+        return;
       }
+      if (accionElegida == 'revisar') {
+        _desplazarATarjetaResultado();
+        return;
+      }
+      Navigator.pop(context, true);
       return;
     }
 
+    // No hay siguiente nivel desbloqueado: modal celebratorio de Experto.
     final colorNivelActual = colorFromHex(widget.nivel.colorHex);
-    await showDialog<void>(
+    final accionExperto = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -529,12 +651,33 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
+        actionsOverflowButtonSpacing: 10,
         actions: [
           SizedBox(
-            width: 160,
-            height: 44,
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, 'revisar'),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: colorNivelActual, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Revisar evaluación',
+                style: GoogleFonts.poppins(
+                  color: colorNivelActual,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.pop(ctx, 'continuar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorNivelActual,
                 shape: RoundedRectangleBorder(
@@ -555,6 +698,11 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
     );
 
     if (!mounted) return;
+
+    if (accionExperto == 'revisar') {
+      _desplazarATarjetaResultado();
+      return;
+    }
     Navigator.pop(context, true);
   }
 
@@ -700,6 +848,7 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
       _respuestasSeleccionadas.clear();
       _evalEnviada = false;
       _resultadoEvaluacion = null;
+      _siguienteNivelDisponible = false;
     });
   }
 
@@ -918,104 +1067,8 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
                             ),
                           ),
                         )
-                      else ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 52,
-                                child: OutlinedButton(
-                                  onPressed: _reiniciarEvaluacion,
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color: colorNivel,
-                                      width: 1.5,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Repetir evaluación',
-                                    style: GoogleFonts.poppins(
-                                      color: colorNivel,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 52,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [colorNivel, colorClaro],
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: (_resultadoEvaluacion
-                                                    ?.aprobado ==
-                                                true &&
-                                            !_esUltimoEscalonDelNivel() &&
-                                            _navegando)
-                                        ? null
-                                        : () async {
-                                            final aprobado =
-                                                _resultadoEvaluacion
-                                                        ?.aprobado ??
-                                                    false;
-                                            if (aprobado) {
-                                              if (_esUltimoEscalonDelNivel()) {
-                                                Navigator.pop(context, true);
-                                              } else {
-                                                await _continuarAlSiguienteEscalon();
-                                              }
-                                            } else {
-                                              Navigator.pop(context, false);
-                                            }
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
-                                      ),
-                                    ),
-                                    child: (_resultadoEvaluacion?.aprobado ==
-                                                true &&
-                                            !_esUltimoEscalonDelNivel() &&
-                                            _navegando)
-                                        ? const SizedBox(
-                                            height: 22,
-                                            width: 22,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2.5,
-                                            ),
-                                          )
-                                        : Text(
-                                            _resultadoEvaluacion?.aprobado ==
-                                                    true
-                                                ? 'Continuar'
-                                                : 'Regresar',
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      else
+                        _buildBotonesPostResultado(colorNivel, colorClaro),
                     ],
                     const SizedBox(height: 24),
                   ],
@@ -1072,6 +1125,7 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
         : const Color(0xFFC0392B).withValues(alpha: 0.08);
 
     return Container(
+      key: _tarjetaResultadoKey,
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -1391,6 +1445,161 @@ class _EscalonDetalleScreenState extends State<EscalonDetalleScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBotonesPostResultado(Color colorNivel, Color colorClaro) {
+    final aprobado = _resultadoEvaluacion?.aprobado == true;
+    final esUltimo = _esUltimoEscalonDelNivel();
+
+    // NO aprobada: "Repetir evaluación" + "Regresar" (comportamiento de hoy).
+    if (!aprobado) {
+      return Row(
+        children: [
+          Expanded(child: _botonRepetirEvaluacion(colorNivel)),
+          const SizedBox(width: 12),
+          Expanded(child: _botonRegresar(colorNivel, colorClaro)),
+        ],
+      );
+    }
+
+    // Aprobada y último escalón de Experto (sin siguiente nivel): solo salidas.
+    if (esUltimo && !_siguienteNivelDisponible) {
+      return Row(
+        children: [
+          Expanded(child: _botonRepetirEvaluacion(colorNivel)),
+          const SizedBox(width: 12),
+          Expanded(child: _botonSalirAlArbol()),
+        ],
+      );
+    }
+
+    // Aprobada y NO último escalón: "Continuar" al siguiente escalón.
+    // Aprobada y último escalón con siguiente nivel desbloqueado: "Continuar al
+    // siguiente nivel", reutilizando _irAlSiguienteNivel (misma lógica del
+    // modal "¡Nivel completado!").
+    final textoPrincipal =
+        esUltimo ? 'Continuar al siguiente nivel' : 'Continuar';
+    final VoidCallback? onPressedPrincipal = _navegando
+        ? null
+        : (esUltimo ? _irAlSiguienteNivel : _continuarAlSiguienteEscalon);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 52,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [colorNivel, colorClaro]),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ElevatedButton(
+              onPressed: onPressedPrincipal,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: _navegando
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Text(
+                      textoPrincipal,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _botonRepetirEvaluacion(colorNivel)),
+            const SizedBox(width: 12),
+            Expanded(child: _botonSalirAlArbol()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _botonRepetirEvaluacion(Color colorNivel) {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton(
+        onPressed: _reiniciarEvaluacion,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: colorNivel, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Repetir evaluación',
+          style: GoogleFonts.poppins(
+            color: colorNivel,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _botonSalirAlArbol() {
+    return SizedBox(
+      height: 52,
+      child: TextButton(
+        onPressed: _navegando ? null : () => Navigator.pop(context, true),
+        child: Text(
+          'Salir al árbol',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF8C8474),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _botonRegresar(Color colorNivel, Color colorClaro) {
+    return SizedBox(
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [colorNivel, colorClaro]),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ElevatedButton(
+          onPressed: _navegando ? null : () => Navigator.pop(context, false),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          child: Text(
+            'Regresar',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

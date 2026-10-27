@@ -1,0 +1,74 @@
+id,texto,etiqueta_A_diego,etiqueta_B_juanjo,intencion
+P002,Cuanto tengo que ingresar en la meta para completarla a final de año ?,pedir_consejo,consultar_datos,simular_escenario
+P014,Qué estrategia me recomiendas para organizar mis gastos fijos vs. variables de manera eficiente sin descuidar mi fondo de ahorro?,pedir_consejo,simular_escenario,pedir_consejo
+P015,Me puedes dar un resumen rápido de mi estado financiero actual y generar una alerta cuando esté cerca de superar mi límite de presupuesto diario?,ayuda_app,consultar_datos,ayuda_app
+P016,"Con mis ingresos y egresos, ¿es factible sacar un CDT?",simular_escenario,pedir_consejo,simular_escenario
+P018,¿Qué rentabilidad puedo obtener si abro una cuenta de ahorros con un banco?,aprender_concepto,simular_escenario,simular_escenario
+P019,¿Me puede indicar si con el ingreso que recibo de mi actividad económica puedo sacar un crédito con una entidad financiera?,simular_escenario,pedir_consejo,simular_escenario
+P026,con lo que me sobra cada mes cuanto podria meter en un cdt,simular_escenario,pedir_consejo,simular_escenario
+P027,ahorrando lo que ahorro ahora llego a comprar un portatil en diciembre?,simular_escenario,consultar_datos,simular_escenario
+P030,que puedes hacer por mi?,ayuda_app,pedir_consejo,ayuda_app
+P032,si dejo lo de la meta en una cuenta que pague intereses llego mas rapido?,simular_escenario,pedir_consejo,simular_escenario
+P035,"gracias parce, me sirvio",conversacion,pedir_consejo,conversacion
+P036,Quisiera saber como puedo distribuir mis gastos sin llegar al final de mes desfasada,pedir_consejo,simular_escenario,pedir_consejo
+P040,La edad interfiere si quiero ahorrar,aprender_concepto,pedir_consejo,aprender_concepto
+P041,Variación en mis gastos mensuales,aprender_concepto,consultar_datos,aprender_concepto
+P044,Planificación,aprender_concepto,pedir_consejo,aprender_concepto
+P045,Plan de ahorro,pedir_consejo,aprender_concepto,aprender_concepto
+P049,Como invertir,aprender_concepto,pedir_consejo,pedir_consejo
+P050,Que me recuerde los pagos,ayuda_app,pedir_consejo,ayuda_app
+P052,si recorto lo que gasto en domicilios cuanto mas rapido cumplo mi meta,simular_escenario,pedir_consejo,simular_escenario
+P056,cuanto seria lo maximo que podria pedir prestado sin ahogarme,simular_escenario,pedir_consejo,simular_escenario
+P060,me ayudas a declarar renta?,ayuda_app,pedir_consejo,ayuda_app
+P061,¿Estoy gastando demasiado en relación con lo que gano?,consultar_datos,simular_escenario,consultar_datos
+P063,¿Mi plata en Nequi o Daviplata genera algún rendimiento?,aprender_concepto,pedir_consejo,aprender_concepto
+P064,¿Me conviene un crédito de libre inversión para pagar mis deudas?,pedir_consejo,simular_escenario,pedir_consejo
+P070,"Ayudame a organizar mis gastos, controlar mis compras y ahorrar dinero sin dejar de darme mis gustos personales",ayuda_app,pedir_consejo,ayuda_app
+P071,con mis gastos fijos puedo independizarme y pagar arriendo?,simular_escenario,pedir_consejo,simular_escenario
+P075,¿Mis datos están seguros en la app?,ayuda_app,pedir_consejo,ayuda_app
+P076,si saco un credito para una moto cuanto me quedaria libre al mes,simular_escenario,pedir_consejo,simular_escenario
+P077,cuanto me falta para la meta si le meto la prima de diciembre,simular_escenario,consultar_datos,simular_escenario
+P081,con lo que gano me alcanza para pagar un leasing de carro?,simular_escenario,pedir_consejo,simular_escenario
+P082,si meto lo de mi meta en un cdt a 6 meses llego antes?,simular_escenario,pedir_consejo,simular_escenario
+P085,buenos dias,conversacion,pedir_consejo,conversacion
+P090,¿Me puedes recordar cuando tengo que pagar la tarjeta?,ayuda_app,consultar_datos,ayuda_app
+P096,con mis ingresos de freelance me daria un banco un credito de vivienda?,pedir_consejo,simular_escenario,simular_escenario
+P099,me conviene unificar mis deudas en un solo credito?,simular_escenario,pedir_consejo,pedir_consejo
+P101,cuanto gasto en intereses de la tarjeta cada mes,consultar_datos,simular_escenario,consultar_datos
+P102,cuanto me ganaria si la plata de la meta la dejo en una cuenta de alto rendimiento,simular_escenario,pedir_consejo,simular_escenario
+P105,explicame como si tuviera 5 años,conversacion,aprender_concepto,conversacion
+P110,¿Puedes ver mi cuenta del banco?,ayuda_app,conversacion,ayuda_app
+P111,si saco un cdt con mis ahorros me queda plata para emergencias?,simular_escenario,pedir_consejo,simular_escenario
+P112,si dejo de diferir compras cuanto ahorro al mes,simular_escenario,pedir_consejo,simular_escenario
+P115,"no entendi, me lo explicas otra vez?",conversacion,aprender_concepto,conversacion
+P116,cuanto deberia ganar para que me aprueben un credito de 10 millones,simular_escenario,pedir_consejo,simular_escenario
+P118,como funcionan las acciones y si se puede invertir con poquita plata,aprender_concepto,simular_escenario,aprender_concepto
+P120,¿Cuánto está el dólar hoy?,conversacion,pedir_consejo,conversacion
+P121,¿Qué porcentaje de lo que gano se me va en deudas?,consultar_datos,aprender_concepto,consultar_datos
+P126,"Si establezco una meta, poder saber de acuerdo a mis gastos e ingresos constantes, como puedo lograrla",pedir_consejo,simular_escenario,pedir_consejo
+P127,Cómo puedo optimizar mi cashflow(recomendaciones basadas en datos),pedir_consejo,aprender_concepto,pedir_consejo
+P129,Cómo solventar deudas,pedir_consejo,aprender_concepto,pedir_consejo
+P130,Cómo organizarme de acuerdo a mis metas,pedir_consejo,simular_escenario,pedir_consejo
+P131,con lo que me entra al mes puedo pagar dos tarjetas al tiempo?,simular_escenario,pedir_consejo,simular_escenario
+P132,si saco un credito para la meta del portatil cuanto pago en total,simular_escenario,pedir_consejo,simular_escenario
+P135,"chao, gracias",conversacion,pedir_consejo,conversacion
+P137,cuanto me falta ahorrar para tener 3 meses de gastos guardados,simular_escenario,pedir_consejo,simular_escenario
+P140,¿Puedo exportar mis gastos a Excel?,ayuda_app,pedir_consejo,ayuda_app
+P142,si abro un cdt con lo de la meta del carro cuanto tendria en un año,simular_escenario,pedir_consejo,simular_escenario
+P147,¿Cuánto llevo pagado del crédito y cuánto me falta?,ayuda_app,pedir_consejo,consultar_datos
+P150,¿Qué opinas de las criptomonedas?,aprender_concepto,pedir_consejo,aprender_concepto
+P151,con mis ingresos me alcanza para sacar una tarjeta y no quedarme corto?,simular_escenario,pedir_consejo,simular_escenario
+P155,me puedes hablar mas informal?,conversacion,pedir_consejo,conversacion
+P160,¿Puedo cambiar mi meta de ahorro?,ayuda_app,pedir_consejo,ayuda_app
+P161,¿Mis ingresos de este año me obligan a declarar renta?,consultar_datos,pedir_consejo,pedir_consejo
+P167,cuanto me rentaria lo que tengo en la meta si lo invierto,simular_escenario,aprender_concepto,simular_escenario
+P169,como empiezo a invertir si nunca lo he hecho,pedir_consejo,aprender_concepto,pedir_consejo
+P170,¿La app funciona sin internet?,ayuda_app,conversacion,ayuda_app
+P172,Ahorro,aprender_concepto,pedir_consejo,aprender_concepto
+P174,Cómo aprender a ahorrar,simular_escenario,pedir_consejo,pedir_consejo
+P177,Cuánto dinero me falta ahorrar para cumplir mi meta este año?,simular_escenario,consultar_datos,consultar_datos
+P190,Qué gastos puedo reducir este mes?,pedir_consejo,simular_escenario,pedir_consejo
+P192,Cuánto me falta ahorrar?,simular_escenario,consultar_datos,consultar_datos
+P195,Puedo invertir con poco dinero?,simular_escenario,pedir_consejo,pedir_consejo
+P212,Cuánto me falta para comprar un computador?,ayuda_app,consultar_datos,consultar_datos
+P217,Cómo ahorro para emergencias?,aprender_concepto,pedir_consejo,pedir_consejo

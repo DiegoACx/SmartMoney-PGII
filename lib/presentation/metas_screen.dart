@@ -8,6 +8,7 @@ import '../logic/metas_logic.dart';
 import '../services/notificaciones_service.dart';
 import 'registro_meta_screen.dart';
 import 'utils/meta_options.dart';
+import 'widgets/boton_asistente.dart';
 
 // ===== Header decorativo curvo =====
 class _CurvedHeaderClipper extends CustomClipper<Path> {
@@ -41,7 +42,10 @@ class _CurvedHeaderClipper extends CustomClipper<Path> {
 }
 
 class MetasScreen extends StatefulWidget {
-  const MetasScreen({super.key});
+  const MetasScreen({super.key, this.onCambiarPestana});
+
+  /// Cambia de pestaña en el `MainShell` (1 = IA).
+  final ValueChanged<int>? onCambiarPestana;
 
   @override
   State<MetasScreen> createState() => _MetasScreenState();
@@ -129,30 +133,43 @@ class _MetasScreenState extends State<MetasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6EA),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fab_metas',
-        onPressed: _cargando
-            ? null
-            : () async {
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RegistroMetaScreen(),
-                  ),
-                );
-                if (result == true) {
-                  _cargarMetas();
-                }
-              },
-        backgroundColor: const Color(0xFF58774B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 28,
-        ),
+      // El asistente va encima del botón de nueva meta para no taparlo.
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FabAsistente(
+            heroTag: 'fab_asistente_metas',
+            pestana: PestanaAsistente.metas,
+            onPressed: () => widget.onCambiarPestana?.call(1),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'fab_metas',
+            onPressed: _cargando
+                ? null
+                : () async {
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RegistroMetaScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      _cargarMetas();
+                    }
+                  },
+            backgroundColor: const Color(0xFF58774B),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: const Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(

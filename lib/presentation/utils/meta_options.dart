@@ -462,7 +462,25 @@ Future<void> _mostrarDialogMovimiento({
                                   final mensaje = tipoSeleccionado == 'Aporte'
                                       ? 'Aporte registrado'
                                       : 'Retiro registrado';
+                                  // Si la meta quedó cumplida ya no hace falta
+                                  // su recordatorio.
+                                  final cumplida =
+                                      resultado.metaActualizada?['cumplida'] ==
+                                          true;
                                   Navigator.pop(dialogCtx, mensaje);
+
+                                  if (cumplida) {
+                                    try {
+                                      await NotificacionesService()
+                                          .cancelarRecordatorio(
+                                        meta['id'].toString(),
+                                      );
+                                    } catch (e) {
+                                      debugPrint(
+                                        'ERROR AL CANCELAR RECORDATORIO: $e',
+                                      );
+                                    }
+                                  }
                                 } else {
                                   setDialogState(() {
                                     procesando = false;

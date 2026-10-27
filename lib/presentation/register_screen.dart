@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../logic/auth_logic.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
 
 class _CurvedHeaderClipper extends CustomClipper<Path> {
   @override
@@ -67,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final error = await _auth.registrar(
+    final resultado = await _auth.registrar(
       nombre: _nombreController.text.trim(),
       correo: _correoController.text.trim(),
       contrasena: _contrasenaController.text,
@@ -75,29 +74,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!mounted) return;
 
-    if (error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('¡Cuenta creada!'),
-          backgroundColor: const Color(0xFF7A9B6C),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } else {
+    if (!resultado.exito) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error),
+          content: Text(resultado.error!),
           backgroundColor: const Color(0xFFC0392B),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -105,7 +86,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       );
+      return;
     }
+
+    // El aviso se registra en el `ScaffoldMessenger` raíz, así que sigue
+    // visible después de descartar esta ruta (quien queda visible es el login).
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (resultado.requiereConfirmacion) {
+      // Supabase creó la cuenta pero no devolvió sesión: falta confirmar el
+      // correo, así que se vuelve al login con el aviso correspondiente.
+      Navigator.popUntil(context, (route) => route.isFirst);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.mark_email_unread_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Te enviamos un correo para confirmar tu cuenta. '
+                  'Confírmala y luego inicia sesión.',
+                  style: GoogleFonts.poppins(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF58774B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('¡Cuenta creada!'),
+        backgroundColor: const Color(0xFF7A9B6C),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    // Se descarta esta ruta para volver a `AuthGate`, que ya escucha el
+    // cambio de sesión y muestra el `MainShell`. Así no se puede regresar
+    // al registro con el botón atrás.
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   @override
@@ -184,6 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo nombre completo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -210,6 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo correo
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -237,6 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
@@ -248,8 +289,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Ingresa una contraseña';
                                 }
-                                if (value.length < 6) {
-                                  return 'Mínimo 6 caracteres';
+                                if (value.length < 8) {
+                                  return 'Mínimo 8 caracteres';
                                 }
                                 return null;
                               },
@@ -283,7 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 horizontal: 4,
                               ),
                               child: Text(
-                                'Mínimo 6 caracteres',
+                                'Mínimo 8 caracteres',
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF8C8474),
                                   fontSize: 11,
@@ -297,6 +338,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // Campo confirmar contraseña
                           Material(
                             elevation: 1,
+                            shadowColor: Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                             color: Colors.transparent,
                             child: TextFormField(
