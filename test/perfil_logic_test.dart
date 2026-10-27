@@ -60,12 +60,12 @@ void main() {
       );
     });
 
-    test('rechaza nueva contraseña de menos de 6 caracteres', () {
+    test('rechaza nueva contraseña de menos de 8 caracteres', () {
       expect(
         logic.validarCambioContrasena(
           actual: 'vieja123',
-          nueva: '12345',
-          confirmacion: '12345',
+          nueva: '1234567',
+          confirmacion: '1234567',
         ),
         isNotNull,
       );

@@ -77,7 +77,7 @@ class PerfilLogic {
   }
 
   /// Valida un cambio de contraseña. La nueva cumple las mismas reglas del
-  /// registro (mínimo 6 caracteres), debe ser distinta de la actual y la
+  /// registro (mínimo 8 caracteres), debe ser distinta de la actual y la
   /// confirmación debe coincidir. Devuelve null si es válido.
   String? validarCambioContrasena({
     required String actual,
@@ -90,8 +90,8 @@ class PerfilLogic {
     if (nueva.isEmpty) {
       return 'La nueva contraseña no puede estar vacía';
     }
-    if (nueva.length < 6) {
-      return 'La nueva contraseña debe tener al menos 6 caracteres';
+    if (nueva.length < 8) {
+      return 'La nueva contraseña debe tener al menos 8 caracteres';
     }
     if (nueva == actual) {
       return 'La nueva contraseña debe ser diferente a la actual';

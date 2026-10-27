@@ -289,8 +289,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Ingresa una contraseña';
                                 }
-                                if (value.length < 6) {
-                                  return 'Mínimo 6 caracteres';
+                                if (value.length < 8) {
+                                  return 'Mínimo 8 caracteres';
                                 }
                                 return null;
                               },
@@ -324,7 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 horizontal: 4,
                               ),
                               child: Text(
-                                'Mínimo 6 caracteres',
+                                'Mínimo 8 caracteres',
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF8C8474),
                                   fontSize: 11,

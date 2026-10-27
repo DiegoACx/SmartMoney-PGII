@@ -69,7 +69,7 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
         if (!_tocoNueva) return null;
         const erroresNueva = {
           'La nueva contraseña no puede estar vacía',
-          'La nueva contraseña debe tener al menos 6 caracteres',
+          'La nueva contraseña debe tener al menos 8 caracteres',
           'La nueva contraseña debe ser diferente a la actual',
         };
         return erroresNueva.contains(error) ? error : null;
@@ -165,7 +165,7 @@ class _CambiarContrasenaScreenState extends State<CambiarContrasenaScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Mínimo 6 caracteres',
+                  'Mínimo 8 caracteres',
                   style: GoogleFonts.poppins(fontSize: 12, color: _secundario),
                 ),
                 const SizedBox(height: 16),

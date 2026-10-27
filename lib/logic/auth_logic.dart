@@ -33,8 +33,8 @@ class AuthLogic {
     if (contrasena.isEmpty) {
       return 'La contraseña no puede estar vacía';
     }
-    if (contrasena.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres';
+    if (contrasena.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
     }
     return null;
   }
