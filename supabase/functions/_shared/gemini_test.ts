@@ -291,3 +291,16 @@ Deno.test("validarTextoLLM acepta que el último bloque sea una viñeta", () => 
 Deno.test("sinSimbolosMarkdown quita la negrita y la viñeta, no el texto", () => {
   assertEquals(sinSimbolosMarkdown("- **$500.000** al mes"), "$500.000 al mes");
 });
+
+Deno.test("limpiarMarkdownNoPermitido une una frase partida en dos líneas con un espacio", () => {
+  const partido =
+    "Construir riqueza es un proceso de constancia y buenos\nhábitos diarios.";
+  assertEquals(
+    limpiarMarkdownNoPermitido(partido),
+    "Construir riqueza es un proceso de constancia y buenos hábitos diarios.",
+  );
+  // Las viñetas, las líneas con "•" y los bloques separados no se unen.
+  const estructurado =
+    "Así van tus metas:\n• Carro: 10 %.\n• Viaje: 50 %.\n\nPasos:\n- ahorra primero\n- luego gasta";
+  assertEquals(limpiarMarkdownNoPermitido(estructurado), estructurado);
+});

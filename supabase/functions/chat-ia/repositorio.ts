@@ -78,7 +78,14 @@ export interface RepositorioChat {
     hastaIso: string,
   ): Promise<number>;
   /** Contenido del último mensaje del asistente, o null si no hay ninguno. */
-  ultimoMensajeAsistente(usuarioId: string): Promise<string | null>;
+  /**
+   * Último mensaje del asistente; con `desdeIso`, solo si es posterior a esa
+   * fecha (para saber si hubo una respuesta reciente).
+   */
+  ultimoMensajeAsistente(
+    usuarioId: string,
+    desdeIso?: string,
+  ): Promise<string | null>;
   /** Inserta un mensaje en mensajes_ia. */
   insertarMensaje(mensaje: MensajeNuevo): Promise<void>;
   /** Movimientos del usuario entre dos fechas 'YYYY-MM-DD' (ambas inclusive). */
@@ -134,12 +141,14 @@ export function crearRepositorioSupabase(
       return count ?? 0;
     },
 
-    async ultimoMensajeAsistente(usuarioId) {
-      const { data, error } = await admin
+    async ultimoMensajeAsistente(usuarioId, desdeIso) {
+      let consulta = admin
         .from("mensajes_ia")
         .select("contenido")
         .eq("usuario_id", usuarioId)
-        .eq("rol", "asistente")
+        .eq("rol", "asistente");
+      if (desdeIso !== undefined) consulta = consulta.gte("creado_en", desdeIso);
+      const { data, error } = await consulta
         .order("creado_en", { ascending: false })
         .limit(1);
       if (error) {

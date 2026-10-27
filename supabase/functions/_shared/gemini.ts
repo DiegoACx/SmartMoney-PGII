@@ -206,6 +206,10 @@ export function limpiarMarkdownNoPermitido(texto: string): string {
 
   // Espacios al final de línea y saltos de más (máximo uno entre bloques).
   limpio = limpio.replace(/[ \t]+$/gm, "");
+  // Una frase partida en dos líneas ("buenos\nhábitos") se une con un espacio:
+  // si la línea termina en minúscula o coma y la siguiente sigue en minúscula,
+  // es la misma frase. Las viñetas ("- ", "•") y los bloques no se tocan.
+  limpio = limpio.replace(/([a-záéíóúüñ,])\n(?=[a-záéíóúüñ])/g, "$1 ");
   limpio = limpio.replace(/\n{3,}/g, "\n\n");
   return limpio.trim();
 }

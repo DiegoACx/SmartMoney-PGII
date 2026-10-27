@@ -1,0 +1,217 @@
+id,texto,oro,pred_modelo,conf_modelo,pred_sistema,origen_sistema,acierta_modelo,acierta_sistema
+P037,Como puedo ahorrar cada quincena de mi salario,pedir_consejo,simular_escenario,0.369078,pedir_consejo,baja_confianza,false,true
+P151,con mis ingresos me alcanza para sacar una tarjeta y no quedarme corto?,simular_escenario,simular_escenario,0.820933,simular_escenario,regla:me alcanza,true,true
+P031,¿Puedo pagar una cuota de 300 mil al mes con lo que gano?,simular_escenario,simular_escenario,0.959244,simular_escenario,regla:puedo pagar,true,true
+P082,si meto lo de mi meta en un cdt a 6 meses llego antes?,simular_escenario,simular_escenario,0.819571,simular_escenario,modelo,true,true
+P138,¿Qué es un avance en efectivo de la tarjeta y por qué es caro?,aprender_concepto,aprender_concepto,0.596813,aprender_concepto,regla:concepto,true,true
+P048,Inversiones en linea,aprender_concepto,aprender_concepto,0.602817,aprender_concepto,modelo,true,true
+P076,si saco un credito para una moto cuanto me quedaria libre al mes,simular_escenario,simular_escenario,0.942781,simular_escenario,modelo,true,true
+P131,con lo que me entra al mes puedo pagar dos tarjetas al tiempo?,simular_escenario,simular_escenario,0.594604,simular_escenario,regla:puedo pagar,true,true
+P055,¿Qué banco me recomiendas para abrir una cuenta?,pedir_consejo,pedir_consejo,0.923336,pedir_consejo,modelo,true,true
+P179,Cómo puedo hacer para que mis ingresos me alcancen todo el mes?,pedir_consejo,ayuda_app,0.700743,ayuda_app,modelo,false,false
+P161,¿Mis ingresos de este año me obligan a declarar renta?,pedir_consejo,consultar_datos,0.698869,consultar_datos,modelo,false,false
+P182,cuanto llevo ahorrado?,consultar_datos,consultar_datos,0.911372,consultar_datos,modelo,true,true
+P092,Metas de ahorro mensuales,aprender_concepto,consultar_datos,0.669838,consultar_datos,modelo,false,false
+P214,Cómo puedo controlar mis gastos hormiga?,pedir_consejo,pedir_consejo,0.815454,pedir_consejo,modelo,true,true
+P069,Q me aconsejarías para dejar de comprar cosas inecesarias y empezar a ahorrar más,pedir_consejo,pedir_consejo,0.960279,pedir_consejo,modelo,true,true
+P014,Qué estrategia me recomiendas para organizar mis gastos fijos vs. variables de manera eficiente sin descuidar mi fondo de ahorro?,pedir_consejo,pedir_consejo,0.938993,pedir_consejo,modelo,true,true
+P087,¿Cuánto tendría ahorrado en un año si guardo 200 mil cada quincena?,simular_escenario,simular_escenario,0.997713,simular_escenario,regla:si guardo,true,true
+P006,En que he invertido dinero últimamente?,consultar_datos,consultar_datos,0.424520,pedir_consejo,baja_confianza,true,false
+P207,Cómo ahorro para una moto?,pedir_consejo,ayuda_app,0.348747,pedir_consejo,baja_confianza,false,true
+P173,Administrar en porcentajes,aprender_concepto,ayuda_app,0.458216,ayuda_app,modelo,false,false
+P022,Cuanto gasto en mercado,consultar_datos,consultar_datos,0.970252,consultar_datos,modelo,true,true
+P129,Cómo solventar deudas,pedir_consejo,pedir_consejo,0.740105,pedir_consejo,modelo,true,true
+P209,Cómo pago mis deudas más rápido?,pedir_consejo,pedir_consejo,0.594531,pedir_consejo,modelo,true,true
+P176,Cuánto he gastado en total esta semana?,consultar_datos,consultar_datos,0.999778,consultar_datos,modelo,true,true
+P191,Cuánto gasté?,consultar_datos,consultar_datos,0.998705,consultar_datos,modelo,true,true
+P043,Intereses,aprender_concepto,aprender_concepto,0.522507,aprender_concepto,modelo,true,true
+P119,me conviene un cdt o un fondo de inversion con lo que tengo,pedir_consejo,pedir_consejo,0.976167,pedir_consejo,regla:decision,true,true
+P003,Explicame sobre el interes compuesto,aprender_concepto,aprender_concepto,0.990681,aprender_concepto,regla:concepto,true,true
+P110,¿Puedes ver mi cuenta del banco?,ayuda_app,ayuda_app,0.944974,ayuda_app,modelo,true,true
+P160,¿Puedo cambiar mi meta de ahorro?,ayuda_app,simular_escenario,0.491922,simular_escenario,modelo,false,false
+P213,Qué significa diversificar inversiones?,aprender_concepto,aprender_concepto,0.901361,aprender_concepto,regla:concepto,true,true
+P004,Como puedo evitar gastar mas?,pedir_consejo,pedir_consejo,0.991026,pedir_consejo,modelo,true,true
+P016,"Con mis ingresos y egresos, ¿es factible sacar un CDT?",simular_escenario,ayuda_app,0.437417,pedir_consejo,baja_confianza,false,false
+P113,que pasa si cancelo un cdt antes de tiempo,aprender_concepto,simular_escenario,0.740220,simular_escenario,modelo,false,false
+P045,Plan de ahorro,aprender_concepto,aprender_concepto,0.611280,aprender_concepto,modelo,true,true
+P203,Qué significa tener deudas buenas?,aprender_concepto,conversacion,0.735152,aprender_concepto,regla:concepto,false,true
+P167,cuanto me rentaria lo que tengo en la meta si lo invierto,simular_escenario,simular_escenario,0.695059,simular_escenario,modelo,true,true
+P127,Cómo puedo optimizar mi cashflow(recomendaciones basadas en datos),pedir_consejo,ayuda_app,0.778431,ayuda_app,modelo,false,false
+P067,Cuanta Plata deberia ahorrar cada semana para cumplir mi meta de ahorro,pedir_consejo,pedir_consejo,0.519360,pedir_consejo,regla:decision,true,true
+P050,Que me recuerde los pagos,ayuda_app,aprender_concepto,0.275149,pedir_consejo,baja_confianza,false,false
+P139,"me ofrecieron un credito por la app del banco, lo saco?",pedir_consejo,ayuda_app,0.825911,ayuda_app,modelo,false,false
+P103,que es el puntaje de credito y como lo subo,aprender_concepto,aprender_concepto,0.953119,aprender_concepto,regla:concepto,true,true
+P135,"chao, gracias",conversacion,conversacion,0.996035,conversacion,modelo,true,true
+P011,Cuánto dinero he gastado en salidas y comida fuera durante el último mes y cuál fue el día de mayor gasto?,consultar_datos,consultar_datos,0.998498,consultar_datos,modelo,true,true
+P175,Cómo proteger plata para no gastarla,pedir_consejo,pedir_consejo,0.981269,pedir_consejo,modelo,true,true
+P010,Que es lo mas duro de la playstore,conversacion,aprender_concepto,0.749266,aprender_concepto,regla:concepto,false,false
+P013,Cómo funciona el interés compuesto en inversiones a mediano plazo y qué opciones sencillas existen para empezar a aplicarlo?,aprender_concepto,aprender_concepto,0.880425,aprender_concepto,regla:concepto,true,true
+P039,Como puedo ahorrar,pedir_consejo,pedir_consejo,0.803103,pedir_consejo,modelo,true,true
+P143,que es la tasa de usura,aprender_concepto,aprender_concepto,0.863805,aprender_concepto,regla:concepto,true,true
+P145,holaaa,conversacion,conversacion,0.988781,conversacion,modelo,true,true
+P088,¿Qué diferencia hay entre tasa nominal y tasa efectiva?,aprender_concepto,aprender_concepto,0.964869,aprender_concepto,modelo,true,true
+P117,en que categoria gasto mas con la tarjeta de credito,consultar_datos,pedir_consejo,0.442499,pedir_consejo,baja_confianza,false,false
+P181,Cuánto recibí de ingresos este mes en comparación con el mes pasado?,consultar_datos,consultar_datos,0.993959,consultar_datos,modelo,true,true
+P080,como cambio mi contraseña,ayuda_app,ayuda_app,0.999335,ayuda_app,modelo,true,true
+P212,Cuánto me falta para comprar un computador?,consultar_datos,simular_escenario,0.607456,simular_escenario,modelo,false,false
+P081,con lo que gano me alcanza para pagar un leasing de carro?,simular_escenario,simular_escenario,0.869861,simular_escenario,regla:me alcanza,true,true
+P102,cuanto me ganaria si la plata de la meta la dejo en una cuenta de alto rendimiento,simular_escenario,simular_escenario,0.625674,simular_escenario,modelo,true,true
+P017,"Si ahorro un 5% de mis ingresos, ¿podría cumplir la meta de comprar un carro?",simular_escenario,simular_escenario,0.843880,simular_escenario,regla:si ahorro,true,true
+P063,¿Mi plata en Nequi o Daviplata genera algún rendimiento?,aprender_concepto,pedir_consejo,0.912481,pedir_consejo,modelo,false,false
+P199,Qué es la liquidez?,aprender_concepto,aprender_concepto,0.949017,aprender_concepto,regla:concepto,true,true
+P147,¿Cuánto llevo pagado del crédito y cuánto me falta?,consultar_datos,consultar_datos,0.977637,consultar_datos,modelo,true,true
+P064,¿Me conviene un crédito de libre inversión para pagar mis deudas?,pedir_consejo,pedir_consejo,0.997147,pedir_consejo,regla:decision,true,true
+P001,Cuanto estoy gastando a la semana ?,consultar_datos,consultar_datos,0.922996,consultar_datos,modelo,true,true
+P190,Qué gastos puedo reducir este mes?,pedir_consejo,pedir_consejo,0.561826,pedir_consejo,modelo,true,true
+P115,"no entendi, me lo explicas otra vez?",conversacion,conversacion,0.511821,conversacion,modelo,true,true
+P210,Qué es una cuota de manejo?,aprender_concepto,aprender_concepto,0.401358,aprender_concepto,regla:concepto,true,true
+P038,Quiero saber cuanto le pago a un banco si saco un credito por 20.000.0000 millones,simular_escenario,simular_escenario,0.960472,simular_escenario,modelo,true,true
+P105,explicame como si tuviera 5 años,conversacion,aprender_concepto,0.749195,aprender_concepto,regla:concepto,false,false
+P140,¿Puedo exportar mis gastos a Excel?,ayuda_app,ayuda_app,0.705400,ayuda_app,modelo,true,true
+P124,como hago para que me aprueben un credito si soy independiente,pedir_consejo,pedir_consejo,0.562858,pedir_consejo,modelo,true,true
+P104,¿Debería cancelar la tarjeta de crédito si casi no la uso?,pedir_consejo,pedir_consejo,0.664425,pedir_consejo,regla:decision,true,true
+P177,Cuánto dinero me falta ahorrar para cumplir mi meta este año?,consultar_datos,consultar_datos,0.896539,consultar_datos,modelo,true,true
+P185,Puedes ayudarme a saber si me alcanza para hacer un viaje el otro mes? tengo algunos ahorros pero también tengo que pagar varias cosas y no quiero quedarme sin plata después.,simular_escenario,simular_escenario,0.616462,simular_escenario,regla:me alcanza,true,true
+P216,Cuánto pagué en servicios?,consultar_datos,simular_escenario,0.524242,simular_escenario,modelo,false,false
+P033,no entiendo que es la tasa efectiva anual,aprender_concepto,aprender_concepto,0.831397,aprender_concepto,regla:concepto,true,true
+P169,como empiezo a invertir si nunca lo he hecho,pedir_consejo,aprender_concepto,0.622949,aprender_concepto,modelo,false,false
+P170,¿La app funciona sin internet?,ayuda_app,ayuda_app,0.946133,ayuda_app,modelo,true,true
+P084,¿Me conviene sacar un crédito para comprar moto o mejor ahorro?,pedir_consejo,pedir_consejo,0.987796,pedir_consejo,regla:decision,true,true
+P051,"Con lo que gano, ¿me aprobarían una tarjeta de crédito?",simular_escenario,aprender_concepto,0.569304,aprender_concepto,modelo,false,false
+P158,¿Qué es la GMF y cómo marco mi cuenta exenta?,aprender_concepto,ayuda_app,0.787250,aprender_concepto,regla:concepto,false,true
+P123,¿Qué es el 4x1000 y cuándo me lo cobran?,aprender_concepto,aprender_concepto,0.411914,aprender_concepto,regla:concepto,true,true
+P079,si me suben el sueldo cuanto deberia mover al ahorro,pedir_consejo,simular_escenario,0.691382,pedir_consejo,regla:decision,false,true
+P164,vale la pena tener tarjeta de credito solo para hacer historial,pedir_consejo,pedir_consejo,0.971645,pedir_consejo,regla:decision,true,true
+P153,que es un credito rotativo,aprender_concepto,aprender_concepto,0.871988,aprender_concepto,regla:concepto,true,true
+P083,que es la cuota de manejo y por que me la cobran,aprender_concepto,aprender_concepto,0.406423,aprender_concepto,regla:concepto,true,true
+P020,"hola, buenas",conversacion,conversacion,0.999901,conversacion,modelo,true,true
+P132,si saco un credito para la meta del portatil cuanto pago en total,simular_escenario,simular_escenario,0.924104,simular_escenario,modelo,true,true
+P197,Cuánto gasté en comida?,consultar_datos,consultar_datos,0.984450,consultar_datos,modelo,true,true
+P206,Cuánto gasté en domicilios?,consultar_datos,consultar_datos,0.980757,consultar_datos,modelo,true,true
+P114,¿Vale la pena invertir si todavía tengo deudas?,pedir_consejo,pedir_consejo,0.993625,pedir_consejo,regla:decision,true,true
+P068,Como puedo organizar mi Plata para q me alcancr durante todo el mes,pedir_consejo,pedir_consejo,0.842725,pedir_consejo,regla:distribucion,true,true
+P108,¿Qué es un fondo de inversión colectiva?,aprender_concepto,aprender_concepto,0.947650,aprender_concepto,regla:concepto,true,true
+P219,Cómo evito endeudarme?,pedir_consejo,pedir_consejo,0.663481,pedir_consejo,modelo,true,true
+P049,Como invertir,pedir_consejo,pedir_consejo,0.769284,pedir_consejo,modelo,true,true
+P125,me puedes ayudar con una tarea de la u,conversacion,ayuda_app,0.396155,pedir_consejo,baja_confianza,false,false
+P136,cuanto pague de intereses este año por el credito,consultar_datos,consultar_datos,0.620591,consultar_datos,modelo,true,true
+P057,¿Me alcanza para pagar un crédito y seguir ahorrando para el viaje?,simular_escenario,simular_escenario,0.965626,simular_escenario,regla:me alcanza,true,true
+P154,me conviene meter la plata en un cdt o en una billetera digital que rinde,pedir_consejo,pedir_consejo,0.990217,pedir_consejo,regla:decision,true,true
+P106,¿Mis ingresos me alcanzan para pagar un crédito educativo con el Icetex?,simular_escenario,simular_escenario,0.589143,simular_escenario,modelo,true,true
+P130,Cómo organizarme de acuerdo a mis metas,pedir_consejo,pedir_consejo,0.553651,pedir_consejo,modelo,true,true
+P166,con lo que gasto al mes cuanto deberia tener en un fondo de emergencia,pedir_consejo,pedir_consejo,0.475257,pedir_consejo,regla:decision,true,true
+P149,"tengo un credito con mucho interes, lo pago rapido o sigo normal?",pedir_consejo,pedir_consejo,0.693041,pedir_consejo,modelo,true,true
+P099,me conviene unificar mis deudas en un solo credito?,pedir_consejo,pedir_consejo,0.997937,pedir_consejo,regla:decision,true,true
+P165,"jajaja gracias, eres un crack",conversacion,conversacion,0.998787,conversacion,modelo,true,true
+P157,cuanto gaste con la tarjeta de credito esta semana,consultar_datos,consultar_datos,0.982376,consultar_datos,modelo,true,true
+P034,"tengo una prima de 1 millon, la meto a un cdt o abono a la deuda?",pedir_consejo,simular_escenario,0.826820,pedir_consejo,regla:decision,false,true
+P141,con lo que gano puedo pagar un credito de libre inversion de 3 millones?,simular_escenario,aprender_concepto,0.459770,simular_escenario,regla:puedo pagar,false,true
+P187,Cómo voy con mi meta de ahorro?,consultar_datos,consultar_datos,0.746796,consultar_datos,modelo,true,true
+P085,buenos dias,conversacion,conversacion,0.968675,conversacion,modelo,true,true
+P195,Puedo invertir con poco dinero?,pedir_consejo,pedir_consejo,0.800953,pedir_consejo,modelo,true,true
+P066,En q se me esta yendo mas dinero y cuanto he gastado en total?,consultar_datos,consultar_datos,0.999266,consultar_datos,modelo,true,true
+P133,que es la retencion en la fuente,aprender_concepto,aprender_concepto,0.964707,aprender_concepto,regla:concepto,true,true
+P137,cuanto me falta ahorrar para tener 3 meses de gastos guardados,simular_escenario,consultar_datos,0.586807,consultar_datos,modelo,false,false
+P126,"Si establezco una meta, poder saber de acuerdo a mis gastos e ingresos constantes, como puedo lograrla",pedir_consejo,ayuda_app,0.484732,ayuda_app,modelo,false,false
+P172,Ahorro,aprender_concepto,aprender_concepto,0.512690,aprender_concepto,modelo,true,true
+P116,cuanto deberia ganar para que me aprueben un credito de 10 millones,simular_escenario,simular_escenario,0.851139,pedir_consejo,regla:decision,true,false
+P075,¿Mis datos están seguros en la app?,ayuda_app,ayuda_app,0.997975,ayuda_app,modelo,true,true
+P196,Qué pasa si pago tarde una deuda?,aprender_concepto,pedir_consejo,0.348375,pedir_consejo,baja_confianza,false,false
+P028,que es un cdt y como funciona,aprender_concepto,aprender_concepto,0.825167,aprender_concepto,regla:concepto,true,true
+P204,Cómo organizo mi plata si tengo ingresos variables?,pedir_consejo,pedir_consejo,0.870650,pedir_consejo,regla:distribucion,true,true
+P035,"gracias parce, me sirvio",conversacion,conversacion,0.991604,conversacion,modelo,true,true
+P054,"¿Qué me conviene más con mi plata: pagar la tarjeta, ahorrar o invertir?",pedir_consejo,pedir_consejo,0.999958,pedir_consejo,regla:decision,true,true
+P192,Cuánto me falta ahorrar?,consultar_datos,simular_escenario,0.639528,simular_escenario,modelo,false,false
+P107,¿Puedo cumplir la meta del viaje y abonar al crédito el mismo mes?,simular_escenario,consultar_datos,0.491971,consultar_datos,modelo,false,false
+P005,Deberia invertir una parte de mi dinero en un cdt ?,pedir_consejo,pedir_consejo,0.934975,pedir_consejo,regla:decision,true,true
+P109,"estoy reportado en datacredito, que hago para salir",pedir_consejo,pedir_consejo,0.965561,pedir_consejo,regla:decision,true,true
+P030,que puedes hacer por mi?,ayuda_app,ayuda_app,0.977055,ayuda_app,modelo,true,true
+P015,Me puedes dar un resumen rápido de mi estado financiero actual y generar una alerta cuando esté cerca de superar mi límite de presupuesto diario?,ayuda_app,ayuda_app,0.421327,pedir_consejo,regla:distribucion,true,false
+P086,¿Cuánto me queda libre al mes después de pagar la cuota de la tarjeta?,consultar_datos,simular_escenario,0.534906,simular_escenario,modelo,false,false
+P189,Cómo ahorro si gano poquito?,pedir_consejo,simular_escenario,0.555084,simular_escenario,modelo,false,false
+P072,con mis gastos de este mes me conviene pagar la tarjeta a una cuota o diferir,simular_escenario,pedir_consejo,0.942048,pedir_consejo,regla:decision,false,false
+P150,¿Qué opinas de las criptomonedas?,aprender_concepto,aprender_concepto,0.934815,aprender_concepto,modelo,true,true
+P122,¿Cuánto gasté en cuotas de crédito el mes pasado?,consultar_datos,consultar_datos,0.981932,consultar_datos,modelo,true,true
+P162,¿Me conviene pausar la meta de ahorro para pagar la tarjeta?,pedir_consejo,pedir_consejo,0.987615,pedir_consejo,regla:decision,true,true
+P215,Qué pasa si solo pago el mínimo de la tarjeta?,simular_escenario,pedir_consejo,0.428368,pedir_consejo,baja_confianza,false,false
+P044,Planificación,aprender_concepto,aprender_concepto,0.673514,aprender_concepto,modelo,true,true
+P019,¿Me puede indicar si con el ingreso que recibo de mi actividad económica puedo sacar un crédito con una entidad financiera?,simular_escenario,ayuda_app,0.431626,pedir_consejo,baja_confianza,false,false
+P071,con mis gastos fijos puedo independizarme y pagar arriendo?,simular_escenario,pedir_consejo,0.807370,pedir_consejo,modelo,false,false
+P056,cuanto seria lo maximo que podria pedir prestado sin ahogarme,simular_escenario,simular_escenario,0.357403,pedir_consejo,baja_confianza,true,false
+P093,Inversiones en fondos,aprender_concepto,aprender_concepto,0.741881,aprender_concepto,modelo,true,true
+P098,como funciona un leasing,aprender_concepto,aprender_concepto,0.762832,aprender_concepto,regla:concepto,true,true
+P042,Cumplimiento de meta de ahorro,aprender_concepto,consultar_datos,0.662979,consultar_datos,modelo,false,false
+P097,a este ritmo cuando termino de pagar la tarjeta,simular_escenario,consultar_datos,0.446236,pedir_consejo,baja_confianza,false,false
+P120,¿Cuánto está el dólar hoy?,conversacion,consultar_datos,0.863221,consultar_datos,modelo,false,false
+P180,"Cómo debería distribuir mis ingresos entre gastos necesarios, ahorro y entretenimiento?",pedir_consejo,consultar_datos,0.504672,pedir_consejo,regla:distribucion,false,true
+P174,Cómo aprender a ahorrar,pedir_consejo,aprender_concepto,0.460560,aprender_concepto,modelo,false,false
+P026,con lo que me sobra cada mes cuanto podria meter en un cdt,simular_escenario,simular_escenario,0.762722,simular_escenario,modelo,true,true
+P200,Cómo evito comprar por impulso?,pedir_consejo,pedir_consejo,0.829971,pedir_consejo,modelo,true,true
+P163,que diferencia hay entre una tarjeta debito y una de credito,aprender_concepto,aprender_concepto,0.982265,aprender_concepto,modelo,true,true
+P077,cuanto me falta para la meta si le meto la prima de diciembre,simular_escenario,consultar_datos,0.801818,consultar_datos,modelo,false,false
+P061,¿Estoy gastando demasiado en relación con lo que gano?,consultar_datos,pedir_consejo,0.947369,pedir_consejo,modelo,false,false
+P220,Cómo puedo mejorar mi historial crediticio?,pedir_consejo,ayuda_app,0.577844,ayuda_app,modelo,false,false
+P018,¿Qué rentabilidad puedo obtener si abro una cuenta de ahorros con un banco?,simular_escenario,aprender_concepto,0.416661,pedir_consejo,baja_confianza,false,false
+P052,si recorto lo que gasto en domicilios cuanto mas rapido cumplo mi meta,simular_escenario,consultar_datos,0.514748,simular_escenario,regla:si recorto,false,true
+P152,si ahorro el 15% en vez del 5% cuanto antes llego a la meta,simular_escenario,simular_escenario,0.863142,simular_escenario,regla:si ahorro,true,true
+P096,con mis ingresos de freelance me daria un banco un credito de vivienda?,simular_escenario,pedir_consejo,0.523920,pedir_consejo,modelo,false,false
+P078,que es el reporte en datacredito y como me afecta,aprender_concepto,ayuda_app,0.387841,aprender_concepto,regla:concepto,false,true
+P146,¿Cuánto me sobra al mes para invertir después de mis gastos fijos?,consultar_datos,consultar_datos,0.533286,consultar_datos,modelo,true,true
+P021,Cuanto gasto en servicios mensualmente,consultar_datos,consultar_datos,0.749029,consultar_datos,modelo,true,true
+P100,eres una persona o un bot?,conversacion,conversacion,0.859894,conversacion,modelo,true,true
+P032,si dejo lo de la meta en una cuenta que pague intereses llego mas rapido?,simular_escenario,simular_escenario,0.459471,simular_escenario,modelo,true,true
+P142,si abro un cdt con lo de la meta del carro cuanto tendria en un año,simular_escenario,simular_escenario,0.961185,simular_escenario,modelo,true,true
+P121,¿Qué porcentaje de lo que gano se me va en deudas?,consultar_datos,aprender_concepto,0.687659,aprender_concepto,modelo,false,false
+P012,Qué porcentaje de mi meta de ahorro mensual llevo completado hasta la fecha y cuánto me falta para alcanzarla?,consultar_datos,consultar_datos,0.707641,consultar_datos,modelo,true,true
+P070,"Ayudame a organizar mis gastos, controlar mis compras y ahorrar dinero sin dejar de darme mis gustos personales",ayuda_app,pedir_consejo,0.967925,pedir_consejo,modelo,false,false
+P198,Cómo ahorro para viajar?,pedir_consejo,pedir_consejo,0.808536,pedir_consejo,modelo,true,true
+P091,Cuanto me gasto al mes y en qué me lo gasto,consultar_datos,consultar_datos,0.878029,consultar_datos,modelo,true,true
+P094,Donde puedo poner mi dinero para generar rentabilidad,pedir_consejo,pedir_consejo,0.370388,pedir_consejo,baja_confianza,true,true
+P025,Como puedo conseguir un ingreso estra,pedir_consejo,ayuda_app,0.819563,ayuda_app,modelo,false,false
+P101,cuanto gasto en intereses de la tarjeta cada mes,consultar_datos,consultar_datos,0.925063,consultar_datos,modelo,true,true
+P202,Cuánto debería guardar al mes?,pedir_consejo,simular_escenario,0.574461,pedir_consejo,regla:decision,false,true
+P211,Cuánto gasté en ropa este mes?,consultar_datos,consultar_datos,0.998701,consultar_datos,modelo,true,true
+P089,"tengo dos tarjetas, cual pago primero",pedir_consejo,consultar_datos,0.709779,consultar_datos,modelo,false,false
+P201,Cuánto gasté en transporte?,consultar_datos,consultar_datos,0.969810,consultar_datos,modelo,true,true
+P040,La edad interfiere si quiero ahorrar,aprender_concepto,aprender_concepto,0.438110,pedir_consejo,baja_confianza,true,false
+P186,Cuánto gasté hoy?,consultar_datos,consultar_datos,0.998494,consultar_datos,modelo,true,true
+P090,¿Me puedes recordar cuando tengo que pagar la tarjeta?,ayuda_app,pedir_consejo,0.329899,pedir_consejo,baja_confianza,false,false
+P205,Cómo funciona una tarjeta de crédito?,aprender_concepto,aprender_concepto,0.719748,aprender_concepto,regla:concepto,true,true
+P183,No entiendo muy bien cómo funciona la inflación y por qué dicen que hace que la plata pierda valor,aprender_concepto,aprender_concepto,0.839331,aprender_concepto,regla:concepto,true,true
+P041,Variación en mis gastos mensuales,aprender_concepto,consultar_datos,0.897640,consultar_datos,modelo,false,false
+P002,Cuanto tengo que ingresar en la meta para completarla a final de año ?,simular_escenario,consultar_datos,0.825017,consultar_datos,modelo,false,false
+P074,con mis ingresos es realista pensar en comprar carro en 3 años?,simular_escenario,pedir_consejo,0.734185,pedir_consejo,modelo,false,false
+P155,me puedes hablar mas informal?,conversacion,ayuda_app,0.785330,ayuda_app,modelo,false,false
+P118,como funcionan las acciones y si se puede invertir con poquita plata,aprender_concepto,pedir_consejo,0.481412,pedir_consejo,modelo,false,false
+P059,vale la pena sacar una tarjeta de credito si ya me cuesta llegar a fin de mes,pedir_consejo,pedir_consejo,0.875180,pedir_consejo,regla:decision,true,true
+P111,si saco un cdt con mis ahorros me queda plata para emergencias?,simular_escenario,pedir_consejo,0.804710,pedir_consejo,modelo,false,false
+P208,Qué es un fondo de emergencia?,aprender_concepto,aprender_concepto,0.833801,aprender_concepto,regla:concepto,true,true
+P184,Qué porcentaje de mis ingresos sería recomendable destinar al ahorro si también tengo gastos fijos todos los meses?,pedir_consejo,aprender_concepto,0.344976,pedir_consejo,regla:distribucion,false,true
+P171,Cuánto gasto,consultar_datos,consultar_datos,0.929205,consultar_datos,modelo,true,true
+P188,Qué es la rentabilidad de una inversión?,aprender_concepto,aprender_concepto,0.938053,aprender_concepto,regla:concepto,true,true
+P053,¿Qué me pasa si solo pago el mínimo de la tarjeta?,simular_escenario,pedir_consejo,0.458095,pedir_consejo,modelo,false,false
+P148,¿Cómo funciona el interés compuesto?,aprender_concepto,aprender_concepto,0.577030,aprender_concepto,regla:concepto,true,true
+P218,Qué es un CDT?,aprender_concepto,aprender_concepto,0.878630,aprender_concepto,regla:concepto,true,true
+P159,¿Qué hago si no me alcanza para la cuota del crédito este mes?,pedir_consejo,simular_escenario,0.971812,simular_escenario,regla:me alcanza,false,false
+P134,¿Es mejor ahorrar para el carro o sacarlo financiado?,pedir_consejo,pedir_consejo,0.465138,pedir_consejo,regla:decision,true,true
+P062,"Si ahorro el 10% de lo que gano, ¿en cuánto tiempo junto la cuota inicial de un apartamento?",simular_escenario,simular_escenario,0.985146,simular_escenario,regla:si ahorro,true,true
+P058,que diferencia hay entre un credito de libre inversion y uno de consumo,aprender_concepto,aprender_concepto,0.996354,aprender_concepto,modelo,true,true
+P024,Como hscer alcanzar la plata,pedir_consejo,pedir_consejo,0.554143,pedir_consejo,modelo,true,true
+P008,Como funciona exactamente una cuenta de ahorros?,aprender_concepto,aprender_concepto,0.803022,aprender_concepto,regla:concepto,true,true
+P009,Como hacer un ahorro mejor basado en mi vida cotidiana,pedir_consejo,pedir_consejo,0.385843,pedir_consejo,baja_confianza,true,true
+P112,si dejo de diferir compras cuanto ahorro al mes,simular_escenario,simular_escenario,0.992058,simular_escenario,modelo,true,true
+P156,cuanto me descuentan de intereses si pago la tarjeta antes,aprender_concepto,simular_escenario,0.512354,simular_escenario,modelo,false,false
+P023,Que es inversion,aprender_concepto,aprender_concepto,0.975419,aprender_concepto,regla:concepto,true,true
+P144,¿Me conviene más pagar arriendo o sacar un crédito de vivienda?,pedir_consejo,pedir_consejo,0.999172,pedir_consejo,regla:decision,true,true
+P217,Cómo ahorro para emergencias?,pedir_consejo,pedir_consejo,0.621645,pedir_consejo,modelo,true,true
+P178,Qué es el interés compuesto y cómo funciona cuando invierto dinero?,aprender_concepto,aprender_concepto,0.805930,aprender_concepto,regla:concepto,true,true
+P027,ahorrando lo que ahorro ahora llego a comprar un portatil en diciembre?,simular_escenario,simular_escenario,0.634945,simular_escenario,regla:llego a,true,true
+P193,Qué es la inflación?,aprender_concepto,aprender_concepto,0.936954,aprender_concepto,regla:concepto,true,true
+P036,Quisiera saber como puedo distribuir mis gastos sin llegar al final de mes desfasada,pedir_consejo,ayuda_app,0.328310,pedir_consejo,regla:distribucion,false,true
+P060,me ayudas a declarar renta?,ayuda_app,pedir_consejo,0.797993,pedir_consejo,modelo,false,false
+P065,jajaja estoy en la quiebra,conversacion,conversacion,0.506889,conversacion,modelo,true,true
+P073,como funcionan los intereses cuando difiero una compra a cuotas,aprender_concepto,aprender_concepto,0.449592,pedir_consejo,baja_confianza,true,false
+P194,Cómo gasto menos?,pedir_consejo,ayuda_app,0.573725,ayuda_app,modelo,false,false
+P007,La semana pasada cuanto dinero registré?,consultar_datos,consultar_datos,0.954990,consultar_datos,modelo,true,true
+P029,¿Me conviene más un CDT o dejar la plata en la cuenta de ahorros?,pedir_consejo,pedir_consejo,0.993859,pedir_consejo,regla:decision,true,true
+P168,¿Qué es diversificar una inversión?,aprender_concepto,aprender_concepto,0.821165,aprender_concepto,regla:concepto,true,true

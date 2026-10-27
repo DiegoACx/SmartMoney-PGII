@@ -625,3 +625,115 @@ Deno.test("decidirIntencion coincide con el manejador en los casos de reglas hí
     );
   }
 });
+
+// --- Casos reales del piloto: seguimiento y distribución ---------------------
+
+Deno.test("caso B: 'para que miro eso ?' con respuesta reciente va a seguimiento", async () => {
+  const consultas: (string | undefined)[] = [];
+  const { repositorio, mensajes } = repoCaptura({
+    ultimoMensajeAsistente: (_usuarioId, desdeIso) => {
+      consultas.push(desdeIso);
+      return Promise.resolve(ANTERIOR_SEGUIMIENTO);
+    },
+  });
+  let modeloConsultado = false;
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "para que miro eso ?" }),
+    deps({
+      repositorio,
+      clasificarIntencion: () => {
+        modeloConsultado = true;
+        return { intencion: "aprender_concepto", confianza: 0.9 };
+      },
+    }),
+  );
+  assertEquals(res.status, 200);
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "conversacion");
+  assertEquals(modeloConsultado, false);
+  assert(String(mensajes[0].motivo).startsWith("regla:seguimiento|"), String(mensajes[0].motivo));
+  // La primera consulta pide solo respuestas de los últimos 30 minutos.
+  assertEquals(consultas[0], new Date("2026-10-21T14:30:00Z").toISOString());
+  // Sin Gemini, la plantilla repite la explicación anterior (no "no tengo información").
+  assert(String(salida["respuesta"]).includes(ANTERIOR_SEGUIMIENTO));
+});
+
+Deno.test("caso B: sin respuesta reciente, 'para que miro eso' no es seguimiento", () => {
+  const sinContexto = decidirIntencion(
+    "para que miro eso ?",
+    () => ({ intencion: "aprender_concepto", confianza: 0.9 }),
+  );
+  assertEquals(sinContexto.origen, "modelo");
+  const conContexto = decidirIntencion(
+    "para que miro eso ?",
+    () => ({ intencion: "aprender_concepto", confianza: 0.9 }),
+    { hayAsistenteReciente: true },
+  );
+  assertEquals(conContexto.intencion, "conversacion");
+  assertEquals(conContexto.origen, "regla:seguimiento");
+});
+
+Deno.test("seguimiento: una pregunta corta que nombra un concepto NO es seguimiento", () => {
+  const decision = decidirIntencion(
+    "para que sirve un cdt",
+    () => ({ intencion: "aprender_concepto", confianza: 0.9 }),
+    { hayAsistenteReciente: true },
+  );
+  assertEquals(decision.intencion, "aprender_concepto");
+  assertEquals(decision.origen, "regla:concepto");
+});
+
+Deno.test("regla distribucion: casos C y D van a pedir_consejo; simulación y consulta no", () => {
+  const modelo = () => ({ intencion: "aprender_concepto" as const, confianza: 0.9 });
+  for (const mensaje of [
+    "como deberia dividir mi dinero, que deberia ir a cada punto ?",
+    "pero cuanto para cada cosa ? que porcentaje?",
+    "y como seria un buen plan para administrar mis 300 en todo el mes ?",
+  ]) {
+    const d = decidirIntencion(mensaje, modelo);
+    assertEquals(d.intencion, "pedir_consejo", mensaje);
+    assertEquals(d.origen, "regla:distribucion", mensaje);
+  }
+  assertEquals(
+    decidirIntencion("si ahorro el 15% en vez del 5% cuanto antes llego a la meta", modelo).origen,
+    "regla:si ahorro",
+  );
+  assertNotEquals(
+    decidirIntencion("¿Qué porcentaje de lo que gano se me va en deudas?", modelo).origen,
+    "regla:distribucion",
+  );
+});
+
+Deno.test("caso D: la respuesta final no trae palabras pegadas por un salto de línea", async () => {
+  const { repositorio } = repoCaptura({
+    leerTransacciones: (_u, desde, hasta, tipo) =>
+      Promise.resolve(
+        tipo === "ingreso"
+          ? [{ categoria_id: null, tipo: "ingreso" as const, monto: 1_000_000, fecha: "2026-09-10" }]
+              .filter((f) => f.fecha >= desde && f.fecha <= hasta)
+          : [],
+      ),
+  });
+  const texto =
+    "Con tus $300.000 puedes armar un plan sencillo.\n\n- **Necesidades (50 %): $150.000**\n- **Gustos (30 %): $90.000**\n- **Ahorro (20 %): $60.000**\n\nEs una referencia general, no una regla fija y se logra con constancia y buenos\nhábitos.";
+  const res = await manejarPeticion(
+    peticionPost({ mensaje: "y como seria un buen plan para administrar mis 300 en todo el mes ?" }),
+    deps({
+      repositorio,
+      claveLLM: "clave-prueba",
+      fetchFn: (() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        )) as unknown as typeof fetch,
+    }),
+  );
+  const salida = await cuerpo(res);
+  assertEquals(salida["intencion"], "pedir_consejo");
+  const respuesta = String(salida["respuesta"]);
+  assert(respuesta.includes("buenos hábitos"), respuesta);
+  assert(!respuesta.includes("buenoshábitos"), respuesta);
+  assert(!/DIAN/.test(respuesta), respuesta);
+});

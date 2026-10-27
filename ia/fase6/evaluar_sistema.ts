@@ -35,7 +35,12 @@ const CARPETA = new URL("./", import.meta.url);
 const ARCHIVO_A = new URL("para_etiquetar_A.csv", CARPETA);
 const ARCHIVO_B = new URL("para_etiquetar_B.csv", CARPETA);
 const ARCHIVO_DESACUERDOS = new URL("resolucion_desacuerdos.csv", CARPETA);
-const ARCHIVO_SALIDA = new URL("resultados_sistema.csv", CARPETA);
+/**
+ * CSV de salida. Por defecto ia/fase6/resultados_sistema.csv; se puede pasar
+ * otro nombre (relativo a ia/fase6/) como primer argumento, por ejemplo:
+ *   deno run --allow-read --allow-write ia/fase6/evaluar_sistema.ts resultados_sistema_v2.csv
+ */
+const ARCHIVO_SALIDA = new URL(Deno.args[0] ?? "resultados_sistema.csv", CARPETA);
 
 /** Total esperado de preguntas evaluadas. */
 const TOTAL_ESPERADO = 216;

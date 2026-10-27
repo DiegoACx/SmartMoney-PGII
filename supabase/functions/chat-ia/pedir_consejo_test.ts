@@ -9,7 +9,15 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
 
 import type { ClasificadorGrupos } from "./clasificadores.ts";
-import { AVISO_CONSEJO, responderConsejo } from "./pedir_consejo.ts";
+import { formatearCOP } from "../_shared/gemini.ts";
+import type { PerfilFinanciero } from "./perfil_financiero.ts";
+import {
+  AVISO_CONSEJO,
+  baseMencionada,
+  calcularDistribucion,
+  esDistribucion,
+  responderConsejo,
+} from "./pedir_consejo.ts";
 import type {
   FilaAporte,
   FilaCategoria,
@@ -387,4 +395,213 @@ Deno.test("consejo: un hallazgo de lección sugerida ofrece abrir la lección", 
   );
 
   assertEquals(resultado.accion, { tipo: "abrir_leccion", escalon_id: "e12" });
+});
+
+// --- Casos reales del piloto (pruebas de Juanjo) -----------------------------
+
+const CASO_A =
+  "estoy pensando en invertir en un cdt, en cual me recomiendas comenzar a invertir?";
+const CASO_C1 = "como deberia dividir mi dinero, que deberia ir a cada punto ?";
+const CASO_C2 = "pero cuanto para cada cosa ? que porcentaje?";
+const CASO_D = "y como seria un buen plan para administrar mis 300 en todo el mes ?";
+
+/** Repositorio con ingreso 2.000.000 y gastos en comidas y transporte. */
+function repoPositivo(): RepositorioChat {
+  return repoConsejo({
+    transacciones: [...INGRESOS_POSITIVOS, ...EGRESOS],
+    aportes: APORTES,
+    metas: METAS,
+  });
+}
+
+Deno.test("caso A sin Gemini: habla del CDT y no recomienda entidades", async () => {
+  const r = await responderConsejo(CASO_A, "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde("no se usa"),
+    claveLLM: null,
+  }, AHORA);
+  assertEquals(r.origen, "plantilla");
+  assert(r.respuesta.includes("CDT"), r.respuesta);
+  assert(r.respuesta.includes("no te puedo recomendar una entidad"), r.respuesta);
+  assert(r.respuesta.includes("tasa efectiva anual"), r.respuesta);
+  assert(r.respuesta.includes("Superintendencia Financiera"), r.respuesta);
+  // Ya no responde con los "pasos con el mayor gasto" ignorando la pregunta.
+  assert(!r.respuesta.includes("Dos pasos concretos"), r.respuesta);
+  assert(!/DIAN/.test(r.respuesta), r.respuesta);
+});
+
+Deno.test("caso A con Gemini: el prompt lleva la pregunta y el tema CDT", async () => {
+  const capturado: { cuerpo?: string } = {};
+  const texto =
+    "Un CDT puede servirte si la plata que inviertes no la vas a necesitar pronto.\n\n- Compara la **tasa efectiva anual** y el plazo.\n- Revisa que la entidad esté vigilada.\n\nAsí eliges con criterio.";
+  const r = await responderConsejo(CASO_A, "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueCaptura(texto, capturado),
+    claveLLM: "clave",
+  }, AHORA);
+  assertEquals(r.origen, "llm");
+  const cuerpo = capturado.cuerpo ?? "";
+  assert(cuerpo.includes("responde a esto primero"), cuerpo);
+  assert(cuerpo.includes("Tema de la pregunta: CDT"), cuerpo);
+  assert(cuerpo.includes("Nunca nombres bancos"), cuerpo);
+});
+
+Deno.test("consejo: si Gemini menciona la DIAN sin que la pidan, cae a la plantilla", async () => {
+  const texto =
+    "Organiza tu plata con calma.\n\n- Ten un fondo de emergencia.\n- Si tienes dudas tributarias, consulta a la DIAN.\n\nVas bien.";
+  const r = await responderConsejo("como puedo ahorrar más?", "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde(texto),
+    claveLLM: "clave",
+  }, AHORA);
+  assertEquals(r.origen, "plantilla");
+  assertEquals(r.motivo, "consejo:validacion:tema_no_pedido");
+  assert(!/DIAN/.test(r.respuesta), r.respuesta);
+});
+
+Deno.test("consejo: si el usuario pregunta por impuestos, Gemini sí puede nombrar la DIAN", async () => {
+  const texto =
+    "Para saber si debes declarar, revisa los topes del año.\n\n- Consulta la DIAN o a un contador.\n\nAsí sales de dudas.";
+  const r = await responderConsejo("tengo dudas con los impuestos, que hago?", "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde(texto),
+    claveLLM: "clave",
+  }, AHORA);
+  assertEquals(r.origen, "llm");
+});
+
+Deno.test("esDistribucion: captura el reparto y no roba simulaciones ni consultas", () => {
+  for (const sí of [CASO_C1, CASO_C2, CASO_D, "como reparto mi sueldo", "ayudame con un presupuesto"]) {
+    assert(esDistribucion(sí), sí);
+  }
+  for (const no of [
+    "si ahorro el 15% en vez del 5% cuanto antes llego a la meta",
+    "¿Qué porcentaje de lo que gano se me va en deudas?",
+    "Administrar en porcentajes",
+    "Plan de ahorro",
+    "cuanto gaste en comida",
+  ]) {
+    assert(!esDistribucion(no), no);
+  }
+});
+
+Deno.test("baseMencionada: 'mis 300' son $300.000 y un monto absurdo se ignora", () => {
+  assertEquals(baseMencionada(CASO_D, 2_000_000), 300_000);
+  assertEquals(baseMencionada("tengo 1.200.000 para el mes", 2_000_000), 1_200_000);
+  assertEquals(baseMencionada(CASO_C1, 2_000_000), null);
+  assertEquals(baseMencionada("reparto 900 millones", 2_000_000), null);
+});
+
+Deno.test("calcularDistribucion: 50/30/20 sobre el ingreso y ajuste si las necesidades pasan del 50 %", () => {
+  const perfil: PerfilFinanciero = {
+    ingreso_mensual: 1_000_000,
+    gasto_mensual: 800_000,
+    gasto_trabajo_mensual: 0,
+    excedente_mensual: 200_000,
+    ahorro_mensual: 0,
+    // Mercado (1) y Transporte (7) son necesidades; Comidas fuera (11), gusto.
+    gasto_mensual_por_grupo: new Map([[1, 500_000], [7, 200_000], [11, 100_000]]),
+    metas: [],
+    historial_insuficiente: false,
+  };
+  const dist = calcularDistribucion(perfil, CASO_C1);
+  assertEquals(dist.base, 1_000_000);
+  assertEquals(dist.origen_base, "ingreso");
+  assertEquals(dist.partes.map((p) => [p.nombre, p.porcentaje, p.monto]), [
+    ["Necesidades", 50, 500_000],
+    ["Gustos", 30, 300_000],
+    ["Ahorro", 20, 200_000],
+  ]);
+  assertEquals(dist.necesidades_actual_pct, 70);
+  assertEquals(dist.ajuste, { necesidades: 70, gustos: 20, ahorro: 10 });
+});
+
+Deno.test("caso C sin Gemini: responde con porcentajes y montos calculados", async () => {
+  for (const mensaje of [CASO_C1, CASO_C2]) {
+    const r = await responderConsejo(mensaje, "u1", {
+      repositorio: repoPositivo(),
+      grupos: gruposFalsos(),
+      fetchFn: fetchQueResponde("no se usa"),
+      claveLLM: null,
+    }, AHORA);
+    assertEquals(r.origen, "plantilla");
+    assert(r.motivo.startsWith("consejo:distribucion"), r.motivo);
+    // Ingreso de 2.000.000 → 1.000.000 / 600.000 / 400.000.
+    assert(r.respuesta.includes(`Necesidades (50 %): ${formatearCOP(1_000_000)}`), r.respuesta);
+    assert(r.respuesta.includes(`Gustos (30 %): ${formatearCOP(600_000)}`), r.respuesta);
+    assert(r.respuesta.includes(`Ahorro (20 %): ${formatearCOP(400_000)}`), r.respuesta);
+    assert(r.respuesta.includes("referencia general"), r.respuesta);
+    assertEquals(r.aviso, AVISO_CONSEJO);
+  }
+});
+
+Deno.test("caso C con Gemini: si omite una cifra calculada cae a la plantilla", async () => {
+  const sinAhorro =
+    "Te propongo repartir así.\n\n- **Necesidades (50 %): $1.000.000**\n- **Gustos (30 %): $600.000**\n\nEs una referencia general.";
+  const r = await responderConsejo(CASO_C1, "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde(sinAhorro),
+    claveLLM: "clave",
+  }, AHORA);
+  assertEquals(r.origen, "plantilla");
+  assertEquals(r.motivo, "consejo:distribucion:validacion:falta_cifra_obligatoria");
+
+  const completo =
+    "Así podrías repartir tu ingreso.\n\n- **Necesidades (50 %): $1.000.000**\n- **Gustos (30 %): $600.000**\n- **Ahorro (20 %): $400.000**\n\nEs una referencia general, no una regla fija.";
+  const ok = await responderConsejo(CASO_C1, "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde(completo),
+    claveLLM: "clave",
+  }, AHORA);
+  assertEquals(ok.origen, "llm");
+  assertEquals(ok.motivo, "consejo:distribucion");
+});
+
+Deno.test("caso D sin Gemini: reparte los $300.000 que menciona y no habla de la DIAN", async () => {
+  const r = await responderConsejo(CASO_D, "u1", {
+    repositorio: repoPositivo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde("no se usa"),
+    claveLLM: null,
+  }, AHORA);
+  assert(r.respuesta.includes(formatearCOP(300_000)), r.respuesta);
+  assert(r.respuesta.includes(`Necesidades (50 %): ${formatearCOP(150_000)}`), r.respuesta);
+  assert(r.respuesta.includes(`Gustos (30 %): ${formatearCOP(90_000)}`), r.respuesta);
+  assert(r.respuesta.includes(`Ahorro (20 %): ${formatearCOP(60_000)}`), r.respuesta);
+  assert(!/DIAN|impuesto/i.test(r.respuesta), r.respuesta);
+});
+
+Deno.test("distribución con gastos por encima de los ingresos: primero equilibrar", async () => {
+  const r = await responderConsejo(CASO_C1, "u1", {
+    repositorio: repoExcedenteNegativo(),
+    grupos: gruposFalsos(),
+    fetchFn: fetchQueResponde("no se usa"),
+    claveLLM: null,
+  }, AHORA);
+  assert(r.respuesta.startsWith("Antes de repartir"), r.respuesta);
+  assert(r.respuesta.includes("lo primero es equilibrar"), r.respuesta);
+});
+
+Deno.test("calcularDistribucion: si las necesidades se comen casi todo el ingreso no propone reparto", () => {
+  const perfil: PerfilFinanciero = {
+    ingreso_mensual: 413_527,
+    gasto_mensual: 494_444,
+    gasto_trabajo_mensual: 0,
+    excedente_mensual: -80_917,
+    ahorro_mensual: 0,
+    gasto_mensual_por_grupo: new Map([[1, 222_000], [6, 200_000], [11, 41_000]]),
+    metas: [],
+    historial_insuficiente: false,
+  };
+  const dist = calcularDistribucion(perfil, "como divido mi plata");
+  assertEquals(dist.necesidades_criticas, true);
+  assertEquals(dist.ajuste, null);
+  // Montos a miles cerrados: 413.527 → 207.000 / 124.000 / 83.000.
+  assertEquals(dist.partes.map((p) => p.monto), [207_000, 124_000, 83_000]);
 });

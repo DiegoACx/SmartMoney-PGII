@@ -25,11 +25,11 @@ import {
   type ClasificacionIntencion,
 } from "./clasificadores.ts";
 import { responderConsultaDatos } from "./consultar_datos.ts";
-import { responderConversacion } from "./conversacion.ts";
+import { esSeguimientoCorto, responderConversacion } from "./conversacion.ts";
 import { RE_DECISION } from "./decision.ts";
 import { responderFaq } from "./faq.ts";
 import { responderAprendizaje } from "./aprender_concepto.ts";
-import { responderConsejo } from "./pedir_consejo.ts";
+import { RE_DISTRIBUCION, responderConsejo } from "./pedir_consejo.ts";
 import { hoyEnBogota, inicioDelDiaBogota, sumarDias } from "./fechas.ts";
 import { minusculasSinTildes } from "./montos.ts";
 import { ocultarDatosPersonales } from "./privacidad.ts";
@@ -46,6 +46,12 @@ import type {
 
 /** Longitud máxima del mensaje del usuario (tras trim). */
 export const LARGO_MAXIMO_MENSAJE = 500;
+
+/**
+ * Ventana (minutos) en la que una respuesta del asistente cuenta como
+ * "reciente" para tratar un mensaje corto como seguimiento.
+ */
+export const MINUTOS_SEGUIMIENTO = 30;
 
 /** Mensajes del usuario permitidos por día (hora de Colombia). */
 export const MAX_MENSAJES_POR_DIA = 40;
@@ -252,20 +258,51 @@ const REGLAS_CONCEPTO_Y_DECISION: ReglaIntencion[] = [
   },
 ];
 
-const REGLAS_INTENCION: ReglaIntencion[] = [
-  ...REGLAS_SIMULACION,
-  ...REGLAS_CONCEPTO_Y_DECISION,
+/**
+ * Distribución del dinero ("¿cómo divido mi plata?", "¿qué porcentaje para
+ * cada cosa?"): va a pedir_consejo, donde el código calcula la referencia
+ * 50/30/20. Se evalúa DESPUÉS de la simulación ("si ahorro el 15 %" sigue
+ * siendo simulación) y ANTES de la decisión ("¿cómo debería dividir…?" tiene
+ * "debería", pero lo que pide es el reparto).
+ */
+const REGLAS_DISTRIBUCION: ReglaIntencion[] = [
+  {
+    nombre: "distribucion",
+    intencion: "pedir_consejo",
+    regex: RE_DISTRIBUCION,
+  },
 ];
+
+/** Contexto de la conversación que algunas reglas necesitan. */
+export interface OpcionesRegla {
+  /**
+   * true si el asistente respondió hace poco (MINUTOS_SEGUIMIENTO). Sin él, la
+   * regla de seguimiento nunca aplica (así se evalúa fuera del servidor).
+   */
+  hayAsistenteReciente?: boolean;
+}
 
 /**
  * Regla que fija la intención, o null si ninguna aplica. El texto se normaliza
- * aquí (minúsculas y sin tildes).
+ * aquí (minúsculas y sin tildes). Orden: simulación → seguimiento (solo si hay
+ * respuesta reciente) → distribución → decisión → concepto.
  */
 export function detectarReglaIntencion(
   mensaje: string,
+  opciones: OpcionesRegla = {},
 ): { nombre: string; intencion: Intencion } | null {
   const texto = minusculasSinTildes(mensaje);
-  for (const regla of REGLAS_INTENCION) {
+  for (const regla of REGLAS_SIMULACION) {
+    if (regla.regex.test(texto)) {
+      return { nombre: regla.nombre, intencion: regla.intencion };
+    }
+  }
+  // Seguimiento: una pregunta corta sobre la respuesta anterior ("¿para qué
+  // miro eso?") va a conversacion, que reexplica el último mensaje.
+  if (opciones.hayAsistenteReciente === true && esSeguimientoCorto(mensaje)) {
+    return { nombre: "seguimiento", intencion: "conversacion" };
+  }
+  for (const regla of [...REGLAS_DISTRIBUCION, ...REGLAS_CONCEPTO_Y_DECISION]) {
     if (regla.regex.test(texto)) {
       return { nombre: regla.nombre, intencion: regla.intencion };
     }
@@ -293,8 +330,9 @@ export interface DecisionIntencion {
 export function decidirIntencion(
   mensaje: string,
   clasificar: (texto: string) => ClasificacionIntencion = clasificarIntencionReal,
+  opciones: OpcionesRegla = {},
 ): DecisionIntencion {
-  const regla = detectarReglaIntencion(mensaje);
+  const regla = detectarReglaIntencion(mensaje, opciones);
   if (regla !== null) {
     return {
       intencion: regla.intencion,
@@ -448,7 +486,22 @@ export async function manejarPeticion(
     // Las reglas híbridas van ANTES del modelo: si una aplica, la intención y
     // la confianza no salen del clasificador. Toda esa decisión vive en
     // decidirIntencion (la misma que evalúa ia/fase6/evaluar_sistema.ts).
-    const decision = decidirIntencion(limpio, dependencias.clasificarIntencion);
+    // Solo si el mensaje ya parece un seguimiento se consulta si el asistente
+    // respondió hace poco (una lectura más a la base, no en cada mensaje).
+    let hayAsistenteReciente = false;
+    if (esSeguimientoCorto(limpio)) {
+      const desde = new Date(
+        ahora.getTime() - MINUTOS_SEGUIMIENTO * 60_000,
+      ).toISOString();
+      hayAsistenteReciente =
+        (await dependencias.repositorio.ultimoMensajeAsistente(usuarioId, desde)) !==
+          null;
+    }
+    const decision = decidirIntencion(
+      limpio,
+      dependencias.clasificarIntencion,
+      { hayAsistenteReciente },
+    );
     const intencion = decision.intencion;
     const confianza = decision.confianza;
 
